@@ -6,7 +6,7 @@ Choose an outfit in a separate wardrobe panel, then configure only the options t
 
 ![Wholly fictional wardrobe example](assets/wardrobe.png)
 
-The fictional Moss Fox demonstrates three different groups: trail outfits expose cape and footwear, rain outfits expose hood and raincoat colour, and stargazer outfits expose a visor. Combinations without animation resources cannot be applied.
+The fictional Moss Fox demonstrates three different groups: trail outfits expose cape and footwear, rain outfits expose hood and raincoat colour, and stargazer outfits expose a visor. Combinations without animation resources cannot be applied. The panel follows the host theme, with a dotted preview stage and compact outfit cards. Installed-character previews use local figure thumbnails; the demonstration contains only fictional artwork.
 
 ## Use
 

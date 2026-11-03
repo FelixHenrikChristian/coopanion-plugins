@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh" style="color-scheme:dark;--paper:#111214;--paper-2:#10161d;--sheet:#181c22;--ink:#e6e7eb;--ink-dim:#8c929d;--line:#2a3039;--accent:#c87c5d;--on-accent:#171313">
+<meta charset="utf-8">
+<title>装扮工作室 · 虚构示例</title>
+<link rel="stylesheet" href="/web/style.css">
+<style>
+body{margin:0;padding:24px;background:var(--paper);font:13px/1.5 system-ui,sans-serif;color:var(--ink)}
+nav{max-width:1100px;margin:auto;padding:0 24px 15px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line)}
+nav strong{margin-right:auto;font-weight:600}nav small{color:var(--ink-dim)}
+nav button{padding:7px 4px;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-dim);font:inherit;cursor:pointer}
+nav button[aria-pressed=true]{border-bottom-color:var(--accent);color:var(--ink)}
+@media(max-width:650px){body{padding:12px}nav{padding:0 12px 12px}nav small{display:none}}
+</style>
+<nav><strong>World 扩展 / 装扮工作室</strong><small>虚构角色演示</small><button id="wardrobe">衣橱</button><button id="guide">制作指导</button></nav>
+<main id="root"></main>
+<script type="module">
+import client from '/web/client.js';
+let controller,mounted;
+function mount(panel){
+ controller?.abort();mounted?.dispose();controller=new AbortController();
+ const ctx={root:document.querySelector('#root'),language:'zh',signal:controller.signal,invoke:async(method,args=[])=>{
+   const r=await fetch('/invoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({panel,method,args})});
+   const d=await r.json();if(!r.ok)throw Error(d.error);return d;
+ }};
+ mounted=client.panels[panel].mount(ctx);
+ for(const b of document.querySelectorAll('nav button'))b.setAttribute('aria-pressed',String(b.id===panel));
+}
+document.querySelector('#wardrobe').onclick=()=>mount('wardrobe');
+document.querySelector('#guide').onclick=()=>mount('guide');
+mount('wardrobe');
+</script>
+</html>

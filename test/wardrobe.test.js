@@ -14,11 +14,15 @@ const pack={id:profile.figure,name:{en:'Moss Fox'},axes:[{id:'appearance',option
 const initial={figure:'forest-fox',scheme:'trailleafboots',palette:'mint',head:'none',colors:{main:'#aabbcc'}};
 async function fixture(t){
  const root=await mkdtemp(join(tmpdir(),'wardrobe-test-'));let skin=structuredClone(initial),requests=[];
- const original=join(root,'figures','forest-fox');await mkdir(original,{recursive:true});await writeFile(join(original,'figure.json'),JSON.stringify(pack));
+ const servedPack=structuredClone(pack);servedPack.base='/packs/forest-fox/';for(const o of servedPack.axes[0].options)o.thumb='thumb.svg';
+ const original=join(root,'figures','forest-fox');await mkdir(original,{recursive:true});await writeFile(join(original,'figure.json'),JSON.stringify(servedPack));
  const server=createServer(async(req,res)=>{
    requests.push([req.method,req.url]);let body='';for await(const c of req)body+=c;
    res.setHeader('Content-Type','application/json');
-   if(req.method==='GET'&&req.url==='/api/figures')res.end(JSON.stringify([pack]));
+   if(req.method==='GET'&&req.url==='/api/figures')res.end(JSON.stringify([servedPack]));
+   else if(req.method==='GET'&&req.url==='/packs/forest-fox/thumb.svg'){res.setHeader('Content-Type','image/svg+xml');res.end('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><circle cx="2" cy="2" r="1"/></svg>');}
+   else if(req.method==='GET'&&req.url==='/packs/forest-fox/thumb.bin'){res.setHeader('Content-Type','application/octet-stream');res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jX2kAAAAASUVORK5CYII=','base64'));}
+   else if(req.method==='GET'&&req.url==='/packs/forest-fox/not-image.bin'){res.setHeader('Content-Type','application/octet-stream');res.end('not an image');}
    else if(req.method==='GET'&&req.url==='/api/state')res.end(JSON.stringify({skin,unrelatedPrivateValue:'never-exposed'}));
    else if(req.method==='POST'&&req.url==='/api/skin'){skin=JSON.parse(body).skin;res.end('{"ok":true}');}
    else{res.statusCode=404;res.end('{}');}
@@ -27,7 +31,7 @@ async function fixture(t){
  const base=`http://127.0.0.1:${server.address().port}`;
  const ctx={dataDir:root,cfg:{...DEFAULTS,desktopPetUrl:base}};
  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));const target=resolve(root);assert.equal(dirname(target),resolve(tmpdir()));assert(basename(target).startsWith('wardrobe-test-'));await rm(target,{recursive:true,force:true});});
- return{root,ctx,base,requests,skin:()=>structuredClone(skin),setSkin:s=>{skin=s;},original};
+ return{root,ctx,base,requests,skin:()=>structuredClone(skin),setSkin:s=>{skin=s;},original,pack:servedPack};
 }
 const host={log:{warn(){}}};
 test('outfits expose their own controls and map only legal complete combinations',()=>{
@@ -106,4 +110,24 @@ test('an unavailable desktop retains the recovery journal and reports incomplete
  await world.stop();assert.equal(world.shutdownVerification()[0].status,'unknown');
  assert((await world.store.read('lease.json',null)).before);assert.equal(f.skin().scheme,'rainupgold');
  world.bridge.request=request;await world.restore();assert.deepEqual(f.skin(),initial);
+});
+test('preview images come from the mapped local figure and do not change appearance',async t=>{
+ const f=await fixture(t),world=new WardrobeWorld(f.ctx);await world.start(host);await world.importProfile(example);
+ const image=await world.webUi().invoke('wardrobe','thumbnail',[{profile:profile.id,outfit:'trail',pick:{cape:'leaf',footwear:'boots'}}]);
+ assert.equal(image.$binary.mime,'image/svg+xml');assert.match(Buffer.from(image.$binary.base64,'base64').toString(),/<svg/);
+ assert.deepEqual(f.skin(),initial);assert(f.requests.some(([method,url])=>method==='GET'&&url==='/packs/forest-fox/thumb.svg'));
+});
+test('figure preview paths cannot leave their local pack directory',async t=>{
+ const f=await fixture(t),world=new WardrobeWorld(f.ctx);await world.start(host);await world.importProfile(example);
+ const args={profile:profile.id,outfit:'trail',pick:{cape:'leaf',footwear:'boots'}};
+ for(const file of ['https://outside.invalid/image.png','../../api/state']){
+  f.pack.axes[0].options[0].thumb=file;await assert.rejects(world.thumbnail(args),/Invalid figure preview path/);
+ }
+});
+test('octet-stream raster thumbnails are identified by signature and other bytes rejected',async t=>{
+ const f=await fixture(t),bridge=new PetBridge(f.base);
+ f.pack.axes[0].options[0].thumb='thumb.bin';
+ assert.equal((await bridge.thumbnail(f.pack,'trailleafboots')).$binary.mime,'image/png');
+ f.pack.axes[0].options[0].thumb='not-image.bin';
+ await assert.rejects(bridge.thumbnail(f.pack,'trailleafboots'),/Figure preview unavailable/);
 });

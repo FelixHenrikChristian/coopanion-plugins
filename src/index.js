@@ -50,6 +50,11 @@ export class WardrobeWorld{
     return{...await this.lease.apply(profile.figure,variant.scheme),profile:id,outfit,pick:variant.pick};
   });}
   async restore(){return this.serial(async()=>{const result=await this.lease.restore();this.error=null;this.restoration=result;return result;});}
+  async thumbnail({profile:id,outfit,pick={}}){
+    const profile=this.profiles.find(p=>p.id===id);if(!profile)throw Error('Unknown local wardrobe profile');
+    const variant=selectVariant(outfitOf(profile,outfit),pick),pack=(await this.bridge.packs()).find(p=>p.id===profile.figure);
+    validateAgainstPack(profile,pack);return this.bridge.thumbnail(pack,variant.scheme);
+  }
   webUi(language='zh'){
     const zh=language==='zh'||language==='zh-Hant';
     return{label:zh?'装扮工作室':'Wardrobe Studio',panels:[{id:'wardrobe',title:zh?'衣橱':'Wardrobe'},{id:'guide',title:zh?'角色制作指导':'Authoring guide'}],
@@ -61,6 +66,7 @@ export class WardrobeWorld{
         if(method==='import')return this.importProfile(args[0]);
         if(method==='remove')return this.removeProfile(args[0]);
         if(method==='choose')return this.choose(args[0]);
+        if(method==='thumbnail')return this.thumbnail(args[0]);
         if(method==='restore')return this.restore();
         throw Error('Unknown wardrobe method');
       },

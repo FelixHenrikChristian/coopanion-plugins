@@ -15,6 +15,28 @@ export class PetBridge{
   async skin(){const r=await this.request('/api/state');if(!r.skin||typeof r.skin.figure!=='string'||typeof r.skin.scheme!=='string')throw Error('Invalid desktop appearance');return r.skin;}
   async set(skin){const r=await this.request('/api/skin',{skin});if(r.ok===false)throw Error('Desktop pet rejected appearance');}
   async validate(profile){validateAgainstPack(profile,(await this.packs()).find(p=>p.id===profile.figure));}
+  async thumbnail(pack,scheme){
+    const preset=pack.presets?.find(p=>p.id===scheme),parts=scheme.split('-');
+    const options=(pack.axes??[]).map((a,i)=>a.options?.find(o=>o.id===(preset?.pick?.[a.id]??parts[i])));
+    const file=[...options].reverse().find(o=>o?.thumb)?.thumb??pack.thumb;
+    if(typeof file!=='string'||typeof pack.base!=='string')throw Error('This figure has no preview image');
+    const base=new URL(pack.base,this.base+'/'),url=new URL(file,base);
+    if(base.origin!==this.base||url.origin!==this.base||!url.pathname.startsWith(base.pathname)||url.search||url.hash)throw Error('Invalid figure preview path');
+    const response=await fetch(url,{signal:AbortSignal.timeout(2500),redirect:'error'});
+    let mime=response.headers.get('content-type')?.split(';')[0];
+    if(!response.ok)throw Error('Figure preview unavailable');
+    if(Number(response.headers.get('content-length'))>2*1024*1024)throw Error('Figure preview exceeds 2 MiB');
+    const bytes=Buffer.from(await response.arrayBuffer());if(bytes.byteLength>2*1024*1024)throw Error('Figure preview exceeds 2 MiB');
+    // Some desktop-pet asset routes serve valid raster images as octet-stream.
+    if(mime==='application/octet-stream'){
+      if(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))mime='image/png';
+      else if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)mime='image/jpeg';
+      else if(bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')mime='image/webp';
+      else if(['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6)))mime='image/gif';
+    }
+    if(!['image/png','image/webp','image/jpeg','image/gif','image/svg+xml'].includes(mime))throw Error('Figure preview unavailable');
+    return{$binary:{mime,base64:bytes.toString('base64')}};
+  }
 }
 const appearance=s=>({figure:s.figure,scheme:s.scheme});
 const same=(a,b)=>a?.figure===b?.figure&&a?.scheme===b?.scheme;
