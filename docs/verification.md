@@ -1,4 +1,10 @@
-# Verification · package 0.3.0
+# Verification
+
+## Package 0.4.0
+
+Twenty-six isolated tests pass locally, including seven native-adapter tests for exact anchors, unknown-source refusal, backup/rollback and repeated stop, interrupted installation recovery, external page changes, helper collisions and read-only feed origin/token checks. Disposable original fixtures substitute for the host source only inside the tests; the production adapter requires the documented exact checksum. The 0.3 checks below remain relevant to the separate panel. The optional adapter has a narrow compatibility boundary, not general host API support.
+
+## Package 0.3.0
 
 The initial local checks ran on Windows with Node.js 26.3.1. No runtime dependency installation was required. The packaged World was also installed and activated in a real Coopanion 0.2.17/Core deployment with the person's permission.
 

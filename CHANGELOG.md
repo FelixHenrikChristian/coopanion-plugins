@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- Add an opt-in native wardrobe compatibility adapter for the checksum-verified desktop-pet 0.2.0 page: outfits followed by outfit-specific controls.
+- Keep standard native appearance persistence, Coo/unconfigured figures, preview and import/removal flows.
+- Back up before patching; restore on normal stop, recover interrupted installation and refuse overwriting external changes.
+- Use an origin/token-checked, read-only loopback feed without weakening CSP or modifying figure resources.
+- Document supported versions, explicit configuration, uninstall/recovery and the distinction from an official host API.
+- Refresh bilingual project documentation and make the GitHub README English by default.
+
 ## 0.3.0
 
 - Default to Chinese with a shared, persistent Chinese/English panel selector; preserve pending choices and JSON drafts when switching.
