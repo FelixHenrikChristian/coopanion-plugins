@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh" style="color-scheme:dark">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原生装扮页 · 隔离集成原型</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111214;color:#e8e9ed;font:13px/1.6 system-ui,sans-serif}header{padding:18px 28px;border-bottom:1px solid #2b3038;display:flex;align-items:center;gap:22px;flex-wrap:wrap}header strong{font-size:17px}header span{color:#9098a6}label{display:flex;gap:7px;align-items:center}input{accent-color:#c87c5d}button{font:inherit;background:#181c22;border:1px solid #303640;color:inherit;border-radius:7px;padding:7px 12px;cursor:pointer}.note{padding:12px 28px;margin:0;color:#9aa2ae;font-size:12px}.frame{max-width:1100px;margin:0 auto;padding:0 24px 24px}iframe{width:100%;border:0;min-height:760px;background:#111214}#state{margin-left:auto;color:#c99578;font-size:12px}@media(max-width:700px){header{padding:14px;gap:12px}.frame{padding:0 12px 15px}.note{padding:10px 14px}}
+</style>
+<header><strong>装扮 / 集成原型</strong><label><input type="checkbox" id="enabled" checked>启用衣橱集成</label><button id="remove">模拟卸载</button><button id="register">重新注册</button><label><input type="checkbox" id="offline">模拟接口离线</label><span id="state"></span></header>
+<p class="note">隔离测试：使用原生装扮页与独立状态，不会更改真实桌宠。正式插件仍为独立衣橱；此处验证未来宿主扩展接口。</p>
+<div class="frame"><iframe id="dressFrame" title="原生装扮页" src="/dress?appearance=dark&fit=1"></iframe></div>
+<script type="module">
+const $=s=>document.querySelector(s),frame=$('#dressFrame');
+function show(state){$('#enabled').checked=state.enabled;$('#offline').checked=state.offline;$('#state').textContent=state.registered?(state.offline?'接口离线 · 回退原生':state.enabled?'集成已启用':'已停用 · 原生选项'):'已卸载 · 原生选项';$('#remove').disabled=!state.registered;$('#register').disabled=state.registered;}
+async function change(value){const r=await fetch('/prototype/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});if(!r.ok)throw Error('Control unavailable');show(await r.json());}
+$('#enabled').onchange=e=>change({enabled:e.target.checked});$('#offline').onchange=e=>change({offline:e.target.checked});$('#remove').onclick=()=>change({registered:false});$('#register').onclick=()=>change({registered:true,enabled:true});
+show(await(await fetch('/prototype/status')).json());
+addEventListener('message',event=>{if(event.source!==frame.contentWindow||event.origin!==location.origin)return;if(event.data?.type==='companion:height'){const h=Number(event.data.height);if(Number.isFinite(h)&&h>0&&h<10000)frame.style.height=(h+4)+'px';}});
+</script>
+</html>
