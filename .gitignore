@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+.env*
+coverage/
+scratch/
+private/
+local-data/
+*.log
+.DS_Store

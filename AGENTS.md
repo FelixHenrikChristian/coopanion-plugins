@@ -1,0 +1,11 @@
+# Wardrobe Studio development
+
+Keep this repository free of deployment data, personal character media, conversation exports, credentials, machine-specific paths and private project examples. Use wholly fictional examples. Runtime data belongs outside the repository.
+
+Run `npm run describe`, `npm run check`, `npm test` and `npm run pack:check` before a release. Review the exact package archive and Git history. Use isolated temporary deployments and loopback fixture servers for tests; do not change a person's running Coopanion or its figure files to verify a patch.
+
+Preserve the World API 6 panel contract. Write DOM only inside the panel root, clean up listeners on unmount, and scope styles to `.ws-root`. Do not patch the host wardrobe page or inject into unrelated pages.
+
+Keep UI and documentation available in Chinese and English. Tool descriptions are English. The source of the authoring guide is `src/guide.js`; update its documentation with it. Record actual acceptance evidence separately from guidance.
+
+Commit only explicit paths. Publishing, opening a market synchronization issue and changing a running deployment require the person's instructions. Keep the runtime free of model downloads, media generation jobs and arbitrary file/command access.
