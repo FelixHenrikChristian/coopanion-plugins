@@ -1,10 +1,11 @@
-# Initial verification · package 0.1.0
+# Initial verification · package 0.1.1
 
-The initial local checks ran on Windows with Node.js 26.3.1. No runtime dependency installation was required. The production extension has not yet been installed into a person's running Core during these checks.
+The initial local checks ran on Windows with Node.js 26.3.1. No runtime dependency installation was required. The packaged World was also installed and activated in a real Coopanion 0.2.17/Core deployment with the person's permission.
 
 - Twelve isolated tests use actual loopback HTTP servers and temporary directories. They exercise outfit-specific choices, incomplete resource matrices, profile boundaries, default construction, apply/stop restoration, external choices, preference preservation, interrupted-write recovery, serialized requests, origin restrictions, reinstall and unavailable-service reporting.
 - The official `cortico@0.2.12` manifest parser, `dryMountWorld` and `checkDescribe` accepted the extension with no warnings or failures. These checks construct a World in a fake deployment without calling `start()`; they verify the official declaration contract, not full host runtime integration.
 - The actual panel client was opened in a browser against an isolated local service with a fictional character. Manual interactions verified different control groups, applying choices, restoring the previous appearance and reading the authoring guide.
+- The real Core panel was manually checked for outfit-specific controls and applying existing appearances. Disabling the World restored its owned appearance; reactivating it preserved local profiles. The existing figure files retained their recorded release hashes. Deployment names, profiles and screenshots from that check are private and are not included here.
 - Package inspection uses an explicit file allowlist, scans for common private-path/credential patterns and checks archive size. Manual content and screenshot review remain required. The screenshot contains only the fictional demonstration.
 
-CI is configured for Node.js 22 and 24 on Windows and Linux. Those CI runs have not happened until the repository is pushed and the workflow executes. Real host activation and clean disable/uninstall remain release gates before declaring this initial version production-ready.
+CI is configured for Node.js 22 and 24 on Windows and Linux. Check the repository's workflow results for their status. A full package removal/reinstall was not run in the live deployment; normal disable restoration was checked there, and recreation/profile persistence is covered by the isolated tests. This is an initial experimental release rather than an unrestricted compatibility claim.

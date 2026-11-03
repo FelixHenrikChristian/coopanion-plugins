@@ -29,7 +29,7 @@ The extension stores profiles and appearance recovery records only under its own
 
 Normal stop restores the appearance still owned by this extension. Forced termination, an unavailable desktop service or removal of the old figure can require recovery on the next activation; unconditional restoration cannot be promised in those cases. All selected schemes are existing valid schemes, so the original figure does not depend on this extension after removal.
 
-This initial release is experimental: World API 6, figure manifest/API 2, Node.js ≥22, no runtime npm dependencies. The separate panel does not change native fixed-axis layout. See [publishing and verification](docs/publishing.md). A real host installation test is required before the first publication.
+This initial release is experimental: World API 6, figure manifest/API 2, Node.js ≥22, no runtime npm dependencies. Configuration changes, applying appearances, disable restoration and reactivation were checked in a real Core host. The separate panel does not change native fixed-axis layout. See the [verification scope](docs/verification.md) and [publishing guide](docs/publishing.md).
 
 ## Develop
 
