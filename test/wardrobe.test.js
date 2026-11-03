@@ -8,6 +8,7 @@ import definition,{WardrobeWorld,DEFAULTS} from '../src/index.js';
 import {validateProfile,selectVariant,availableOptions,isScheme} from '../src/profile.js';
 import {localBase,PetBridge,AppearanceLease} from '../src/bridge.js';
 import {Store} from '../src/store.js';
+import {authoringGuide} from '../src/guide.js';
 const example=JSON.parse(await readFile(new URL('../examples/forest-fox.profile.json',import.meta.url),'utf8'));
 const profile=validateProfile(example);
 const pack={id:profile.figure,name:{en:'Moss Fox'},axes:[{id:'appearance',options:profile.outfits.flatMap(o=>o.variants.map(v=>({id:v.scheme,name:{en:v.scheme}})))}],presets:[]};
@@ -130,4 +131,44 @@ test('octet-stream raster thumbnails are identified by signature and other bytes
  assert.equal((await bridge.thumbnail(f.pack,'trailleafboots')).$binary.mime,'image/png');
  f.pack.axes[0].options[0].thumb='not-image.bin';
  await assert.rejects(bridge.thumbnail(f.pack,'trailleafboots'),/Figure preview unavailable/);
+});
+test('configuration check is read-only and validates installed schemes before import',async t=>{
+ const f=await fixture(t),world=new WardrobeWorld(f.ctx);await world.start(host);
+ const result=await world.webUi().invoke('wardrobe','check',[example]);
+ assert.deepEqual(result,{valid:true,id:profile.id,figure:profile.figure,outfits:3,variants:10,scope:'structure-and-installed-ids-only'});
+ assert.equal(world.profiles.length,0);assert.deepEqual(f.skin(),initial);assert.deepEqual(await readdir(f.root),['figures']);
+ assert(!f.requests.some(([m])=>m==='POST'));
+ const invalid=structuredClone(example);invalid.outfits[0].variants[0].scheme='missing';await assert.rejects(world.checkProfile(invalid),/Scheme is not available/);
+ assert.deepEqual(await readdir(f.root),['figures']);
+});
+test('profile size is bounded by UTF-8 bytes even for pasted non-ASCII metadata',()=>{
+ const input={...example,note:'é'.repeat(33000)};assert(JSON.stringify(input).length<65536);assert.throws(()=>validateProfile(input),/64 KiB/);
+});
+test('bundled manual, downloads and standalone documented profiles agree',async()=>{
+ const world=definition.create({dataDir:join(tmpdir(),'unused-manual-data'),cfg:DEFAULTS}),ui=world.webUi('zh');
+ const downloaded=await ui.invoke('guide','example',[]);assert.deepEqual(validateProfile(downloaded),profile);
+ const schema=await ui.invoke('guide','schema',[]);assert.equal(schema.properties.schema.const,1);assert.equal(schema.properties.outfits.maxItems,32);
+ for(const lang of ['en','zh']){
+  const sections=authoringGuide('all',lang);assert.equal(sections.length,9);assert(sections.every(s=>s.title&&s.text.length>300));
+  assert.match(authoringGuide('matte',lang)[0].text,/MatAnyone2/);assert.match(authoringGuide('profile',lang)[0].text,/65536|65,536/);
+  const doc=await readFile(new URL(lang==='zh'?'../docs/profile-format.zh.md':'../docs/profile-format.md',import.meta.url),'utf8');
+  const documented=validateProfile(JSON.parse(doc.match(/```json\s*\n([\s\S]*?)\n```/)[1]));
+  assert.equal(documented.outfits.length,2);assert(documented.outfits.every(o=>o.variants.every(v=>isScheme(pack,v.scheme))));
+ }
+});
+test('language defaults to Chinese, is shared across panels and persists without changing wardrobe data',async t=>{
+ const f=await fixture(t),world=new WardrobeWorld(f.ctx);await world.start(host);await world.importProfile(example);
+ const profileBytes=await readFile(join(f.root,'wardrobe-studio','profiles.json'));
+ assert.equal(world.webUi('en').label,'装扮工作室');
+ assert.deepEqual(await world.webUi('en').invoke('guide','locale',[]),{language:'zh'});
+ assert.match((await world.webUi('en').invoke('guide','read',['reference']))[0].title,/参考图/);
+ await world.webUi().invoke('wardrobe','setLanguage',['en']);
+ assert.equal(world.webUi('zh').label,'Wardrobe Studio');
+ assert.deepEqual(await world.webUi().invoke('guide','locale',[]),{language:'en'});
+ assert.match((await world.webUi().invoke('guide','read',['reference']))[0].title,/references/);
+ assert.match((await world.webUi().invoke('guide','read',['reference','zh']))[0].title,/参考图/);
+ await assert.rejects(world.setLanguage('other'),/Unsupported/);
+ await world.stop();const reopened=new WardrobeWorld(f.ctx);await reopened.start(host);assert.equal(reopened.language,'en');
+ assert.deepEqual(await readFile(join(f.root,'wardrobe-studio','profiles.json')),profileBytes);assert.deepEqual(f.skin(),initial);
+ await reopened.setLanguage('zh');assert.equal(reopened.webUi('en').label,'装扮工作室');
 });

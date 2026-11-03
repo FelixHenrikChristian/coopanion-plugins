@@ -6,6 +6,6 @@ Run `npm run describe`, `npm run check`, `npm test` and `npm run pack:check` bef
 
 Preserve the World API 6 panel contract. Write DOM only inside the panel root, clean up listeners on unmount, and scope styles to `.ws-root`. Do not patch the host wardrobe page or inject into unrelated pages.
 
-Keep UI and documentation available in Chinese and English. Tool descriptions are English. The source of the authoring guide is `src/guide.js`; update its documentation with it. Record actual acceptance evidence separately from guidance.
+Keep UI and documentation available in Chinese and English. Tool descriptions are English. Bundled bilingual documents are the guide's content source; `src/guide.js` loads only its fixed package documents so the panel, tools and published manual agree. Record actual acceptance evidence separately from guidance.
 
 Commit only explicit paths. Publishing, opening a market synchronization issue and changing a running deployment require the person's instructions. Keep the runtime free of model downloads, media generation jobs and arbitrary file/command access.

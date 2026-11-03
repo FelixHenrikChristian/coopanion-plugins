@@ -23,6 +23,7 @@
 .ws-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 18px; }
 .ws-header p { font-size: 12px; }
 .ws-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.ws-root .ws-language { width: 100px; min-width: 100px; margin: 0; }
 .ws-root button, .ws-root select {
   padding: 8px 12px;
   border: 1px solid var(--ws-line);
@@ -79,6 +80,26 @@
 .ws-import input { display: block; margin: 12px 0; }
 .ws-import button { margin-right: 8px; }
 .ws-guide p { max-width: 900px; white-space: pre-line; }
+.ws-root .ws-help-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.ws-root .ws-help-tools button { margin: 0; }
+.ws-root .ws-guide-nav { display: flex; flex-wrap: wrap; gap: 7px; margin: 15px 0 20px; }
+.ws-root .ws-guide-nav button { font-size: 12px; text-align: left; }
+.ws-root .ws-guide > summary { color: var(--ws-text); font-weight: 600; }
+.ws-root .ws-guide[open] > summary { color: var(--ws-accent); margin-bottom: 18px; }
+.ws-root .ws-doc-content { min-width: 0; line-height: 1.85; }
+.ws-root .ws-doc-content[hidden] { display: none; }
+.ws-root .ws-doc-content h3 { font-size: 15px; margin: 24px 0 10px; color: var(--ws-text); }
+.ws-root .ws-doc-content p { color: var(--ws-text); white-space: normal; margin: 12px 0; }
+.ws-root .ws-doc-content :is(ol,ul) { padding-left: 24px; margin: 12px 0; }
+.ws-root .ws-doc-content li { margin: 9px 0; }
+.ws-root :is(.ws-doc-content,.ws-catalog) pre { display: block; max-width: 100%; overflow: auto; margin: 14px 0; padding: 14px; border: 1px solid var(--ws-line); border-radius: 7px; background: var(--paper-2, #10161d); font: 12px/1.75 ui-monospace, monospace; tab-size: 2; }
+.ws-root .ws-doc-content code { font-family: ui-monospace, monospace; color: var(--ws-text); }
+.ws-root .ws-doc-content p code { background: var(--ws-card); padding: 1px 4px; border-radius: 3px; overflow-wrap: anywhere; }
+.ws-root .ws-table-wrap { max-width: 100%; overflow-x: auto; margin: 15px 0; }
+.ws-root .ws-doc-content table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ws-root .ws-doc-content :is(td,th) { border: 1px solid var(--ws-line); padding: 9px 11px; text-align: left; vertical-align: top; }
+.ws-root .ws-doc-content th { background: var(--ws-card); font-weight: 600; }
+.ws-root .ws-catalog { margin: 18px 0; padding: 12px 0; border-top: 1px solid var(--ws-line); }
 @container (max-width: 620px) {
   .ws-root .ws-header { align-items: flex-start; }
   .ws-root .ws-header p { max-width: 230px; }

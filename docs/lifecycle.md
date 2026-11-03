@@ -6,6 +6,8 @@ Wardrobe Studio reads a local desktop-pet HTTP service at a configurable loopbac
 
 Importing a profile writes `wardrobe-studio/profiles.json` under the extension's supplied data directory. Applying a combination uses the desktop pet's standard appearance API; this changes its selected figure/scheme as an ordinary wardrobe selection does. It never edits the original figure manifest, assets, code, other extensions or the application.
 
+The extension defaults to Chinese independently of the host language. Its Chinese/English selector stores only `{language}` in its own `wardrobe-studio/preferences.json`, shared by both panels and retained across restart. It does not change the host language, profiles or appearance. Imported names remain user-provided text. Switching panel language preserves the pending outfit selection and JSON draft.
+
 Before the first change, a write-ahead lease saves the previous figure/scheme and intended change to `wardrobe-studio/lease.json`. Subsequent changes owned by this extension retain that original restoration target. Requests are serialized. Other skin preferences are read afresh and preserved.
 
 ## Stop, disable and uninstall

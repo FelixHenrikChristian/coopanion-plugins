@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Default to Chinese with a shared, persistent Chinese/English panel selector; preserve pending choices and JSON drafts when switching.
+- Add a detailed bilingual manual with reference/motion prompts, raw video gates, temporal matting steps, figure runtime requirements and import troubleshooting.
+- Add full field tables, complete fictional profiles and a downloadable JSON Schema.
+- Add read-only configuration checks, local installed-ID inspection and example/manual downloads in the panel.
+- Enforce the profile limit in UTF-8 bytes, including pasted input.
+
 ## 0.2.3
 
 - Follow the host theme with a dotted preview stage, compact outfit cards and horizontal option rows.

@@ -7,7 +7,7 @@ function label(v){need(typeof v==='string'&&v.trim().length>0&&v.length<=120,'In
 function unique(items,key){need(new Set(items.map(key)).size===items.length,'Duplicate identifier');}
 export function validateProfile(input){
   need(plain(input)&&input.schema===1,'Expected wardrobe profile schema 1');
-  need(JSON.stringify(input).length<=65536,'Profile exceeds 64 KiB');
+  need(new TextEncoder().encode(JSON.stringify(input)).byteLength<=65536,'Profile exceeds 64 KiB');
   const p={schema:1,id:id(input.id),figure:id(input.figure),label:label(input.label),outfits:[]};
   need(p.figure!=='coo','Coo uses its own accessory contract; use its native wardrobe');
   need(Array.isArray(input.outfits)&&input.outfits.length>0&&input.outfits.length<=32,'Expected 1–32 outfits');

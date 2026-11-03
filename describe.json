@@ -69,7 +69,7 @@
     },
     {
       "name": "wardrobe_authoring_guide",
-      "description": "Read the staged character and outfit authoring workflow. This returns guidance and acceptance criteria; it does not run generation, download models, read conversations or upload assets.",
+      "description": "Read detailed character/outfit production steps, prompts, media acceptance requirements, wardrobe JSON fields/examples and troubleshooting. This returns guidance only; it does not generate assets, download models, read conversations or upload files.",
       "tags": [
         "read"
       ],
@@ -86,15 +86,17 @@
               "review",
               "matte",
               "runtime",
-              "release"
+              "release",
+              "profile",
+              "troubleshooting"
             ]
           }
         },
         "additionalProperties": false
       },
       "summary": {
-        "zh": "读取从角色定稿到连续动画验收的制作指导。",
-        "en": "Read staged guidance for character references and reviewed continuous animation."
+        "zh": "读取详细制作步骤、衣橱 JSON 格式及故障排查。",
+        "en": "Read production steps, wardrobe JSON format and troubleshooting."
       }
     }
   ],
