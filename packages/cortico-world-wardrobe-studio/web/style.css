@@ -71,6 +71,8 @@
 .ws-root legend { float: left; width: 76px; padding: 12px 0 0; color: var(--ws-muted); }
 .ws-choice-row { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; }
 .ws-choice-row button { min-width: 88px; min-height: 44px; padding: 9px 15px; text-align: center; }
+.ws-choice-row .ws-option-card { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 10px; }
+.ws-option-portrait, .ws-option-portrait img { display: block; width: 52px; height: 52px; object-fit: contain; }
 .ws-root .ws-primary { min-width: 112px; color: var(--on-accent, #171313); background: var(--ws-accent); border-color: var(--ws-accent); font-weight: 600; }
 .ws-apply-row { display: flex; align-items: center; gap: 14px; margin: 22px 0 0 84px; }
 .ws-root .ws-message { margin: 0; font-size: 12px; color: var(--ws-muted); }

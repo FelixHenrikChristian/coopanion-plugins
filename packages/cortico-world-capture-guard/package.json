@@ -1,0 +1,67 @@
+{
+  "name": "cortico-world-capture-guard",
+  "version": "1.1.0",
+  "type": "module",
+  "description": "在截图中默认隐藏 Coopanion 桌宠，开关仅出现在本插件配置中。",
+  "license": "AGPL-3.0-or-later",
+  "main": "src/index.js",
+  "exports": "./src/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src",
+    "describe.json",
+    "README.md",
+    "LICENSE",
+    "install-local.cjs",
+    "install-local.cmd",
+    "README.en.md",
+    "CHANGELOG.md"
+  ],
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "displayName": "截图隐身",
+    "describe": "describe.json",
+    "tags": [
+      "apps",
+      "requires-extension"
+    ],
+    "locales": {
+      "zh": {
+        "displayName": "截图隐身",
+        "description": "桌面上的桌宠照常显示，只在截图中隐藏。所有设置均在插件配置中。"
+      },
+      "en": {
+        "displayName": "Capture Guard",
+        "description": "Keep the pet on your desktop while excluding it from screen captures."
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FelixHenrikChristian/coopanion-plugins.git",
+    "directory": "packages/cortico-world-capture-guard"
+  },
+  "homepage": "https://github.com/FelixHenrikChristian/coopanion-plugins/tree/main/packages/cortico-world-capture-guard#readme",
+  "bugs": {
+    "url": "https://github.com/FelixHenrikChristian/coopanion-plugins/issues"
+  },
+  "scripts": {
+    "describe": "node scripts/describe.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.js",
+    "pack:check": "node scripts/check-package.mjs"
+  },
+  "keywords": [
+    "cortico-world",
+    "coopanion",
+    "desktop-pet",
+    "screenshots"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}

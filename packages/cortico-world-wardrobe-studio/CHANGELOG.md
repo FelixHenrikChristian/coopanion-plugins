@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Support optional embedded PNG/WebP thumbnails for outfits and individual options in both native and separate wardrobes.
+- Keep previews local and bounded: 12 KiB per image and the existing 64 KiB total profile limit; reject remote URLs and non-raster payloads.
+
 ## 0.4.0
 
 - Add an opt-in native wardrobe compatibility adapter for the checksum-verified desktop-pet 0.2.0 page: outfits followed by outfit-specific controls.

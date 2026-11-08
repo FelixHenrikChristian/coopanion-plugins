@@ -5,6 +5,15 @@ function need(ok,message){if(!ok)throw new Error(message);}
 function id(v){need(typeof v==='string'&&ID.test(v),'Invalid identifier');return v;}
 function label(v){need(typeof v==='string'&&v.trim().length>0&&v.length<=120,'Invalid label');return v.trim();}
 function unique(items,key){need(new Set(items.map(key)).size===items.length,'Duplicate identifier');}
+function thumbnail(value){
+  if(value===undefined)return{};
+  need(typeof value==='string'&&value.length<=16410,'Thumbnail exceeds 12 KiB');
+  const match=/^data:image\/(png|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);need(match&&match[2].length%4===0,'Expected an embedded PNG or WebP thumbnail');
+  let bytes;try{bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));}catch{throw Error('Invalid thumbnail encoding');}
+  need(bytes.length<=12288,'Thumbnail exceeds 12 KiB');
+  const png=[137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b),webp=String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP';
+  need(match[1]==='png'?png:webp,'Thumbnail image signature does not match its MIME type');return{thumbnail:value};
+}
 export function validateProfile(input){
   need(plain(input)&&input.schema===1,'Expected wardrobe profile schema 1');
   need(new TextEncoder().encode(JSON.stringify(input)).byteLength<=65536,'Profile exceeds 64 KiB');
@@ -13,13 +22,13 @@ export function validateProfile(input){
   need(Array.isArray(input.outfits)&&input.outfits.length>0&&input.outfits.length<=32,'Expected 1–32 outfits');
   for(const raw of input.outfits){
     need(plain(raw),'Invalid outfit');
-    const o={id:id(raw.id),label:label(raw.label),controls:[],variants:[]};
+    const o={id:id(raw.id),label:label(raw.label),...thumbnail(raw.thumbnail),controls:[],variants:[]};
     need(Array.isArray(raw.controls)&&raw.controls.length<=12,'Expected up to 12 controls');
     for(const rawControl of raw.controls){
       need(plain(rawControl),'Invalid control');
       const c={id:id(rawControl.id),label:label(rawControl.label),options:[]};
       need(Array.isArray(rawControl.options)&&rawControl.options.length>0&&rawControl.options.length<=24,'Expected 1–24 options');
-      c.options=rawControl.options.map(v=>({id:id(v.id),label:label(v.label)}));unique(c.options,x=>x.id);
+      c.options=rawControl.options.map(v=>({id:id(v.id),label:label(v.label),...thumbnail(v.thumbnail)}));unique(c.options,x=>x.id);
       c.default=rawControl.default??c.options[0].id;
       need(c.options.some(v=>v.id===c.default),'Unknown default option');
       o.controls.push(c);

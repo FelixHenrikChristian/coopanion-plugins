@@ -2,7 +2,7 @@
 
 ## What this file does
 
-A profile groups existing schemes from one installed figure. It contains no image/video data or file paths and cannot generate clothing. The figure pack must already be installed and playable. Coo's separate accessory contract uses the native wardrobe.
+A profile groups existing schemes from one installed figure. It contains no animation data or file paths and cannot generate clothing; small embedded preview images are optional. The figure pack must already be installed and playable. Coo's separate accessory contract uses the native wardrobe.
 
 Save UTF-8 JSON, preferably without a BOM, with double quotes and no comments/trailing commas. File import accepts a single profile object, not an array or ZIP. The file and its compact serialized UTF-8 JSON must each be at most 65,536 bytes. Pasted content is checked by the same server-side schema. Unrecognized metadata is discarded, not executed or stored.
 
@@ -25,6 +25,7 @@ All profile/outfit/control/option IDs follow `^[a-z0-9][a-z0-9-]{0,63}$`: lowerc
 | outfit | id, label | Required; ID unique within this profile; same ID/label rules as above. |
 | outfit | controls | Required array, 0–12; only this outfit's controls are shown. |
 | outfit | variants | Required array, 1–512; explicitly list the complete supported combinations. |
+| outfit / option | thumbnail | Optional `data:image/png;base64,…` or `data:image/webp;base64,…`, at most 12 KiB decoded per image. The whole profile remains limited to 64 KiB. Remote URLs, SVG and paths are rejected. |
 | control | id, label | Required; ID unique within this outfit, may repeat in another outfit. |
 | control | default | Optional option ID; defaults to the first option; must exist in options. |
 | control | options | Required array, 1–24; each option has required id and label, IDs unique within this control. |
@@ -34,6 +35,8 @@ All profile/outfit/control/option IDs follow `^[a-z0-9][a-z0-9-]{0,63}$`: lowerc
 Duplicate pick combinations are rejected. Every declared option must occur in at least one variant. Different picks may point at the same existing scheme; this does not create additional visual differences.
 
 Each control's default is valid individually. If their combined defaults do not exist in a partial matrix, the panel initially falls back to the first variant. Do not rely on unavailable defaults to imply new media. Controls=[] uses exactly one variant with pick={}.
+
+Capture previews from real resources. Normalize full-outfit character height, foot baseline and padding; crop option previews to the relevant area. Transparent WebP around 64–72 pixels helps control size. Options without thumbnails remain text-only; outfits can still use installed thumbnails. Profiles with personal thumbnails contain personal media and should not be published.
 
 ## Find the real figure and scheme IDs
 

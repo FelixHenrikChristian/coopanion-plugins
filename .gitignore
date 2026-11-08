@@ -1,0 +1,14 @@
+node_modules/
+dist/
+scratch/
+work/
+coverage/
+runtime/
+*.tgz
+*.zip
+*.log
+.env
+.env.*
+!.env.example
+*.local.json
+.DS_Store

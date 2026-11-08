@@ -14,7 +14,8 @@
   "$defs": {
     "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$", "maxLength": 64},
     "label": {"type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S"},
-    "option": {"type": "object", "required": ["id", "label"], "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"$ref": "#/$defs/label"}}},
+    "thumbnail": {"type": "string", "maxLength": 16410, "pattern": "^data:image/(png|webp);base64,[A-Za-z0-9+/]+={0,2}$", "description": "Optional local raster preview, decoded size at most 12 KiB. Entire profile remains limited to 64 KiB UTF-8."},
+    "option": {"type": "object", "required": ["id", "label"], "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"$ref": "#/$defs/label"}, "thumbnail": {"$ref": "#/$defs/thumbnail"}}},
     "control": {
       "type": "object", "required": ["id", "label", "options"],
       "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"$ref": "#/$defs/label"}, "default": {"$ref": "#/$defs/id"}, "options": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "#/$defs/option"}}}
@@ -25,7 +26,7 @@
     },
     "outfit": {
       "type": "object", "required": ["id", "label", "controls", "variants"],
-      "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"$ref": "#/$defs/label"}, "controls": {"type": "array", "maxItems": 12, "items": {"$ref": "#/$defs/control"}}, "variants": {"type": "array", "minItems": 1, "maxItems": 512, "items": {"$ref": "#/$defs/variant"}}}
+      "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"$ref": "#/$defs/label"}, "thumbnail": {"$ref": "#/$defs/thumbnail"}, "controls": {"type": "array", "maxItems": 12, "items": {"$ref": "#/$defs/control"}}, "variants": {"type": "array", "minItems": 1, "maxItems": 512, "items": {"$ref": "#/$defs/variant"}}}
     }
   }
 }

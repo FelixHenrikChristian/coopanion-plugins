@@ -1,0 +1,15 @@
+# Changelog
+
+## 1.1.0
+
+- Add default-on NVIDIA Instant Replay compatibility: never enable window capture-protection flags in this mode.
+- Briefly hide the pet before configured screenshot shortcuts are delivered, then restore it without focusing it.
+- Keep exact shortcut matching, forward the original key event and allow custom screenshot shortcuts.
+- Respect a pet hidden by the user, allow capturing the pet, and remove the listener when the plugin stops.
+- Retain opt-in system capture exclusion for people who do not use NVIDIA desktop recording.
+- Recognize a terminated host even when its final status file is stale.
+
+## 1.0.0
+
+- Independent World API 6 plugin with configuration only in its own page.
+- Reuse the original pet host and renderer through an independent window process; do not patch original application source or UI.

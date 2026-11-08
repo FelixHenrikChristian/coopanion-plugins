@@ -1,17 +1,18 @@
 {
   "name": "cortico-world-wardrobe-studio",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "Outfit-specific wardrobe controls and a continuous-animation authoring guide for Coopanion figure packs.",
   "license": "MIT",
   "author": "Wardrobe Studio contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio.git"
+    "url": "git+https://github.com/FelixHenrikChristian/coopanion-plugins.git",
+    "directory": "packages/cortico-world-wardrobe-studio"
   },
-  "homepage": "https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio#readme",
+  "homepage": "https://github.com/FelixHenrikChristian/coopanion-plugins/tree/main/packages/cortico-world-wardrobe-studio#readme",
   "bugs": {
-    "url": "https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio/issues"
+    "url": "https://github.com/FelixHenrikChristian/coopanion-plugins/issues"
   },
   "main": "src/index.js",
   "exports": "./src/index.js",

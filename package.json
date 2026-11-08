@@ -1,0 +1,16 @@
+{
+  "name": "coopanion-plugins",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Independently installable Coopanion World extensions maintained in one repository.",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=22.10.0" },
+  "scripts": {
+    "describe": "npm run describe --workspaces --if-present",
+    "check": "npm run check --workspaces",
+    "test": "npm test --workspaces",
+    "pack:check": "npm run pack:check --workspaces",
+    "pack:all": "node scripts/pack.mjs"
+  }
+}
