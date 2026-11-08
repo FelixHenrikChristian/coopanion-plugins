@@ -11,6 +11,6 @@
 
 包名保持不变。新版本的 repository.directory 指向本仓库的对应 packages 子目录。旧 npm 版本的元数据和原仓库继续保留，避免破坏现有安装。
 
-旧装扮仓库是否增加迁移公告、归档或调整 npm 的可信发布来源，须在新分发渠道验证后单独处理；本次目录整合不自动执行这些操作。
+旧装扮仓库的历史版本和 Issue 已完成迁移，记录见 [迁移明细](wardrobe-migration.md)。删除旧仓库属于单独的明确授权操作；必须先保留全部 Git 引用、发行附件和问题，并逐项核验。旧 npm 版本元数据不会被改写；新版本继续使用总仓库地址。
 
 Each plugin is versioned and released independently. Validate the source and exact archives first. GitHub releases, npm publication, market synchronization, old-repository archival and trusted-publisher changes are separate actions; do not assume one authorizes all the others.
