@@ -1,0 +1,79 @@
+{
+  "name": "cortico-world-wardrobe-studio",
+  "version": "0.4.0",
+  "type": "module",
+  "description": "Outfit-specific wardrobe controls and a continuous-animation authoring guide for Coopanion figure packs.",
+  "license": "MIT",
+  "author": "Wardrobe Studio contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio.git"
+  },
+  "homepage": "https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio#readme",
+  "bugs": {
+    "url": "https://github.com/FelixHenrikChristian/cortico-world-wardrobe-studio/issues"
+  },
+  "main": "src/index.js",
+  "exports": "./src/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "cortico-world",
+    "wardrobe",
+    "figure-pack",
+    "animation"
+  ],
+  "files": [
+    "src",
+    "web",
+    "assets/icon.svg",
+    "assets/wardrobe.png",
+    "docs",
+    "examples",
+    "describe.json",
+    "README.md",
+    "README_zh.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.en.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.mjs",
+    "describe": "node scripts/describe.mjs",
+    "preview": "node scripts/preview.mjs",
+    "pack:check": "node scripts/check-package.mjs"
+  },
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "displayName": "Wardrobe Studio",
+    "icon": "assets/icon.svg",
+    "describe": "describe.json",
+    "webUiClient": "web/client.js",
+    "webUiStyle": "web/style.css",
+    "tags": [
+      "apps",
+      "requires-extension",
+      "experimental"
+    ],
+    "screenshots": [
+      "assets/wardrobe.png"
+    ],
+    "locales": {
+      "zh": {
+        "displayName": "装扮工作室",
+        "description": "按服装显示不同的搭配选项，并为连续动画形象制作提供分阶段指导。"
+      },
+      "en": {
+        "displayName": "Wardrobe Studio",
+        "description": "Outfit-specific controls and staged guidance for continuous-animation figure packs."
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}
