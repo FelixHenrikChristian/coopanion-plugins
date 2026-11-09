@@ -6,8 +6,9 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 
 | 插件 | 包名 | 源码版本 | 用途 |
 | --- | --- | --- | --- |
-| [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.4.1 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
+| [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.5.1 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
 | [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
+| [噜噜](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.0 | 独立的水豚噜噜桌宠衣橱，可摘下包包，并可导入装扮工作室 |
 
 源码版本不等于 npm 或市场已发布版本。只有实际发布的版本才会出现在对应分发渠道。
 
@@ -15,7 +16,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 
 选择你需要的单个插件，查看它自己的 README。安装一个插件不要求安装另一个。
 
-GitHub Release 使用独立标签：`wardrobe-studio-v0.4.1`、`capture-guard-v1.1.0`。每个 Release 只提供相应插件的包；仓库根目录不是可安装插件。
+GitHub Release 使用独立标签：`wardrobe-studio-v0.4.1`、`capture-guard-v1.1.0`、`lulu-v0.1.0`。每个 Release 只提供相应插件的包；仓库根目录不是可安装插件。
 
 ## 目录
 
@@ -23,6 +24,7 @@ GitHub Release 使用独立标签：`wardrobe-studio-v0.4.1`、`capture-guard-v1
 packages/
   cortico-world-wardrobe-studio/
   cortico-world-capture-guard/
+  cortico-world-lulu/
 scripts/                       统一检查与打包
 docs/                          发布和迁移说明
 ```
@@ -31,7 +33,7 @@ docs/                          发布和迁移说明
 
 ## 开发与检查
 
-需要 Node.js 22.10 或以上版本及 npm。两个运行时包都没有 npm 运行依赖。
+需要 Node.js 22.10 或以上版本及 npm。这些运行时插件都没有 npm 运行依赖。
 
 ```sh
 npm install --ignore-scripts --no-audit --no-fund

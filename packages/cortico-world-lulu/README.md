@@ -1,0 +1,13 @@
+# 噜噜 / Lulu
+
+独立的 Coopanion World API 6 插件。安装角色包后可选择噜噜的服装，并摘下小鸟包包。可以单独使用，也可将面板导出的配置导入装扮工作室；两者没有运行依赖。
+
+从本仓库 `lulu-v0.1.0` Release 下载插件 ZIP，解压后在 Coopanion 手动安装器选择含 `package.json` 的目录。启用插件后，在“噜噜的衣橱”点击“安装噜噜角色包”，再选择服装。安装会下载同仓库 Release 的角色包并校验固定 SHA-256；已存在同 ID 时不会覆盖。也可直接将 Release 的角色包 ZIP 导入桌宠原生装扮页。
+
+包含橘子装带包／摘包、粉色睡衣、纸箱恐龙四个完整外观。每个外观提供连续动作，以及站立和坐定时各 19 种表情。小鸟包包通过带包和摘包两套完整动作切换，行走或转身时跟随对应身体，不使用静态包包贴片。
+
+插件停用时结束安装任务，已安装角色及所选服装保留。删除角色请使用桌宠原生装扮页。更改本机桌宠地址后重启插件；只支持本机 HTTP 地址。
+
+角色以用户提供的噜噜视频和确认的设定图为参考。MIT 许可证适用于插件代码；角色及参考材料的权利归各自权利人。角色媒体作为单独资源提供，不包含在源代码包中。
+
+Development: `npm run describe`, `npm run check`, `npm test`, `npm run pack:check`. Tests use isolated HTTP fixtures and do not modify a running Coopanion installation.

@@ -1,0 +1,8 @@
+{
+  "name":"cortico-world-lulu","version":"0.1.0","type":"module","description":"Lulu capybara companion and removable outfit controls for Coopanion.","license":"MIT",
+  "repository":{"type":"git","url":"git+https://github.com/FelixHenrikChristian/coopanion-plugins.git","directory":"packages/cortico-world-lulu"},
+  "main":"src/index.js","exports":"./src/index.js","engines":{"node":">=22.10.0"},
+  "files":["src","web","assets/icon.svg","describe.json","README.md","CHANGELOG.md","LICENSE"],
+  "scripts":{"describe":"node scripts/describe.mjs","check":"node scripts/check.mjs","test":"node --test test/*.test.js","pack:check":"node scripts/pack-check.mjs"},
+  "cortico":{"kind":"world","api":6,"displayName":"噜噜","icon":"assets/icon.svg","describe":"describe.json","webUiClient":"web/client.js","webUiStyle":"web/style.css","locales":{"zh":{"displayName":"噜噜","description":"水豚噜噜桌宠与可拆配件装扮。"},"en":{"displayName":"Lulu","description":"Capybara companion and removable outfit controls."}}}
+}
