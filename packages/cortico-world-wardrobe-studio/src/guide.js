@@ -9,6 +9,8 @@ const [en,zh,profileEn,profileZh,troubleEn,troubleZh]=await Promise.all([
 ]);
 const english=stages(en),chinese=stages(zh);
 export const GUIDE=Object.fromEntries(Object.entries(english).map(([id,v])=>[id,{en:v.text,zh:chinese[id].text,titleEn:v.title,titleZh:chinese[id].title}]));
+GUIDE.matte.en+='\n\n'+await document('white-background-matting.md');
+GUIDE.matte.zh+='\n\n'+await document('white-background-matting.zh.md');
 GUIDE.profile={en:profileEn,zh:profileZh,titleEn:'Wardrobe JSON: format and import',titleZh:'衣橱 JSON：完整格式与导入'};
 GUIDE.troubleshooting={en:troubleEn,zh:troubleZh,titleEn:'Troubleshooting and upgrades',titleZh:'故障排查与升级'};
 export function authoringGuide(stage='all',language='zh'){

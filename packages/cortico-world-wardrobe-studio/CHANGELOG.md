@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Add bilingual topology-first white-background matting guidance and an optional offline Python helper, without adding generation jobs, downloads or dependencies to the World runtime.
+- Separate border-connected background, enclosed gaps, protected light foreground and ambiguous regions; preserve original opaque RGB and record leakage warnings instead of assuming dark outlines are always closed.
+- Document same-frame raw/alpha playback, white recomposition, real display-size/floor calibration, idle breathing, reusable expression anchors and reversible versioned delivery.
+- Keep authoring requirements separate from actual production acceptance; no personal references, media, wardrobe profiles or deployment paths are bundled.
+
 ## 0.4.1
 
 - Support optional embedded PNG/WebP thumbnails for outfits and individual options in both native and separate wardrobes.

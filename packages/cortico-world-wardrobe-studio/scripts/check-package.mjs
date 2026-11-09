@@ -11,8 +11,9 @@ const allowed=name=>/^(src|web|docs|examples)\//.test(name)||['package.json','as
 const secrets=[/-----BEGIN [A-Z ]*PRIVATE KEY-----/,/\bgh[pousr]_[A-Za-z0-9]{25,}\b/,/\bgithub_pat_[A-Za-z0-9_]{25,}\b/,/\b[A-Z]:[\\/]Users[\\/][^\s"']+/i,/codex-clipboard-[a-f0-9-]+/i];
 for(const f of manifest.files){
  assert(allowed(f.path),`Unexpected packaged file: ${f.path}`);
- assert(!f.path.split('/').some(p=>['private','local-data','node_modules','.git','scratch'].includes(p)),f.path);
- if(/\.(?:js|mjs|json|md|css|svg)$/.test(f.path)){
+ assert(!f.path.split('/').some(p=>['private','local-data','node_modules','.git','scratch','__pycache__'].includes(p)),f.path);
+ assert(!/\.(?:pyc|pyo)$/.test(f.path),f.path);
+ if(/\.(?:js|mjs|json|md|css|svg|py)$/.test(f.path)){
   const content=await readFile(join(root,f.path),'utf8');for(const pattern of secrets)assert(!pattern.test(content),`Review possible private content: ${f.path}`);
  }
 }

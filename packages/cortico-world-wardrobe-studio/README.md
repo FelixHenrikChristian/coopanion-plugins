@@ -86,7 +86,7 @@ The guide panel, agent tool and downloadable manuals share the same source docum
 | ② Reference | Fully dressed reference for each supported combination |
 | ③ Continuous video | Dressed reference plus motion guidance; validate one short action first |
 | ④ Raw-video review | Complete normal-speed, half-speed and loop playback |
-| ⑤ Temporal matting | Correct masks, propagate over time and review on contrasting backgrounds |
+| ⑤ Transparency | Connected white-background removal, protected light regions and full playback review |
 | ⑥ Figure package | Coordinates, movement, transitions and actual expression coverage |
 | ⑦ Wardrobe profile | Map installed complete schemes, validate and import |
 
@@ -97,6 +97,7 @@ The guide panel, agent tool and downloadable manuals share the same source docum
 | Document | What it covers |
 | :--- | :--- |
 | [Authoring workflow](docs/agent-workflow.md) | Inputs, outputs, prompts, video/alpha requirements and figure interface |
+| [White-background matting](docs/white-background-matting.md) | Topology-first recipe, optional offline helper, correction masks and flicker checks |
 | [Profile format](docs/profile-format.md) | Required fields, limits, full example and missing combinations |
 | [Native integration](docs/native-integration.md) | Opt-in setup, exact compatibility, file changes and recovery |
 | [Troubleshooting](docs/troubleshooting.md) | Stale resource URLs, connections and runtime resources |

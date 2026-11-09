@@ -66,7 +66,7 @@ test('import, apply and stop use an unchanged figure and restore the original ap
  const ui=world.webUi();await ui.invoke('wardrobe','choose',[{profile:profile.id,outfit:'rain',pick:{hood:'up',colour:'teal'}}]);
  assert.equal(f.skin().scheme,'rainupteal');assert.deepEqual(f.skin().colors,initial.colors);
  const state=await world.state();assert(!JSON.stringify(state).includes('never-exposed'));
- const tool=world.tools().find(t=>t.name==='wardrobe_authoring_guide');assert.match((await tool.handler({stage:'matte'})).text,/MatAnyone2/);
+ const tool=world.tools().find(t=>t.name==='wardrobe_authoring_guide');assert.match((await tool.handler({stage:'matte'})).text,/matte_connected_white\.py/);
  await world.stop();assert.deepEqual(f.skin(),initial);
  assert.deepEqual(await readFile(join(f.original,'figure.json')),before);
  assert.deepEqual((await readdir(f.root)).sort(),['figures','wardrobe-studio']);
@@ -150,7 +150,7 @@ test('bundled manual, downloads and standalone documented profiles agree',async(
  const schema=await ui.invoke('guide','schema',[]);assert.equal(schema.properties.schema.const,1);assert.equal(schema.properties.outfits.maxItems,32);
  for(const lang of ['en','zh']){
   const sections=authoringGuide('all',lang);assert.equal(sections.length,9);assert(sections.every(s=>s.title&&s.text.length>300));
-  assert.match(authoringGuide('matte',lang)[0].text,/MatAnyone2/);assert.match(authoringGuide('profile',lang)[0].text,/65536|65,536/);
+  assert.match(authoringGuide('matte',lang)[0].text,/matte_connected_white\.py/);assert.match(authoringGuide('profile',lang)[0].text,/65536|65,536/);
   const doc=await readFile(new URL(lang==='zh'?'../docs/profile-format.zh.md':'../docs/profile-format.md',import.meta.url),'utf8');
   const documented=validateProfile(JSON.parse(doc.match(/```json\s*\n([\s\S]*?)\n```/)[1]));
   assert.equal(documented.outfits.length,2);assert(documented.outfits.every(o=>o.variants.every(v=>isScheme(pack,v.scheme))));
