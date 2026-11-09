@@ -1,6 +1,6 @@
 # 截图隐身
 
-Coopanion 独立 World 插件，API 6，版本 1.1.0。所有设置只放在本插件的「配置」中。
+Coopanion 独立 World 插件，API 6，版本 1.1.1。所有设置只放在本插件的「配置」中。
 
 默认使用 NVIDIA 即时重放兼容模式：平时照常显示桌宠，按截图快捷键时暂时隐藏，避免出现在截图里。要截桌宠时，打开：
 
@@ -39,6 +39,8 @@ Coopanion 独立 World 插件，API 6，版本 1.1.0。所有设置只放在本�
 首次安装并启用后，需要重启一次 Coopanion 的 Core 进程，或完整退出并重新打开 Coopanion。
 
 ## 安装
+
+在 Coopanion 的 World 扩展市场搜索 `cortico-world-capture-guard` 安装，按提示重启 Core 并启用。也可下载 [GitHub Release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/capture-guard-v1.1.1) 中的独立安装包。
 
 包内附有 `install-local.cjs` 和 `install-local.cmd`。解压后双击 CMD，输入包含 Coopanion.exe 的安装目录；完成后重启 Core 进程。安装器会备份扩展清单和部署配置，并只添加本插件的条目。
 

@@ -12,11 +12,13 @@ Default screenshot chords: PrintScreen, Win+Shift+S, Ctrl+Alt+A, Alt+A, Ctrl+1, 
 
 If NVIDIA compatibility is disabled, the plugin uses continuous Windows capture exclusion. This keeps the pet visible on the desktop while omitting it from standard captures, but can stop NVIDIA desktop recording.
 
-## Local installation
+## Installation
+
+Search for `cortico-world-capture-guard` in Coopanion's World extension market, install it, restart Core when prompted and enable it. A standalone installer is also available from the [GitHub release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/capture-guard-v1.1.1).
 
 Extract this package and double-click `install-local.cmd`, then enter the folder containing Coopanion.exe. The installer reuses Coopanion's bundled Node runtime, registers this local World package and backs up the extension manifest and deployment configuration. Restart the Core process once to load the plugin. You can also run `node install-local.cjs <installation-directory> [deployment-id]`.
 
-Use the normal extension manager to enable, disable or remove it; disable it before removal. This source archive does not imply npm or market publication.
+Use the normal extension manager to enable, disable or remove it; disable it before removal.
 
 ## Implementation and verification
 

@@ -7,3 +7,5 @@ Keep deployment data, credentials, personal figure media, conversation exports, 
 Read package-specific AGENTS.md files before editing those packages. Preserve each package's license. Shared documentation must explain that one repository does not make the plugins depend on each other.
 
 Before release run npm run describe, npm run check, npm test and npm run pack:check. Inspect the exact archives and staged diff. Stage explicit paths. Publishing and market synchronization require the person's instructions; a repository move must not silently publish npm versions, archive old repositories, or change existing installations.
+
+The owner has granted standing authorization to publish verified updates to the affected plugins on GitHub Releases and npm, and request official market synchronization. Once the change is confirmed effective and the required checks pass, complete these release steps without asking for separate confirmation. Keep release versions, assets and tags specific to each affected plugin.

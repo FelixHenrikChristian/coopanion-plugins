@@ -2,6 +2,8 @@
 
 每个插件分别维护 package.json 的版本。仓库根包为 private，禁止发布根包或把所有插件捆绑成一个运行时插件。
 
+仓库所有者已授权：后续维护中，相关插件的修改确认有效、检查通过后，可直接发布 GitHub Release、npm 并请求官方市场同步，无需逐次确认。各渠道仍须分别完成并核验结果。
+
 1. 明确本次发布哪个插件，更新它自己的版本和 CHANGELOG。
 2. 执行根目录的 describe、check、test 和 pack:check。
 3. 执行 `npm run pack:all`，检查 dist 内的真实归档内容。不要上传部署配置、个人资源、密钥、日志或运行库。
@@ -14,3 +16,5 @@
 旧装扮仓库的历史版本和 Issue 已完成迁移，记录见 [迁移明细](wardrobe-migration.md)。删除旧仓库属于单独的明确授权操作；必须先保留全部 Git 引用、发行附件和问题，并逐项核验。旧 npm 版本元数据不会被改写；新版本继续使用总仓库地址。
 
 Each plugin is versioned and released independently. Validate the source and exact archives first. GitHub releases, npm publication, market synchronization, old-repository archival and trusted-publisher changes are separate actions; do not assume one authorizes all the others.
+
+The owner has granted standing authorization for verified maintenance releases of the affected plugins to GitHub Releases and npm, including official market synchronization requests. Confirm effectiveness and pass all required checks before publishing, then verify each channel separately.
