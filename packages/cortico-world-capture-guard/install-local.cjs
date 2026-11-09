@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),{randomUUID}=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path');
+const {writeJsonSync:atomic}=require('./src/atomic-json.cjs');
 const NAME='cortico-world-capture-guard';
-function atomic(file,value){const temp=file+'.'+randomUUID()+'.tmp';try{fs.writeFileSync(temp,JSON.stringify(value,null,2)+'\n');fs.renameSync(temp,file);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}}
 function install(program,bot='companion'){
   if(!program)throw Error('请提供 Coopanion 安装目录，例如：node install-local.cjs <安装目录>');
   program=path.resolve(program);

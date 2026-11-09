@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-capture-guard",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "在截图中默认隐藏 Coopanion 桌宠，开关仅出现在本插件配置中。",
   "license": "AGPL-3.0-or-later",

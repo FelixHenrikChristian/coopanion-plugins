@@ -7,7 +7,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 | 插件 | 包名 | 源码版本 | 用途 |
 | --- | --- | --- | --- |
 | [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.4.1 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
-| [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.0 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
+| [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
 
 源码版本不等于 npm 或市场已发布版本。只有实际发布的版本才会出现在对应分发渠道。
 

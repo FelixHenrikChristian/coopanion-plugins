@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import {randomUUID} from 'node:crypto';
-import {HOST_ENV,prepareRuntime,readJson,atomicJson} from './runtime.js';
+import {HOST_ENV,prepareRuntime,readJson,atomicJsonAsync} from './runtime.js';
 import screenshotKeys from './screenshot-keys.cjs';
 export const DEFAULTS=Object.freeze({enabled:false,includeInCapture:false,resetOnStart:true,autoReturnSeconds:0,nvidiaCompatibility:true,screenshotHideSeconds:10,screenshotHotkeys:screenshotKeys.DEFAULT_KEYS});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -9,6 +9,7 @@ export class CaptureGuardWorld{
   id='capture-guard';
   constructor(ctx){
     this.ctx=ctx;this.active=false;this.session=randomUUID();this.problem=null;this.ended=true;
+    this.writeControl=atomicJsonAsync;this.pending=null;
     // All World definitions are constructed before Core starts their windows.
     // This installs only the documented process command override, never patches app files.
     if(ctx.cfg.enabled)this.prepare();
@@ -28,6 +29,7 @@ export class CaptureGuardWorld{
   tools(){return[];}
   publish(force=false){
     if(!this.runtime)return;
+    if(this.pending)return this.pending;
     const include=this.active&&this.ctx.cfg.includeInCapture===true;
     const seconds=Number(this.ctx.cfg.autoReturnSeconds)||0;
     const captureSignature=JSON.stringify([include,seconds]);
@@ -41,22 +43,27 @@ export class CaptureGuardWorld{
       this.ctx.persist({includeInCapture:false});this.signature=null;return this.publish(true);
     }
     if(!force&&signature===this.lastSignature&&Date.now()-this.lastWrite<1000)return;
-    atomicJson(this.runtime.control,{session:this.session,id:this.requestId,ownerPid:process.pid,enabled:this.active,include,expiresAt:this.expiresAt??null,leaseUntil:this.active?Date.now()+5000:0,nvidiaCompatibility,screenshotHideSeconds,screenshotHotkeys});
-    this.lastSignature=signature;this.lastWrite=Date.now();
+    const snapshot={session:this.session,id:this.requestId,ownerPid:process.pid,enabled:this.active,include,expiresAt:this.expiresAt??null,leaseUntil:this.active?Date.now()+5000:0,nvidiaCompatibility,screenshotHideSeconds,screenshotHotkeys};
+    const operation=Promise.resolve().then(()=>this.writeControl(this.runtime.control,snapshot)).then(()=>{
+      this.lastSignature=signature;this.lastWrite=Date.now();
+      if(this.problem)this.host?.log?.info?.('截图隐身配置同步已恢复');
+      this.problem=null;
+    }).catch(e=>{this.problem=e.message;throw e;}).finally(()=>{if(this.pending===operation)this.pending=null;});
+    this.pending=operation;return operation;
   }
   async start(host){
     this.host=host;
     try{
       this.prepare();this.active=true;this.ended=false;
       if(this.ctx.cfg.resetOnStart!==false&&this.ctx.cfg.includeInCapture)this.ctx.persist({includeInCapture:false});
-      this.publish(true);
-      this.timer=setInterval(()=>{try{this.publish();}catch(e){this.problem=e.message;host.log?.warn?.('截图隐身配置同步失败：'+e.message);}},150);this.timer.unref();
-    }catch(e){this.releaseEnv();throw e;}
+      await this.publish(true);
+      this.timer=setInterval(async()=>{if(this.pending)return;try{await this.publish();}catch(e){this.problem=e.message;host.log?.warn?.('截图隐身配置同步失败：'+e.message);}},150);this.timer.unref();
+    }catch(e){this.active=false;this.releaseEnv();throw e;}
   }
   releaseEnv(){if(this.runtime&&process.env[HOST_ENV]===this.runtime.command){if(this.runtime.original===undefined)delete process.env[HOST_ENV];else process.env[HOST_ENV]=this.runtime.original;}}
   async stop(){
-    this.active=false;clearInterval(this.timer);this.publish(true);this.releaseEnv();
-    this.ended=false;
+    this.active=false;clearInterval(this.timer);this.ended=false;
+    try{await this.pending?.catch(()=>{});await this.publish(true);}finally{this.releaseEnv();}
     for(let i=0;i<15;i++){
       const s=readJson(this.runtime?.status??'');
       if(!s?.running||!alive(s.pid)||s.session!==this.session||(!s.enabled&&s.affinity===0&&!s.error)){this.ended=true;break;}

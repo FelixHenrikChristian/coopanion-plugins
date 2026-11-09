@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Retry brief Windows sharing failures when atomically replacing control and status files, without deleting the last valid destination.
+- Keep ongoing writes asynchronous and serialized so screenshot key handling is not blocked and a stopped snapshot cannot be overwritten by a stale active one.
+- Clear a previous sync error after the next successful write, instead of keeping a recovered plugin red indefinitely.
+
 ## 1.1.0
 
 - Add default-on NVIDIA Instant Replay compatibility: never enable window capture-protection flags in this mode.

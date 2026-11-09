@@ -7,7 +7,7 @@ One repository for independently installable Coopanion World extensions.
 | Plugin | Package | Source version |
 | --- | --- | --- |
 | [Wardrobe Studio](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.4.1 |
-| [Capture Guard](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.0 |
+| [Capture Guard](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 |
 
 Each plugin keeps its own version, installation, configuration and license. Installing one does not install the others. Source versions are not claims that the same versions have been published to npm or the extension market.
 

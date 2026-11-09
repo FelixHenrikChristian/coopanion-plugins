@@ -2,16 +2,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {randomUUID} from 'node:crypto';
+import atomic from './atomic-json.cjs';
 
 export const HOST_ENV='CORTICO_DESKTOP_PET_HOST';
 export function readJson(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
-export function atomicJson(file,value){
-  const temp=file+'.'+process.pid+'.'+randomUUID()+'.tmp';
-  fs.mkdirSync(path.dirname(file),{recursive:true});
-  try{fs.writeFileSync(temp,JSON.stringify(value,null,2)+'\n');fs.renameSync(temp,file);}
-  finally{try{fs.unlinkSync(temp);}catch(e){if(e.code!=='ENOENT')throw e;}}
-}
+export const atomicJson=atomic.writeJsonSync;
+export const atomicJsonAsync=atomic.writeJson;
 function linkRuntimeFile(from,to){
   fs.mkdirSync(path.dirname(to),{recursive:true});
   const src=fs.statSync(from),dst=fs.existsSync(to)?fs.statSync(to):null;
@@ -38,10 +34,10 @@ export function prepareRuntime(dataDir,original){
   for(const e of fs.readdirSync(path.join(program,'locales'),{withFileTypes:true})){
     if(e.isFile()&&e.name.endsWith('.pak'))linkRuntimeFile(path.join(program,'locales',e.name),path.join(runtime,'locales',e.name));
   }
-  for(const name of ['window-main.cjs','host-bridge.cjs','screenshot-keys.cjs']){
+  for(const name of ['window-main.cjs','host-bridge.cjs','screenshot-keys.cjs','atomic-json.cjs']){
     fs.copyFileSync(fileURLToPath(new URL('./'+name,import.meta.url)),path.join(ownApp,name));
   }
-  atomicJson(path.join(ownApp,'package.json'),{name:'coopanion-capture-guard-host',version:'1.1.0',main:'window-main.cjs',productName:'Coopanion'});
+  atomicJson(path.join(ownApp,'package.json'),{name:'coopanion-capture-guard-host',version:'1.1.1',main:'window-main.cjs',productName:'Coopanion'});
   const control=path.join(dir,'control.json'),status=path.join(dir,'status.json');
   atomicJson(path.join(dir,'host.json'),{hostFile,appRoot,profile:path.join(dir,'profile'),control,status});
   const args=argv.slice(1).filter(a=>a!=='--pet-host');
