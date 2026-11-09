@@ -1,4 +1,4 @@
-# Native wardrobe compatibility · 0.4
+# Native wardrobe compatibility · 0.5.1
 
 This is an **experimental, explicit opt-in compatibility patch**, disabled by default. It is not an official Coopanion World slot. The separate wardrobe and authoring guide remain available without it.
 
@@ -10,17 +10,18 @@ Native selections use the ordinary desktop-pet appearance API and remain selecte
 
 ## Supported host
 
-Only the reviewed `cortico-world-desktop-pet@0.2.0` shipped with Coopanion 0.2.17, **and** this exact `web/dress.js` SHA-256, are supported:
+The reviewed `cortico-world-desktop-pet@0.2.0` pages shipped with these Coopanion versions are supported. The exact `web/dress.js` SHA-256 must also match:
 
 ```text
-b594171051e90e4f368c635b4fd008405f6e41e6dfd3dbd907fdbffa767fbe9f
+Coopanion 0.2.17: b594171051e90e4f368c635b4fd008405f6e41e6dfd3dbd907fdbffa767fbe9f
+Coopanion 0.2.19: 87919223e6d26bdbcfc8bff7f1f51e5c5f52b51ceafd45a72b4f0f5b780b30af
 ```
 
 Matching the version number alone is insufficient. Unknown checksums are refused without patching.
 
 ## Enable
 
-1. Install 0.4.0, restart Core as required and retain/import your local wardrobe profile.
+1. Install 0.5.1, restart Core as required and retain/import your local wardrobe profile.
 2. In Wardrobe Studio → Configuration, enter the absolute **web directory of the installed desktop-pet package**, not a figure directory. The extension does not scan the disk.
 3. Enable **Native wardrobe compatibility patch**. The loopback port defaults to `17891`; choose another 1024–65535 port if occupied. Save and restart this World.
 4. Check its native compatibility status lamp, then reopen the native wardrobe page to clear old module instances.
@@ -49,5 +50,7 @@ node src/native-restore.js --data-dir "<World dataDir>" --web-dir "<desktop-pet/
 The data directory is the parent containing `wardrobe-studio`, not that subdirectory itself. The tool uses the private backup and refuses to overwrite externally changed pages or delete modified helpers. Preserve recovery records after a host upgrade and inspect the new official files before repairing; never overwrite an unknown new version with the old backup. Disable compatibility to continue using the separate panel.
 
 ## Verification boundary
+
+After a host upgrade, automatic recovery recognizes only an exact reviewed original page. It archives the previous private recovery record under `native-adapter-history`, verifies every remaining helper, preserves the new upstream page, then backs up that new page before patching. Repeated stopping never downgrades the host page. Unknown pages and modified helpers still block recovery. Never replace a new upstream page with an old backup.
 
 Disposable tests cover rollback, repeated stopping, crash recovery, external changes, filename collisions and feed origin/token checks. Real-window acceptance is performed only with permission. Compatibility can break after a host update; this adapter does not claim a general official host hook.

@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-wardrobe-studio",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "description": "Outfit-specific wardrobe controls and a continuous-animation authoring guide for Coopanion figure packs.",
   "license": "MIT",

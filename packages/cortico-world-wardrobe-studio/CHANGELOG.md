@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- Support the checksum-reviewed native wardrobe page shipped with Coopanion 0.2.19 while retaining compatibility with 0.2.17.
+- Recover safely after a reviewed host update: archive the previous private recovery record, preserve the new upstream page and back up that version before patching it.
+- Preflight every owned helper before rollback; unknown pages and externally modified helpers remain protected. Preserve native saved looks, dialogs and unconfigured figures.
+
 ## 0.5.0
 
 - Add bilingual topology-first white-background matting guidance and an optional offline Python helper, without adding generation jobs, downloads or dependencies to the World runtime.
