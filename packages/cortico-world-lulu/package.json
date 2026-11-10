@@ -1,5 +1,8 @@
 {
-  "name":"cortico-world-lulu","version":"0.1.0","type":"module","description":"Lulu capybara companion and removable outfit controls for Coopanion.","license":"MIT",
+  "name":"cortico-world-lulu","version":"0.1.1","type":"module","description":"Lulu capybara companion and removable outfit controls for Coopanion.","license":"MIT",
+  "keywords":["cortico-world","coopanion","capybara","lulu"],
+  "homepage":"https://github.com/FelixHenrikChristian/coopanion-plugins/tree/main/packages/cortico-world-lulu#readme",
+  "bugs":{"url":"https://github.com/FelixHenrikChristian/coopanion-plugins/issues"},
   "repository":{"type":"git","url":"git+https://github.com/FelixHenrikChristian/coopanion-plugins.git","directory":"packages/cortico-world-lulu"},
   "main":"src/index.js","exports":"./src/index.js","engines":{"node":">=22.10.0"},
   "files":["src","web","assets/icon.svg","describe.json","README.md","CHANGELOG.md","LICENSE"],
