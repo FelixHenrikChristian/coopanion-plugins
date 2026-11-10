@@ -36,7 +36,9 @@ export async function createLuluBody(base,{scheme,kit,host,loadImage}){
         for(const[k,v]of Object.entries({x:-62,y:-98,width:380,height:380}))foreign.setAttribute(k,v);
         canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1024;canvas.style.cssText='display:block;width:100%;height:100%';ctx=canvas.getContext('2d');foreign.append(canvas);group.append(foreign);mounted=group;
       }
-      const owner=state,faceName=frame.face;
+      // The host keeps `thinking` active throughout message processing. Reuse Lulu's
+      // natural forward gaze rather than holding the upward-looking atlas pose.
+      const owner=state,faceName=frame.face==='thinking'?'neutral':frame.face;
       const animated=!!action||['walk','run'].includes(frame.mode)||frame.sit>.01&&frame.sit<.99||sitIndex>0&&(!seated||sitIndex<(owner.cache.get('sit')?.hold??22));
       const br=Math.sin(frame.t*(frame.mode==='sleep'?1.7:2.4));
       foreign.setAttribute('transform',animated?`translate(128 256) scale(${1/(1-.009*br)} ${1/(1+.016*br)}) translate(-128 -256)`:'');
