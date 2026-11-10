@@ -3,10 +3,9 @@ import {PetBridge,AppearanceLease,localBase} from './bridge.js';
 import {validateProfile,validateAgainstPack,outfitOf,selectVariant} from './profile.js';
 import {authoringGuide} from './guide.js';
 import {TOOL_SPECS,DESCRIBE} from './tools.js';
-import {NativeAdapter} from './native-adapter.js';
 import profileExample from '../examples/lulu.profile.json' with {type:'json'};
 import profileSchema from '../docs/wardrobe-profile.schema.json' with {type:'json'};
-export const DEFAULTS=Object.freeze({enabled:false,desktopPetUrl:'http://127.0.0.1:7797',nativeIntegration:false,nativeWebDir:'',nativePort:17891});
+export const DEFAULTS=Object.freeze({enabled:false,desktopPetUrl:'http://127.0.0.1:7797'});
 const appearance=s=>({figure:s.figure,scheme:s.scheme});
 export class WardrobeWorld{
   id='wardrobe-studio';
@@ -15,14 +14,9 @@ export class WardrobeWorld{
   async start(host){
     this.host=host;this.profiles=(await this.store.read('profiles.json',[])).map(validateProfile);this.language=(await this.store.read('preferences.json',{}))?.language==='en'?'en':'zh';this.started=true;
     try{this.restoration=await this.lease.restore();}catch(e){this.error=String(e.message);}
-    if(this.ctx.cfg.nativeIntegration){
-      this.native=new NativeAdapter({webDir:this.ctx.cfg.nativeWebDir,store:this.store,origin:this.bridge.base,port:this.ctx.cfg.nativePort??17891,snapshot:()=>({contract:1,enabled:this.started,language:this.language,profiles:this.profiles})});
-      try{await this.native.start();}catch(e){this.native.status={state:'error',error:String(e.message)};this.host?.log?.warn?.('Native wardrobe compatibility adapter is off; see its panel status');}
-    }
   }
   async stop(){
     this.started=false;
-    try{await this.native?.stop();}catch(e){this.native.status={state:'error',error:String(e.message)};this.host?.log?.warn?.('Native wardrobe rollback requires attention');}
     await this.serial(async()=>{try{this.restoration=await this.lease.restore();this.error=null;}catch(e){this.error=String(e.message);this.host?.log?.warn?.('Wardrobe appearance restoration requires attention');}});
   }
   envPromptVars(){return null;}
@@ -38,12 +32,12 @@ export class WardrobeWorld{
   async state(){
     let packs=[],current=null,connectionError=null;
     try{packs=(await this.bridge.packs()).filter(p=>p.id!=='coo').map(p=>({id:p.id,name:p.name,axes:p.axes,presets:p.presets??[]}));current=appearance(await this.bridge.skin());}catch(e){connectionError=String(e.message);}
-    return{profiles:this.profiles,packs,current,desktopPetUrl:this.bridge.base,connected:!connectionError,error:connectionError??this.error,lease:await this.store.read('lease.json',null),restoration:this.restoration,nativeIntegration:this.native?.status??{state:'off'}};
+    return{profiles:this.profiles,packs,current,desktopPetUrl:this.bridge.base,connected:!connectionError,error:connectionError??this.error,lease:await this.store.read('lease.json',null),restoration:this.restoration};
   }
   async importProfile(raw){return this.serial(async()=>{
     if(!this.started)throw Error('Wardrobe World is not active');
     const profile=validateProfile(raw);await this.bridge.validate(profile);
-    const next=this.profiles.filter(p=>p.id!==profile.id);next.push(profile);await this.store.write('profiles.json',next);this.profiles=next;this.native?.broadcast();return profile;
+    const next=this.profiles.filter(p=>p.id!==profile.id);next.push(profile);await this.store.write('profiles.json',next);this.profiles=next;return profile;
   });}
   async checkProfile(raw){
     const p=validateProfile(raw);await this.bridge.validate(p);
@@ -52,11 +46,11 @@ export class WardrobeWorld{
   async setLanguage(language){return this.serial(async()=>{
     if(!this.started)throw Error('Wardrobe World is not active');
     if(!['zh','en'].includes(language))throw Error('Unsupported wardrobe language');
-    await this.store.write('preferences.json',{language});this.language=language;this.native?.broadcast();return{language};
+    await this.store.write('preferences.json',{language});this.language=language;return{language};
   });}
   async removeProfile(id){return this.serial(async()=>{
     if(!this.started)throw Error('Wardrobe World is not active');
-    const next=this.profiles.filter(p=>p.id!==id);await this.store.write('profiles.json',next);this.profiles=next;this.native?.broadcast();return{removed:id};
+    const next=this.profiles.filter(p=>p.id!==id);await this.store.write('profiles.json',next);this.profiles=next;return{removed:id};
   });}
   async choose({profile:id,outfit,pick={}}){return this.serial(async()=>{
     if(!this.started)throw Error('Wardrobe World is not active');
@@ -75,7 +69,7 @@ export class WardrobeWorld{
   webUi(language='zh'){
     const zh=this.language!=='en';
     return{label:zh?'装扮工作室':'Wardrobe Studio',panels:[{id:'wardrobe',title:zh?'衣橱':'Wardrobe'},{id:'guide',title:zh?'角色制作指导':'Authoring guide'}],
-      lamps:[{label:zh?'外观恢复':'Appearance restoration',state:this.error?'error':'online',hint:this.error??(zh?'角色包文件保持不变':'Figure pack files remain unchanged')},{label:zh?'原生页兼容':'Native compatibility',state:this.native?.status.state==='error'?'error':this.native?.status.state==='active'?'online':'offline',hint:this.native?.status.error??(this.native?.status.state==='active'?(zh?'已接入原生装扮页；停用时回滚补丁':'Native wardrobe connected; stopping restores the patch'):(zh?'未启用原生页兼容补丁':'Native compatibility patch is off'))}],
+      lamps:[{label:zh?'外观恢复':'Appearance restoration',state:this.error?'error':'online',hint:this.error??(zh?'角色包文件保持不变':'Figure pack files remain unchanged')}],
       invoke:async(panel,method,args)=>{
         if((panel==='guide'||panel==='wardrobe')&&method==='locale')return{language:this.language};
         if((panel==='guide'||panel==='wardrobe')&&method==='setLanguage')return this.setLanguage(args[0]);
@@ -93,9 +87,9 @@ export class WardrobeWorld{
         if(method==='restore')return this.restore();
         throw Error('Unknown wardrobe method');
       },
-      config:[{id:'world:wardrobe-studio',owner:'world:wardrobe-studio',schema:{type:'object',title:zh?'桌宠与原生页兼容':'Desktop pet and native compatibility',properties:{'worlds.wardrobe-studio.desktopPetUrl':{type:'string',title:zh?'本机桌宠地址':'Local desktop pet address',description:zh?'修改后重启此 World。只接受本机 HTTP 地址。':'Restart this World after changing the loopback HTTP origin.','x-hot':false},'worlds.wardrobe-studio.nativeIntegration':{type:'boolean',title:zh?'启用原生装扮页兼容补丁':'Enable native wardrobe compatibility patch',description:zh?'实验功能，会备份并临时修改指定桌宠包的装扮页面。停用 World 时恢复。修改后重启此 World。':'Experimental: backs up and temporarily patches the specified native wardrobe page. Stopping restores it. Restart this World after changes.','x-hot':false},'worlds.wardrobe-studio.nativeWebDir':{type:'string',title:zh?'desktop-pet 包的 web 绝对目录':'Absolute desktop-pet web directory',description:zh?'仅支持已校验版本；留空不自动搜索磁盘。修改后重启此 World。':'Only the verified version is supported; an empty path does not scan the disk. Restart this World after changes.','x-hot':false},'worlds.wardrobe-studio.nativePort':{type:'integer',minimum:1024,maximum:65535,title:zh?'兼容接口本机端口':'Compatibility loopback port','x-hot':false}}}}]
+      config:[{id:'world:wardrobe-studio',owner:'world:wardrobe-studio',schema:{type:'object',title:zh?'本机桌宠':'Local desktop pet',properties:{'worlds.wardrobe-studio.desktopPetUrl':{type:'string',title:zh?'本机桌宠地址':'Local desktop pet address',description:zh?'修改后重启此 World。只接受本机 HTTP 地址。':'Restart this World after changing the loopback HTTP origin.','x-hot':false}}}}]
     };
   }
-  shutdownVerification(){return[{key:'appearance',label:'Wardrobe appearance',status:this.error?'unknown':'verified-ended',detail:this.error??this.restoration?.status??'unchanged',manualAction:this.error?'Enable Wardrobe Studio and use Restore after the desktop pet is available.':''},{key:'native-adapter',label:'Native wardrobe patch',status:this.native?.status.state==='error'?'unknown':'verified-ended',detail:this.native?.status.error??this.native?.status.state??'off',manualAction:this.native?.status.state==='error'?'Read the native integration recovery guide before uninstalling.':''}];}
+  shutdownVerification(){return[{key:'appearance',label:'Wardrobe appearance',status:this.error?'unknown':'verified-ended',detail:this.error??this.restoration?.status??'unchanged',manualAction:this.error?'Enable Wardrobe Studio and use Restore after the desktop pet is available.':''}];}
 }
-export default {id:'wardrobe-studio',label:'Wardrobe Studio',defaults:()=>({...DEFAULTS}),preflight:ctx=>{localBase(ctx.cfg.desktopPetUrl);if(ctx.cfg.nativeIntegration&&(!Number.isInteger(ctx.cfg.nativePort??17891)||(ctx.cfg.nativePort??17891)<1024||(ctx.cfg.nativePort??17891)>65535))throw Error('Native compatibility port must be between 1024 and 65535');},create:ctx=>new WardrobeWorld(ctx),describe:DESCRIBE};
+export default {id:'wardrobe-studio',label:'Wardrobe Studio',defaults:()=>({...DEFAULTS}),preflight:ctx=>{localBase(ctx.cfg.desktopPetUrl);},create:ctx=>new WardrobeWorld(ctx),describe:DESCRIBE};

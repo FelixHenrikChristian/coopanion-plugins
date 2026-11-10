@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import definition from '../src/index.js';
 import {DESCRIBE} from '../src/tools.js';
 import assert from 'node:assert/strict';
-for(const dir of ['src','web','scripts','test','prototypes/native-dress'])for(const entry of await readdir(new URL('../'+dir+'/',import.meta.url))){
+for(const dir of ['src','web','scripts','test'])for(const entry of await readdir(new URL('../'+dir+'/',import.meta.url))){
  if(!/\.[cm]?js$/.test(entry))continue;
  const result=spawnSync(process.execPath,['--check',fileURLToPath(new URL('../'+dir+'/'+entry,import.meta.url))],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);
 }

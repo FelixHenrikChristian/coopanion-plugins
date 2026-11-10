@@ -6,7 +6,7 @@ One repository for independently installable Coopanion World extensions.
 
 | Plugin | Package | Source version |
 | --- | --- | --- |
-| [Wardrobe Studio](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.5.2 |
+| [Wardrobe Studio](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.0 |
 | [Capture Guard](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 |
 | [Lulu](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.2 |
 

@@ -60,6 +60,22 @@ test('default World constructs without touching a deployment or network',()=>{
  const ui=world.webUi('en');assert.deepEqual(ui.panels.map(p=>p.id),['wardrobe','guide']);
  assert.equal(ui.config[0].owner,'world:wardrobe-studio');assert.equal(definition.defaults().enabled,false);
 });
+
+test('legacy native settings cannot alter host files or bind a port; independent wardrobe still works',async t=>{
+ const f=await fixture(t),web=join(f.root,'legacy-host','web');await mkdir(web,{recursive:true});
+ const sentinel=Buffer.from('unmodified host program');await writeFile(join(web,'dress.js'),sentinel);
+ const world=new WardrobeWorld({...f.ctx,cfg:{...f.ctx.cfg,nativeIntegration:true,nativeWebDir:web,nativePort:1}});
+ definition.preflight({...f.ctx,cfg:{...f.ctx.cfg,nativeIntegration:true,nativeWebDir:web,nativePort:1}});
+ await world.start(host);await world.importProfile(example);
+ await world.choose({profile:profile.id,outfit:'outfittwo',pick:{fastener:'open',colour:'blue'}});
+ assert.equal(f.skin().scheme,'twoopenblue');await world.setLanguage('en');
+ const ui=world.webUi();assert.deepEqual(Object.keys(ui.config[0].schema.properties),['worlds.wardrobe-studio.desktopPetUrl']);
+ assert.equal(ui.lamps.length,1);assert(!('nativeIntegration'in await world.state()));
+ await world.stop();assert.deepEqual(f.skin(),initial);
+ assert.deepEqual(await readFile(join(web,'dress.js')),sentinel);assert.deepEqual(await readdir(web),['dress.js']);
+ assert.deepEqual((await readdir(world.store.root)).sort(),['lease.json','preferences.json','profiles.json']);
+ assert.deepEqual(world.shutdownVerification().map(row=>row.key),['appearance']);
+});
 test('import, apply and stop use an unchanged figure and restore the original appearance',async t=>{
  const f=await fixture(t),before=await readFile(join(f.original,'figure.json'));const world=new WardrobeWorld(f.ctx);
  await world.start(host);await world.importProfile(example);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Remove native-page patching, recovery utility, compatibility feed/helpers, native settings and prototype.
+- Keep independent wardrobe panels, Lulu example, authoring guidance and standard appearance API behavior.
+- Document verified legacy rollback before upgrading; the new release never writes host program files.
+- Add Chinese discovery keywords. Market reinstatement remains subject to official review.
+
 ## 0.5.2
 
 - Replace the default downloadable profile, preview artwork and bilingual authoring examples with Lulu: Orange with removable bird bag, Pajamas and Cardboard Dinosaur.

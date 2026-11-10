@@ -1,5 +1,9 @@
 # Verification
 
+## Package 0.6.0
+
+Independent-panel release: the host patch adapter, restoration utility, feed, helper clients, configuration switches and native-page prototype are removed. Regression coverage checks that legacy configuration cannot touch a host directory, bind a compatibility port or change the panel contract. Existing isolated tests cover profiles, allowed combinations, thumbnails, language, appearance ownership and recovery. Historical checks below apply only to their named versions. Current release execution evidence is recorded separately.
+
 ## Package 0.5.2
 
 The default downloadable profile, bilingual complete JSON examples, panel preview and native-page prototype now use Lulu. The panel was exercised against an isolated loopback service: orange bag on/off, pajamas and cardboard dinosaur selections applied correctly, Chinese/English switching worked, and the actual download contained `lulu-capybara` with the four schemes `bag`, `plain`, `sleep` and `dino`. The new screenshot shows that real panel preview. The prototype served each of the four approved still images byte-for-byte and selected its Lulu preview factory while keeping the installed host files read-only. Its static preview is separate from the complete animated figure release.
