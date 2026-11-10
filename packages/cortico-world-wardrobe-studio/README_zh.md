@@ -29,18 +29,18 @@
 | 整理衣橱 | 按服装显示独立选项，禁用没有完整资源的组合 |
 | 切换搭配 | 使用桌宠标准外观接口，读取本机角色缩略图 |
 | 制作角色 | 参考图提示词、连续视频、播放验收、连续抠像、形象包接入指南 |
-| 编写配置 | 完整字段表、虚构示例、JSON Schema、本机 ID 查询和只读校验 |
+| 编写配置 | 完整字段表、噜噜示例、JSON Schema、本机 ID 查询和只读校验 |
 | 切换语言 | 默认中文，可选 English，记住选择并保留编辑草稿 |
 
 > [!IMPORTANT]
 > **0.4 新增可选的原生装扮页兼容补丁，默认关闭。** 这不是官方 World 插槽，会临时修改经过校验的原生页面，正常停用时恢复。不兼容版本会拒绝修改。[支持版本、设置和回滚说明 →](docs/native-integration.zh.md)
 
 <details>
-<summary><strong>查看独立衣橱预览 · 完全虚构角色</strong></summary>
+<summary><strong>查看独立衣橱预览 · 噜噜示例</strong></summary>
 <br>
-<div align="center"><img src="assets/wardrobe.png" width="500" alt="虚构苔星狐的独立衣橱面板"></div>
+<div align="center"><img src="assets/wardrobe.png" width="500" alt="噜噜的独立衣橱面板"></div>
 
-示例“苔星狐”的探险装有斗篷和足部装备，雨林装有雨帽与雨披颜色，观星装只有护目镜。公开素材仅包含虚构示例。
+噜噜示例有橘子装、粉色睡衣和纸箱恐龙装；橘子装可戴上或摘下小鸟包包。示例复用已验收的四套外观预览，完整动作包由独立噜噜 Release 提供。
 
 </details>
 
@@ -62,10 +62,12 @@
 
 打开 **装扮工作室 → 衣橱 → 导入衣橱配置**：
 
-1. 查看本机装扮 ID，下载虚构示例或 JSON Schema。
+1. 查看本机装扮 ID，下载噜噜示例或 JSON Schema。
 2. 按自己的角色填写 `figure`、服装选项和已有 `scheme`。
 3. 点击 **校验配置**，修复结构或 ID 报错后再导入。
 4. 选择服装与搭配，点击 **应用装扮**。
+
+[默认噜噜配置](examples/lulu.profile.json)对应[独立噜噜角色包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0)。先安装该角色包即可直接使用示例 ID；仅在改成其他角色时替换 ID。
 
 [完整 JSON 字段与可复制示例 →](docs/profile-format.zh.md)
 
@@ -124,7 +126,7 @@ npm run check
 npm run preview
 ```
 
-开发预览使用独立临时数据与虚构角色。原生集成原型是另一个隔离服务，启动方式见其文档。
+开发预览使用独立临时数据与已确认的噜噜预览。原生集成原型是另一个隔离服务，启动方式见其文档。
 
 | 工具 | 作用 |
 | :--- | :--- |
@@ -133,7 +135,7 @@ npm run preview
 | `wardrobe_restore` | 恢复扩展接管前外观 |
 | `wardrobe_authoring_guide` | 读取制作流程、格式与排查说明 |
 
-公共源码只使用完全虚构的示例。个人角色、衣橱配置和生产记录应放在仓库之外。
+公共源码使用已明确授权公开的噜噜示例。个人角色、衣橱配置和生产记录应放在仓库之外。
 
 </details>
 
@@ -142,5 +144,7 @@ npm run preview
 <div align="center">
 
 [MIT License](LICENSE) · 第三方独立扩展 · 非 Coopanion / Pal AI Lab 官方组件
+
+MIT 适用于插件代码；噜噜角色及其参考／预览图的权利归各自权利人。
 
 </div>

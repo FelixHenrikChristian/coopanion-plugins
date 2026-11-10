@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "lulu-wardrobe",
+  "figure": "lulu-capybara",
+  "label": "噜噜的衣橱",
+  "outfits": [
+    {
+      "id": "orange",
+      "label": "橘子噜噜",
+      "controls": [
+        {
+          "id": "bag",
+          "label": "小鸟包包",
+          "options": [
+            {
+              "id": "on",
+              "label": "戴上"
+            },
+            {
+              "id": "off",
+              "label": "摘下"
+            }
+          ],
+          "default": "on"
+        }
+      ],
+      "variants": [
+        {
+          "pick": {
+            "bag": "on"
+          },
+          "scheme": "bag"
+        },
+        {
+          "pick": {
+            "bag": "off"
+          },
+          "scheme": "plain"
+        }
+      ]
+    },
+    {
+      "id": "sleep",
+      "label": "睡衣噜噜",
+      "controls": [],
+      "variants": [
+        {
+          "pick": {},
+          "scheme": "sleep"
+        }
+      ]
+    },
+    {
+      "id": "dino",
+      "label": "纸箱恐龙噜噜",
+      "controls": [],
+      "variants": [
+        {
+          "pick": {},
+          "scheme": "dino"
+        }
+      ]
+    }
+  ]
+}

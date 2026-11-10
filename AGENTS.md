@@ -2,7 +2,7 @@
 
 Each directory under packages/ is an independently installable World API 6 package. Keep package names and versions independent. The repository root is private and must never be published to npm.
 
-Keep deployment data, credentials, personal figure media, conversation exports, absolute machine-specific paths, caches and runtime binaries out of Git and published archives. Use fictional examples and isolated temporary fixtures. Do not change a person's running Coopanion to test repository changes.
+Keep deployment data, credentials, personal figure media, conversation exports, absolute machine-specific paths, caches and runtime binaries out of Git and published archives. Use isolated temporary fixtures. The owner-authorized Lulu profile and its four approved preview stills are public examples; keep other personal media outside the repository. Do not change a person's running Coopanion to test repository changes.
 
 Read package-specific AGENTS.md files before editing those packages. Preserve each package's license. Shared documentation must explain that one repository does not make the plugins depend on each other.
 

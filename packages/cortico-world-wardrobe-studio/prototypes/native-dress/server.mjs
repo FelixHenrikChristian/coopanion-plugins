@@ -6,12 +6,11 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {validateProfile,validateAgainstPack} from '../../src/profile.js';
-import {foxSvg} from './fox-art.js';
 const args=process.argv.slice(2),arg=name=>{const i=args.indexOf(name);return i<0?null:args[i+1];};
 if(!arg('--web'))throw Error('Pass --web <installed desktop-pet web directory>; files are read only');
 const web=resolve(arg('--web')),here=fileURLToPath(new URL('./',import.meta.url)),project=fileURLToPath(new URL('../../',import.meta.url));
 const {WebSocketServer}=createRequire(join(web,'../package.json'))('ws');
-const profile=validateProfile(JSON.parse(await readFile(arg('--profile')??join(project,'examples/forest-fox.profile.json'),'utf8')));
+const profile=validateProfile(JSON.parse(await readFile(arg('--profile')??join(project,'examples/lulu.profile.json'),'utf8')));
 const privateMode=!!arg('--profile');let packs,skin;
 if(privateMode){
  const seed=new URL(arg('--seed')??'http://127.0.0.1:7797');if(seed.protocol!=='http:'||!['localhost','127.0.0.1','[::1]'].includes(seed.hostname)||seed.username||seed.password)throw Error('Seed service must be local HTTP');
@@ -20,9 +19,9 @@ if(privateMode){
  packs=(await get('/api/figures')).map(p=>({...p,removable:false}));skin=(await get('/api/state')).skin;
 }else{
  const coo=JSON.parse(await readFile(join(web,'coo/figure.json'),'utf8'));
- const fox={manifest:2,api:2,id:profile.figure,version:'0.0.0-fixture',name:{zh:'苔星狐',en:'Moss Fox'},about:{zh:'仅用于界面测试的虚构狐狸。',en:'Fictional idle-only UI fixture.'},entry:'figure.js',export:'createFoxBody',thumb:'thumbs/trailleafboots.svg',base:'/packs/forest-fox/',axes:[{id:'appearance',name:{zh:'完整搭配',en:'Complete look'},options:profile.outfits.flatMap(o=>o.variants.map(v=>({id:v.scheme,name:{zh:o.label+' / '+Object.values(v.pick).join(' · ')},thumb:'thumbs/'+v.scheme+'.svg'})))}],presets:[],vocab:[],sounds:{},can:{walk:false},needs:[],effects:{reach:0}};
- packs=[{...coo,base:'/web/coo/',presets:coo.presets??[],removable:false},fox];
- skin={figure:profile.figure,scheme:'trailleafboots',palette:'mint',head:'none',side:'none',glasses:'none',neck:'none',colors:{}};
+ const samplePack={manifest:2,api:2,id:profile.figure,version:'0.0.0-preview',name:{zh:'噜噜',en:'Lulu'},about:{zh:'噜噜衣橱界面预览；静态图不是完整动作包。',en:'Lulu wardrobe UI preview; still images are not the full animation pack.'},entry:'figure.js',export:'createLuluPreviewBody',thumb:'thumbs/bag.png',base:'/packs/lulu-capybara/',axes:[{id:'appearance',name:{zh:'完整搭配',en:'Complete look'},options:profile.outfits.flatMap(o=>o.variants.map(v=>({id:v.scheme,name:{zh:o.label+' / '+Object.values(v.pick).join(' · ')},thumb:'thumbs/'+v.scheme+'.png'})))}],presets:[],vocab:[],sounds:{},can:{walk:false},needs:[],effects:{reach:0}};
+ packs=[{...coo,base:'/web/coo/',presets:coo.presets??[],removable:false},samplePack];
+ skin={figure:profile.figure,scheme:'bag',palette:'mint',head:'none',side:'none',glasses:'none',neck:'none',colors:{}};
 }
 validateAgainstPack(profile,packs.find(p=>p.id===profile.figure));
 let enabled=true,registered=true,offline=false,revision=1;const events=new Set(),sockets=new Set();
@@ -53,12 +52,11 @@ const server=createServer(async(req,res)=>{try{
   json(res,{error:'Writes to installed figures, imports and other services are unavailable in this isolated prototype'},405);return;
  }
  if(path==='/api/wardrobe-view'){json(res,{contract:1,enabled:enabled&&registered,profiles:registered?[profile]:[],revision},offline?503:200);return;}
- if(path==='/prototype/status'){json(res,{...status(),sourceHash,installedFilesReadOnly:true,mode:privateMode?'private-local':'fictional-demo'});return;}
+ if(path==='/prototype/status'){json(res,{...status(),sourceHash,installedFilesReadOnly:true,mode:privateMode?'private-local':'lulu-preview'});return;}
  if(path==='/api/figures'){json(res,packs);return;}
  if(path==='/api/figures/status'){json(res,{importable:false,large:0,depth:0,problems:[]});return;}
  if(path==='/api/state'){json(res,{skin,theme:'dark',language:'zh',sounds:{volume:0}});return;}
  if(path==='/web/dress.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'}).end(patched);return;}
- if(!privateMode&&path.startsWith('/packs/forest-fox/thumbs/')){const scheme=path.split('/').at(-1).replace(/\.svg$/,'');if(!profile.outfits.some(o=>o.variants.some(v=>v.scheme===scheme)))throw Error('Unknown demo thumbnail');res.writeHead(200,{'Content-Type':'image/svg+xml','Access-Control-Allow-Origin':'null'}).end(foxSvg(scheme));return;}
  let file;
  if(path==='/')file=join(here,'shell.html');
  else if(path==='/dress')file=join(web,'dress.html');
@@ -66,8 +64,8 @@ const server=createServer(async(req,res)=>{try{
   file=join(web,'figure-frame.html');res.setHeader('Content-Security-Policy',`sandbox allow-scripts; default-src 'none'; script-src ${origin}; img-src ${origin} data: blob:; style-src 'unsafe-inline'; connect-src ${origin};`);
  }else if(path==='/integration/controls.js')file=join(here,'controls.js');
  else if(path==='/integration/profile.js')file=join(project,'src/profile.js');
- else if(!privateMode&&path==='/packs/forest-fox/figure.js')file=join(here,'fox-figure.js');
- else if(!privateMode&&path==='/packs/forest-fox/fox-art.js')file=join(here,'fox-art.js');
+ else if(!privateMode&&path==='/packs/lulu-capybara/figure.js')file=join(here,'sample-figure.js');
+ else if(!privateMode&&path.startsWith('/packs/lulu-capybara/thumbs/')){const scheme=path.split('/').at(-1).replace(/\.png$/,'');if(!['bag','plain','sleep','dino'].includes(scheme))throw Error('Unknown sample thumbnail');file=join(project,'assets/lulu',scheme+'.png');}
  else if(path.startsWith('/web/'))file=safe(web,path.slice(5));
  else if(privateMode&&path.startsWith('/packs/')){
   const id=path.split('/')[2];if(!packs.some(p=>p.id===id))throw Error('Unknown pack');const figureRoot=resolve(arg('--figure-root'));file=safe(figureRoot,path.slice(7));

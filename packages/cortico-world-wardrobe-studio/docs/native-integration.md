@@ -1,4 +1,4 @@
-# Native wardrobe compatibility · 0.5.1
+# Native wardrobe compatibility · 0.5.2
 
 This is an **experimental, explicit opt-in compatibility patch**, disabled by default. It is not an official Coopanion World slot. The separate wardrobe and authoring guide remain available without it.
 
@@ -21,7 +21,7 @@ Matching the version number alone is insufficient. Unknown checksums are refused
 
 ## Enable
 
-1. Install 0.5.1, restart Core as required and retain/import your local wardrobe profile.
+1. Install 0.5.2, restart Core as required and retain/import your local wardrobe profile.
 2. In Wardrobe Studio → Configuration, enter the absolute **web directory of the installed desktop-pet package**, not a figure directory. The extension does not scan the disk.
 3. Enable **Native wardrobe compatibility patch**. The loopback port defaults to `17891`; choose another 1024–65535 port if occupied. Save and restart this World.
 4. Check its native compatibility status lamp, then reopen the native wardrobe page to clear old module instances.

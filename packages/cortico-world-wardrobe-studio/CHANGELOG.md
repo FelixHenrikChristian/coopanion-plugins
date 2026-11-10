@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+- Replace the default downloadable profile, preview artwork and bilingual authoring examples with Lulu: Orange with removable bird bag, Pajamas and Cardboard Dinosaur.
+- Remove the previous character example and procedural artwork from the current source, preview and native-page prototype.
+- Reuse four approved Lulu stills; the full animated figure remains a separate independently installable release.
+
 ## 0.5.1
 
 - Support the checksum-reviewed native wardrobe page shipped with Coopanion 0.2.19 while retaining compatibility with 0.2.17.

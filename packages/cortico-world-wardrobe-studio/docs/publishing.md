@@ -12,7 +12,7 @@ npm run pack:check
 npm pack --ignore-scripts
 ```
 
-Review the exact archive content, the fictional screenshots, and the Git history before publication. Runtime deployment profiles belong outside this repository. Add the chosen public repository, homepage, issue URL and publisher attribution to `package.json` before publishing. Follow the project's chosen license and review asset rights.
+Review the exact archive content, the authorized Lulu preview screenshots, and the Git history before publication. Runtime deployment profiles belong outside this repository. Add the chosen public repository, homepage, issue URL and publisher attribution to `package.json` before publishing. Follow the project's chosen license and review asset rights.
 
 For an upstream checkout with the official tooling available, also run `pnpm check:extension <package-directory>` and compare the exported description. This package's local checks verify its interface shape and behavior; they do not claim to replace the official checker or a real host installation test.
 

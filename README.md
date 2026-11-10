@@ -6,7 +6,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 
 | 插件 | 包名 | 源码版本 | 用途 |
 | --- | --- | --- | --- |
-| [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.5.1 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
+| [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.5.2 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
 | [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
 | [噜噜](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.0 | 独立的水豚噜噜桌宠衣橱，可摘下包包，并可导入装扮工作室 |
 

@@ -1,6 +1,6 @@
 # Wardrobe Studio development
 
-Keep this repository free of deployment data, personal character media, conversation exports, credentials, machine-specific paths and private project examples. Use wholly fictional examples. Runtime data belongs outside the repository.
+Keep this repository free of deployment data, personal character media, conversation exports, credentials, machine-specific paths and private project examples. The owner-authorized Lulu wardrobe profile and four approved preview stills are public examples. Other private material remains outside this repository. Runtime data belongs outside the repository.
 
 Run `npm run describe`, `npm run check`, `npm test` and `npm run pack:check` before a release. Review the exact package archive and Git history. Use isolated temporary deployments and loopback fixture servers for tests; do not change a person's running Coopanion or its figure files to verify a patch.
 

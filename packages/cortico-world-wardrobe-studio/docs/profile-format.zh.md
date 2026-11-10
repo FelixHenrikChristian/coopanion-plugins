@@ -44,53 +44,78 @@ default 必须分别有效。如果部分组合矩阵中没有“所有 default 
 
 scheme 按形象 manifest 解析：
 
-1. 单配置轴：直接填 option ID，例如 trailleafboots。
-2. 多配置轴：按 manifest 中 axes 的顺序，用短横线连接 option ID。例如 axes 先 cape 后 footwear，leaf 和 boots 对应 leaf-boots，反过来就错。宿主的轴选项有自己的 ID 限制，必须使用真实声明值，不能填衣橱显示文字。
+1. 单配置轴：直接填 option ID，例如 bag。
+2. 多配置轴：按 manifest 中 axes 的顺序，用短横线连接 option ID。通用多轴示意：axes 先 hat 后 bag，on 和 off 对应 on-off，反过来就错。宿主的轴选项有自己的 ID 限制，必须使用真实声明值，不能填衣橱显示文字。
 3. 已声明的 preset ID 也可直接填写。不要在衣橱里新造一个 ID，就期待插件自动找到同名图片。
 
-例如配置 id=moss-wardrobe，figure=forest-fox，outfit=trail，pick={cape:leaf,footwear:boots}，最终完整外观 scheme=trailleafboots。这些不同层级的 ID 不必相同。扁平完整 scheme 可由本扩展重新分组，原生配置轴保持原样。
+例如配置 id=lulu-wardrobe，figure=lulu-capybara，outfit=orange，pick={bag:on}，scheme=bag。摘下包包映射到 plain；睡衣 sleep 和纸箱恐龙 dino 没有额外控制项。各层 ID 的含义不同。
 
 ## 可复制的完整小示例
 
-这是完全虚构的例子，要求 forest-fox 形象包已经有下列六个 appearance 选项；JSON 不会安装该形象。下载按钮提供的完整示例另有雨林装，共三套服装、十个 scheme。
+默认噜噜示例对应已发布 lulu-capybara 的 bag、plain、sleep、dino 四个外观。先安装[噜噜角色包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0)，再导入 JSON。下载按钮与此处提供同一份三套服装、四个完整外观配置；JSON 本身不包含动画。
 
 ```json
 {
   "schema": 1,
-  "id": "moss-wardrobe",
-  "figure": "forest-fox",
-  "label": "苔星狐",
+  "id": "lulu-wardrobe",
+  "figure": "lulu-capybara",
+  "label": "噜噜的衣橱",
   "outfits": [
     {
-      "id": "trail",
-      "label": "探险装",
+      "id": "orange",
+      "label": "橘子噜噜",
       "controls": [
-        {"id": "cape", "label": "斗篷", "default": "leaf", "options": [
-          {"id": "leaf", "label": "叶绿"},
-          {"id": "sand", "label": "沙色"}
-        ]},
-        {"id": "footwear", "label": "足部装备", "default": "boots", "options": [
-          {"id": "boots", "label": "靴子"},
-          {"id": "paws", "label": "爪子"}
-        ]}
+        {
+          "id": "bag",
+          "label": "小鸟包包",
+          "options": [
+            {
+              "id": "on",
+              "label": "戴上"
+            },
+            {
+              "id": "off",
+              "label": "摘下"
+            }
+          ],
+          "default": "on"
+        }
       ],
       "variants": [
-        {"pick": {"cape": "leaf", "footwear": "boots"}, "scheme": "trailleafboots"},
-        {"pick": {"cape": "leaf", "footwear": "paws"}, "scheme": "trailleafpaws"},
-        {"pick": {"cape": "sand", "footwear": "boots"}, "scheme": "trailsandboots"},
-        {"pick": {"cape": "sand", "footwear": "paws"}, "scheme": "trailsandpaws"}
+        {
+          "pick": {
+            "bag": "on"
+          },
+          "scheme": "bag"
+        },
+        {
+          "pick": {
+            "bag": "off"
+          },
+          "scheme": "plain"
+        }
       ]
     },
     {
-      "id": "stargazer",
-      "label": "观星装",
-      "controls": [{"id": "visor", "label": "护目镜", "options": [
-        {"id": "raised", "label": "抬起"},
-        {"id": "lowered", "label": "放下"}
-      ]}],
+      "id": "sleep",
+      "label": "睡衣噜噜",
+      "controls": [],
       "variants": [
-        {"pick": {"visor": "raised"}, "scheme": "stargazerraised"},
-        {"pick": {"visor": "lowered"}, "scheme": "stargazerlowered"}
+        {
+          "pick": {},
+          "scheme": "sleep"
+        }
+      ]
+    },
+    {
+      "id": "dino",
+      "label": "纸箱恐龙噜噜",
+      "controls": [],
+      "variants": [
+        {
+          "pick": {},
+          "scheme": "dino"
+        }
       ]
     }
   ]
@@ -107,12 +132,12 @@ scheme 按形象 manifest 解析：
 
 ## 不完整组合的处理
 
-没有动画资源的组合可以不列出。删除上例 trailsandpaws 对应 variant 后，选沙色时爪子选项会禁用；但爪子仍须在其他 variant 中出现。插件不会自动组合剩余图片造出缺失服装。需要时先切到一个有效的中间选项，再到另一个合法组合。
+一套服装有多个配置项时，没有动画资源的组合可以不列出；面板会禁用无法完成当前搭配的选项。每个已声明选项仍须至少出现在一个有效 variant 中。噜噜橘子装只有一个包包控制项，戴上与摘下两个组合均可用。插件不会自动组合剩余图片造出缺失服装。
 
 ## 校验与导入步骤
 
 1. 先安装并验收真正的形象包，保持桌宠服务可用。
-2. 下载虚构示例，把 figure 和所有 scheme 改为本机真实值，再按自己的服装设计修改分组／显示文字。
+2. 下载噜噜示例。使用已发布噜噜角色包时，保留其 ID 即可；用于其他角色时，把 figure 和所有 scheme 改为本机真实值，再按自己的服装设计修改分组／显示文字。
 3. 选择 JSON 文件或粘贴完整对象，点“校验配置”。它不会保存配置或修改外观，只检查结构、选项矩阵以及本机 figure／scheme 是否存在。
 4. 修复报错后点“导入配置”。同 ID 会替换原分组；导入本身不会换装，需要另选搭配并点“应用装扮”。
 5. 在真正桌宠中检查全部有效组合。扩展接管过外观时，停用／卸载前先恢复。移除本地配置只删除衣橱分组，不卸载角色素材。

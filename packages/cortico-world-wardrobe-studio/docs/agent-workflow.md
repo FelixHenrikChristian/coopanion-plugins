@@ -1,13 +1,13 @@
 # Make your own character and outfits
 
-This manual is displayed in the extension too. All examples use the wholly fictional Moss Fox. The extension supplies instructions, local profile validation and appearance selection. Image/video generation, matting and figure runtime authoring use separate tools chosen by you.
+This manual is displayed in the extension too. Examples use the approved public Lulu wardrobe. The four preview stills are reused from the released character; generation must follow its original video identity references. The extension supplies instructions, local profile validation and appearance selection. Image/video generation, matting and figure runtime authoring use separate tools chosen by you.
 
 ## [plan] 1. Plan the deliverable and tools
 
 Two deliverables are needed: a working figure pack containing animations, and a wardrobe profile grouping existing schemes. A wardrobe JSON is not a figure pack. Importing it cannot install media or generate an outfit.
 
 1. For an existing character, inventory its figure.json, runtime entry, scheme IDs and motion vocabulary. Add reviewed resources to a private copy. For a new character, first build and test a figure API 2 pack, then group its outfits.
-2. Define identity, silhouette, outlines, proportions, camera, intended display size and each outfit's own controls. Moss Fox Trail has cape and footwear; Stargazer has only a visor. List only combinations you intend to produce.
+2. Define identity, silhouette, outlines, proportions, camera, intended display size and each outfit's own controls. Lulu Orange has a removable bird bag; Pajamas and Cardboard Dinosaur have no extra controls. List only combinations you intend to produce.
 3. Make an action matrix per complete combination: one-shots, loops, directional walk/run, seated holds and declared expressions. Base it on the actual runtime; there is no universal required action count.
 4. Inventory available image/video tools, matting tools, GPU memory and disk. Reuse tested environments. Get agreement before downloading large models or changing environments. Privately record package/model versions, locations, disk changes and rollback.
 5. Pilot one combination and one short action. Pass raw playback, transparency and actual runtime gates before expanding production.
@@ -40,12 +40,13 @@ Input: approved identity/style references and a complete outfit design. Output: 
 Adapt this reference-image prompt:
 
 ```text
-The same fictional Moss Fox as the approved identity reference: orange fur,
-cream muzzle, clean dark cartoon outlines, simple shaded colours and stable
-head/body proportions. Wearing the approved leaf-green trail cape and brown
-walking boots, with the same cartoon rendering as the character. Full body,
-neutral relaxed standing pose, hands and feet visible, fixed eye-level camera,
-centered portrait framing, plain white background, no floor shadow or text.
+The same Lulu as the original video identity references and approved outfit:
+round yellow body, broad orange muzzle, tiny round eyes, very short yellow
+arms and tiny rounded hands, short legs and a completely smooth tailless rear.
+Approved orange shorts, orange fruit on the head, removable green-strap bird
+bag. Soft 3D clay-like rendering. Short closed neutral mouth line. Full body,
+fixed eye-level camera, generous margins around hands and feet, white background.
+No tail, nose bumps, oversized hands, claws, paw pads or detached eyebrows.
 ```
 
 Use a clean single complete character as the identity input and a separate motion video for action. A multi-pose collage is unsuitable unless the workflow explicitly supports it.
@@ -63,12 +64,12 @@ Inputs: approved complete outfit image, motion reference and a saved compatible 
 Adapt this motion prompt:
 
 ```text
-The same fully dressed Moss Fox throughout: same face, fur, cape, boots,
-clean cartoon outlines and proportions. Perform one friendly wave following
-the reference rhythm: neutral standing, raise one forearm, wave naturally,
-lower the arm and settle back into the same neutral stance. Fixed camera
-and scale, full body visible, plain white background. Cape follows the
-shoulder naturally; hands stay intact and connected to the arms.
+Keep the exact approved Lulu identity and complete outfit throughout.
+Raise one tiny rounded yellow hand to cheek height for a small greeting sway,
+lower it and return to neutral standing. The hand stays the width of its short
+forearm. Keep the original small eyes and short closed mouth line unchanged.
+Fixed camera, whole body and outfit inside the frame with generous margins.
+The bird bag follows its strap naturally. No tail, spread fingers or open smile.
 ```
 
 Record workflow, model/LoRA hashes, prompts, reference hashes, seed, steps, CFG, shift, size, fps, frame count, elapsed time and retry reason. 512 × 768 at 24 fps is a workflow choice, not a wardrobe-import rule. Follow the actual model's frame-count constraints.
@@ -84,7 +85,7 @@ Example private review record (a project convention, not an extension schema):
 
 ```json
 {
-  "scheme": "trailleafboots",
+  "scheme": "bag",
   "action": "wave",
   "version": "v001",
   "sourceSha256": "<actual 64-hex SHA256>",
@@ -138,12 +139,14 @@ The host loads figure.json entry and invokes its named export, supplying an asse
 Directory and manifest scaffold, not a finished animated body:
 
 ```text
-forest-fox/
+lulu-capybara/
   figure.json
-  figure.js             implements/export createFoxBody
+  figure.js             implements/export createLuluBody
   model.json            your runtime's clip map, if used
-  thumbs/trail.png
-  thumbs/rain.png
+  idle/bag.png
+  idle/plain.png
+  idle/sleep.png
+  idle/dino.png
   clips/<scheme>/<action>/000000.png
 ```
 
@@ -151,24 +154,62 @@ forest-fox/
 {
   "manifest": 2,
   "api": 2,
-  "id": "forest-fox",
-  "version": "1.0.0",
-  "name": {"en": "Moss Fox", "zh": "苔星狐"},
-  "about": {"en": "A fictional cartoon forest fox.", "zh": "虚构的森林狐狸。"},
+  "id": "lulu-capybara",
+  "version": "0.1.0",
+  "name": {
+    "en": "Lulu",
+    "zh": "噜噜"
+  },
+  "about": {
+    "en": "Round yellow Lulu with tiny hands and no tail.",
+    "zh": "圆滚滚的黄色噜噜，小手短腿，没有尾巴。"
+  },
   "entry": "figure.js",
-  "export": "createFoxBody",
-  "model": "model.json",
-  "thumb": "thumbs/trail.png",
-  "axes": [{
-    "id": "appearance",
-    "name": {"en": "Appearance", "zh": "完整外观"},
-    "options": [
-      {"id": "trailleafboots", "name": {"en": "Trail"}, "thumb": "thumbs/trail.png"},
-      {"id": "rainupgold", "name": {"en": "Rain"}, "thumb": "thumbs/rain.png"}
-    ]
-  }],
+  "export": "createLuluBody",
+  "thumb": "idle/bag.png",
+  "axes": [
+    {
+      "id": "appearance",
+      "name": {
+        "en": "Outfit",
+        "zh": "服装"
+      },
+      "options": [
+        {
+          "id": "bag",
+          "name": {
+            "en": "Orange with bag"
+          },
+          "thumb": "idle/bag.png"
+        },
+        {
+          "id": "plain",
+          "name": {
+            "en": "Orange without bag"
+          },
+          "thumb": "idle/plain.png"
+        },
+        {
+          "id": "sleep",
+          "name": {
+            "en": "Pajamas"
+          },
+          "thumb": "idle/sleep.png"
+        },
+        {
+          "id": "dino",
+          "name": {
+            "en": "Cardboard dinosaur"
+          },
+          "thumb": "idle/dino.png"
+        }
+      ]
+    }
+  ],
   "vocab": [],
-  "can": {"walk": false}
+  "can": {
+    "walk": false
+  }
 }
 ```
 
@@ -191,4 +232,4 @@ Install the staged figure with the host importer and verify it in the actual pet
 3. Create schema=1 wardrobe JSON. figure is the installed pack ID; each variant points to an existing scheme. Check configuration before Import. This checks structure/IDs, not visual approval or complete animation coverage.
 4. Test each outfit's controls, supported combinations, Apply, outside native choices, Restore, disable and reactivation. Before uninstalling, Restore and verify while the pet service is available.
 5. Hand off accepted raw/alpha assets, working figure pack, local wardrobe JSON, coverage matrix and rollback note. Keep personal references/profiles outside public extension repositories.
-6. Public releases contain generic code/docs and wholly fictional examples. Audit the exact npm archive and Git history for private character/outfit names, media, machine paths, credentials, cloud addresses and chats. SHA256-check transfers. Guidance describes requirements; production observations establish acceptance.
+6. Public releases contain generic code/docs and explicitly authorized public examples such as Lulu. Audit the exact npm archive and Git history for private character/outfit names, media, machine paths, credentials, cloud addresses and chats. SHA256-check transfers. Guidance describes requirements; production observations establish acceptance.

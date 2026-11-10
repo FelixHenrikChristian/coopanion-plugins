@@ -44,53 +44,78 @@ In the import area, open Installed figure/scheme IDs. It reads the running deskt
 
 Scheme resolution follows the figure manifest:
 
-1. One axis: scheme is its option ID, for example trailleafboots.
-2. Multiple axes: join option IDs with `-` in the manifest's axis order. For axes cape then footwear, choosing leaf and boots gives leaf-boots. Reversing the order is wrong. Axis option IDs obey the host's own rules; use the actual declared IDs, not wardrobe labels.
+1. One axis: scheme is its option ID, for example bag.
+2. Multiple axes: join option IDs with `-` in the manifest's axis order. For hypothetical axes hat then bag, choosing on and off gives on-off. Reversing the order is wrong. Axis option IDs obey the host's own rules; use the actual declared IDs, not wardrobe labels.
 3. An existing preset ID is accepted directly. Do not invent a new ID in the profile and expect an image filename to be found.
 
-For example the local profile ID could be moss-wardrobe, figure=forest-fox, outfit=trail and pick={cape:leaf,footwear:boots}, while the whole rendered scheme is trailleafboots. These four ID levels need not be identical. The flat scheme approach keeps native axes independent of this extension's per-outfit controls.
+For example: profile id=lulu-wardrobe, figure=lulu-capybara, outfit=orange, pick={bag:on}, scheme=bag. These IDs have different roles. Bag off maps to plain; sleep and dino have no extra controls.
 
 ## Complete small example
 
-This wholly fictional example needs six existing appearance options in a forest-fox pack. It does not install that pack. The downloadable full example adds a third outfit, Rain, and ten total schemes.
+The default Lulu example matches the released lulu-capybara pack: bag, plain, sleep and dino. Install the [Lulu figure pack](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0) first; importing JSON does not install animations. The downloadable example is the same complete three-outfit, four-scheme profile shown here.
 
 ```json
 {
   "schema": 1,
-  "id": "moss-wardrobe",
-  "figure": "forest-fox",
-  "label": "Moss Fox",
+  "id": "lulu-wardrobe",
+  "figure": "lulu-capybara",
+  "label": "噜噜的衣橱",
   "outfits": [
     {
-      "id": "trail",
-      "label": "Trail",
+      "id": "orange",
+      "label": "橘子噜噜",
       "controls": [
-        {"id": "cape", "label": "Cape", "default": "leaf", "options": [
-          {"id": "leaf", "label": "Leaf green"},
-          {"id": "sand", "label": "Sand"}
-        ]},
-        {"id": "footwear", "label": "Footwear", "default": "boots", "options": [
-          {"id": "boots", "label": "Boots"},
-          {"id": "paws", "label": "Paws"}
-        ]}
+        {
+          "id": "bag",
+          "label": "小鸟包包",
+          "options": [
+            {
+              "id": "on",
+              "label": "戴上"
+            },
+            {
+              "id": "off",
+              "label": "摘下"
+            }
+          ],
+          "default": "on"
+        }
       ],
       "variants": [
-        {"pick": {"cape": "leaf", "footwear": "boots"}, "scheme": "trailleafboots"},
-        {"pick": {"cape": "leaf", "footwear": "paws"}, "scheme": "trailleafpaws"},
-        {"pick": {"cape": "sand", "footwear": "boots"}, "scheme": "trailsandboots"},
-        {"pick": {"cape": "sand", "footwear": "paws"}, "scheme": "trailsandpaws"}
+        {
+          "pick": {
+            "bag": "on"
+          },
+          "scheme": "bag"
+        },
+        {
+          "pick": {
+            "bag": "off"
+          },
+          "scheme": "plain"
+        }
       ]
     },
     {
-      "id": "stargazer",
-      "label": "Stargazer",
-      "controls": [{"id": "visor", "label": "Visor", "options": [
-        {"id": "raised", "label": "Raised"},
-        {"id": "lowered", "label": "Lowered"}
-      ]}],
+      "id": "sleep",
+      "label": "睡衣噜噜",
+      "controls": [],
       "variants": [
-        {"pick": {"visor": "raised"}, "scheme": "stargazerraised"},
-        {"pick": {"visor": "lowered"}, "scheme": "stargazerlowered"}
+        {
+          "pick": {},
+          "scheme": "sleep"
+        }
+      ]
+    },
+    {
+      "id": "dino",
+      "label": "纸箱恐龙噜噜",
+      "controls": [],
+      "variants": [
+        {
+          "pick": {},
+          "scheme": "dino"
+        }
       ]
     }
   ]
@@ -107,12 +132,12 @@ This is one outfit object inside outfits, not a standalone profile.
 
 ## Partial combinations
 
-It is valid to omit a combination whose animation resources do not exist. Removing trailsandpaws from the example disables Paws while Sand is selected. Each option must still occur elsewhere. No new outfit is synthesized from remaining media. Choose a valid intermediate option to reach a different supported combination.
+For an outfit with multiple controls, omit combinations whose animation resources do not exist; the UI disables choices that cannot complete the current selection. Each declared option must still occur in at least one valid variant. Lulu's orange outfit has one bag control and both on/off variants are available. No new outfit is synthesized from remaining media.
 
 ## Check and import
 
 1. Install/test your actual figure pack first; make the desktop pet service available.
-2. Download the fictional example, replace figure and all scheme IDs with real installed ones, and change groups/labels to your own design.
+2. Download the Lulu example. For the released Lulu pack, keep its IDs unchanged. For another character, replace figure and all scheme IDs with real installed ones and change the groups/labels to your own design.
 3. Choose the JSON file or paste its complete object. Click Check configuration. This performs no writes or appearance changes. It validates the structure, option matrix and current pack/scheme existence.
 4. Fix reported errors, then Import. A same-ID local profile is replaced. Import alone does not change the pet's appearance. Select an outfit/options and Apply separately.
 5. Check every intended combination in the actual runtime. Restore before disabling/uninstalling if the extension owns an appearance. Remove local profile only removes the grouping, not its installed media.

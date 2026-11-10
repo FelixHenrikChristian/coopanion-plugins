@@ -4,7 +4,7 @@ import {validateProfile,validateAgainstPack,outfitOf,selectVariant} from './prof
 import {authoringGuide} from './guide.js';
 import {TOOL_SPECS,DESCRIBE} from './tools.js';
 import {NativeAdapter} from './native-adapter.js';
-import profileExample from '../examples/forest-fox.profile.json' with {type:'json'};
+import profileExample from '../examples/lulu.profile.json' with {type:'json'};
 import profileSchema from '../docs/wardrobe-profile.schema.json' with {type:'json'};
 export const DEFAULTS=Object.freeze({enabled:false,desktopPetUrl:'http://127.0.0.1:7797',nativeIntegration:false,nativeWebDir:'',nativePort:17891});
 const appearance=s=>({figure:s.figure,scheme:s.scheme});

@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "id": "fixture-wardrobe",
+  "figure": "fixture-character",
+  "label": "Fixture wardrobe",
+  "outfits": [
+    {
+      "id": "outfitone",
+      "label": "Fixture outfit 1",
+      "controls": [
+        {
+          "id": "pattern",
+          "label": "pattern",
+          "default": "plain",
+          "options": [
+            {
+              "id": "plain",
+              "label": "plain"
+            },
+            {
+              "id": "patterned",
+              "label": "patterned"
+            }
+          ]
+        },
+        {
+          "id": "trim",
+          "label": "trim",
+          "default": "light",
+          "options": [
+            {
+              "id": "light",
+              "label": "light"
+            },
+            {
+              "id": "dark",
+              "label": "dark"
+            }
+          ]
+        }
+      ],
+      "variants": [
+        {
+          "pick": {
+            "pattern": "plain",
+            "trim": "light"
+          },
+          "scheme": "oneplainlight"
+        },
+        {
+          "pick": {
+            "pattern": "plain",
+            "trim": "dark"
+          },
+          "scheme": "oneplaindark"
+        },
+        {
+          "pick": {
+            "pattern": "patterned",
+            "trim": "light"
+          },
+          "scheme": "onepatternlight"
+        },
+        {
+          "pick": {
+            "pattern": "patterned",
+            "trim": "dark"
+          },
+          "scheme": "onepatterndark"
+        }
+      ]
+    },
+    {
+      "id": "outfittwo",
+      "label": "Fixture outfit 2",
+      "controls": [
+        {
+          "id": "fastener",
+          "label": "fastener",
+          "default": "open",
+          "options": [
+            {
+              "id": "open",
+              "label": "open"
+            },
+            {
+              "id": "closed",
+              "label": "closed"
+            }
+          ]
+        },
+        {
+          "id": "colour",
+          "label": "colour",
+          "default": "red",
+          "options": [
+            {
+              "id": "red",
+              "label": "red"
+            },
+            {
+              "id": "blue",
+              "label": "blue"
+            }
+          ]
+        }
+      ],
+      "variants": [
+        {
+          "pick": {
+            "fastener": "open",
+            "colour": "red"
+          },
+          "scheme": "twoopenred"
+        },
+        {
+          "pick": {
+            "fastener": "closed",
+            "colour": "red"
+          },
+          "scheme": "twoclosedred"
+        },
+        {
+          "pick": {
+            "fastener": "open",
+            "colour": "blue"
+          },
+          "scheme": "twoopenblue"
+        },
+        {
+          "pick": {
+            "fastener": "closed",
+            "colour": "blue"
+          },
+          "scheme": "twoclosedblue"
+        }
+      ]
+    },
+    {
+      "id": "outfitthree",
+      "label": "Fixture outfit 3",
+      "controls": [
+        {
+          "id": "size",
+          "label": "size",
+          "default": "small",
+          "options": [
+            {
+              "id": "small",
+              "label": "small"
+            },
+            {
+              "id": "large",
+              "label": "large"
+            }
+          ]
+        }
+      ],
+      "variants": [
+        {
+          "pick": {
+            "size": "small"
+          },
+          "scheme": "threesmall"
+        },
+        {
+          "pick": {
+            "size": "large"
+          },
+          "scheme": "threelarge"
+        }
+      ]
+    }
+  ]
+}

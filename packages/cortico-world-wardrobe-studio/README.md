@@ -30,17 +30,17 @@ A character's outfits do not need to share every option. Wardrobe Studio groups 
 | Choose a combination | Standard appearance persistence and local thumbnails |
 | Use the native wardrobe | Optional, reversible compatibility adapter in 0.4 |
 | Create a character | Reference prompts, continuous video, playback gates and temporal matting guidance |
-| Write an import profile | Field tables, fictional examples, JSON Schema and installed-ID checks |
+| Write an import profile | Field tables, Lulu examples, JSON Schema and installed-ID checks |
 
 > [!IMPORTANT]
 > Native integration is an **experimental opt-in compatibility patch**, not an official World slot. It temporarily patches the checksum-verified desktop-pet page and restores it on normal stop. Unsupported versions are refused. [Supported host, setup and recovery →](docs/native-integration.md)
 
 <details>
-<summary><strong>Separate-panel preview · entirely fictional artwork</strong></summary>
+<summary><strong>Separate-panel preview · Lulu wardrobe</strong></summary>
 <br>
-<div align="center"><img src="assets/wardrobe.png" width="500" alt="A wholly fictional Moss Fox wardrobe"></div>
+<div align="center"><img src="assets/wardrobe.png" width="600" alt="Lulu wardrobe panel"></div>
 
-Moss Fox has cape/footwear options for trail outfits, hood/colour for rain outfits, and a visor for stargazer outfits. This screenshot illustrates the separate panel, not native compatibility mode.
+The Lulu example provides Orange with a removable bird bag, Pajamas and Cardboard Dinosaur: three outfits and four complete schemes. It reuses approved stills; the complete animated figure is supplied by the [independent Lulu release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0).
 
 </details>
 
@@ -58,7 +58,9 @@ Keep the desktop-pet World running and install/verify your figure pack first. Th
 
 ### 3 · Check and import
 
-Open **Wardrobe Studio → Wardrobe → Import profile**. Inspect installed IDs, download the fictional example or JSON Schema, fill in your figure/schemes, run **Check configuration**, then import. Choose an outfit/options and **Apply**.
+Open **Wardrobe Studio → Wardrobe → Import profile**. Inspect installed IDs, download the Lulu example or JSON Schema, fill in your figure/schemes, run **Check configuration**, then import. Choose an outfit/options and **Apply**.
+
+The [default Lulu profile](examples/lulu.profile.json) matches the [independent Lulu figure release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0). Install that figure pack and keep the sample IDs unchanged; replace IDs only when adapting it for another character.
 
 The extension UI defaults to Chinese. Its **中文 / English** selector is persistent and independent of the host language; imported names remain your own text.
 
@@ -121,7 +123,7 @@ npm test
 npm run preview
 ```
 
-The preview uses isolated temporary data and fictional artwork. Tests exercise recovery and origin restrictions against disposable fixtures.
+The preview uses isolated temporary data and approved Lulu preview stills. Tests exercise recovery and origin restrictions against disposable fixtures.
 
 | Tool | Purpose |
 | :--- | :--- |
@@ -130,7 +132,7 @@ The preview uses isolated temporary data and fictional artwork. Tests exercise r
 | `wardrobe_restore` | Restore a separately leased appearance |
 | `wardrobe_authoring_guide` | Read workflow, format and troubleshooting guidance |
 
-Public examples are entirely fictional. Keep personal figures, profiles and production records outside this repository.
+The bundled Lulu profile and four approved preview stills are authorized public examples. Keep personal figures, profiles and production records outside this repository.
 
 </details>
 
@@ -139,5 +141,7 @@ Public examples are entirely fictional. Keep personal figures, profiles and prod
 <div align="center">
 
 [MIT License](LICENSE) · Independent extension · Not an official Coopanion / Pal AI Lab component
+
+MIT covers the plugin code. Lulu and its reference/preview artwork remain the property of their respective rights holders.
 
 </div>

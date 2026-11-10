@@ -22,4 +22,4 @@ If the process is forcibly killed, the desktop service is unavailable during shu
 
 The desktop API has no compare-and-swap contract. Ownership is checked immediately before restoration, but simultaneous writes from another client cannot be made atomic by an external extension. Avoid changing the same appearance from two panels at the same instant.
 
-The extension stores neither full desktop state nor conversation content. It reads only the installed pack thumbnail selected for panel display; it does not scan user media, references, secrets or screen contents. The authoring guide uses generic text and a wholly fictional example.
+The extension stores neither full desktop state nor conversation content. It reads only the installed pack thumbnail selected for panel display; it does not scan user media, references, secrets or screen contents. The authoring guide uses generic text and the authorized public Lulu example.
