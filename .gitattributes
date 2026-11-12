@@ -2,3 +2,4 @@
 *.png binary
 *.webp binary
 *.cmd text eol=crlf
+packages/cortico-world-coo-home/web/panel.js -diff linguist-generated=true

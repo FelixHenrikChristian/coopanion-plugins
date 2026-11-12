@@ -1,0 +1,250 @@
+.cooh {
+  width: 100%;
+  min-width: 0;
+  font:
+    14px/1.5 'Nunito',
+    'Microsoft YaHei',
+    system-ui,
+    sans-serif;
+}
+.cooh * {
+  box-sizing: border-box;
+}
+.cooh [hidden] {
+  display: none !important;
+}
+.cooh .ch-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid #61645c80;
+  border-radius: 13px;
+  background: #1c2832;
+}
+.cooh .ch-canvas {
+  display: block;
+  width: 100%;
+  height: clamp(320px, min(53vw, 67vh), 680px);
+  touch-action: none;
+  cursor: grab;
+}
+.cooh .home-actor {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.cooh .home-actor iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0;
+  background: transparent;
+  color-scheme: normal;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.cooh .hh-nav {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 3;
+}
+.cooh button,
+.cooh select,
+.cooh .hh-file {
+  font: inherit;
+  cursor: pointer;
+}
+.cooh .hh-nav button {
+  pointer-events: auto;
+  background: #192728e6;
+  color: #f3f0e1;
+  border: 1px solid #adb3a477;
+  border-radius: 18px;
+  padding: 5px 12px;
+  font-size: 12px;
+  box-shadow: 0 2px 8px #10171842;
+}
+.cooh .hh-nav button:hover {
+  background: #344641;
+}
+.cooh .hh-drawer {
+  position: absolute;
+  z-index: 4;
+  right: 12px;
+  top: 52px;
+  max-height: calc(100% - 65px);
+  width: min(310px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1c282bf5;
+  color: #ebece2;
+  border: 1px solid #74817e;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #07111066;
+  color-scheme: dark;
+}
+.cooh .hh-drawer header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 13px 8px;
+  border-bottom: 1px solid #ffffff21;
+}
+.cooh .hh-drawer h2 {
+  color: #f3eee0;
+  font-size: 16px;
+  line-height: 1.35;
+  margin: 0;
+}
+.cooh .hh-drawer header button {
+  border: 0;
+  background: transparent;
+  color: #d7ded6;
+  font-size: 21px;
+  line-height: 1;
+  padding: 3px 5px;
+}
+.cooh .hh-content {
+  padding: 11px 13px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.cooh .hh-content p {
+  margin: 4px 0 9px;
+  font-size: 13px;
+  color: #c6cfc7;
+  overflow-wrap: anywhere;
+}
+.cooh .hh-content h3 {
+  color: #dfdfcf;
+  font-size: 13px;
+  margin: 11px 0 6px;
+}
+.cooh .hh-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0 5px;
+}
+.cooh .hh-content button,
+.cooh .hh-field select,
+.cooh .hh-file {
+  display: inline-block;
+  border: 1px solid #78877c88;
+  border-radius: 7px;
+  background: #35423e;
+  color: #f0eee3;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 9px;
+}
+.cooh .hh-content button:hover:enabled,
+.cooh .hh-content [aria-pressed='true'] {
+  background: #496354;
+}
+.cooh button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cooh :focus-visible {
+  outline: 2px solid #edc08c;
+  outline-offset: 2px;
+}
+.cooh .hh-field,
+.cooh .hh-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 3px 0 9px;
+}
+.cooh .hh-field span,
+.cooh .hh-stat span {
+  font-size: 12px;
+  color: #c1c8bd;
+}
+.cooh .hh-stat b {
+  font-size: 13px;
+  font-weight: 550;
+}
+.cooh .hh-file {
+  position: relative;
+  overflow: hidden;
+}
+.cooh .hh-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.cooh .hh-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cooh .hh-log li {
+  display: grid;
+  grid-template-columns: 35px 33px 1fr;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid #ffffff16;
+  font-size: 12px;
+}
+.cooh .hh-log time,
+.cooh .hh-log small {
+  color: #adbcaf;
+}
+.cooh .hh-content textarea {
+  display: block;
+  width: 100%;
+  background: #141f21;
+  color: #f1ebd9;
+  border: 1px solid #64776f;
+  padding: 7px;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+.cooh .hh-messages {
+  max-height: 220px;
+  overflow: auto;
+}
+.cooh .hh-drag,
+.cooh .hh-toast {
+  position: absolute;
+  z-index: 5;
+  left: 12px;
+  bottom: 10px;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  background: #152323e8;
+  color: #faf1d9;
+  font-size: 12px;
+  border-radius: 7px;
+  padding: 5px 9px;
+  pointer-events: none;
+}
+.cooh .hh-toast {
+  bottom: 13px;
+}
+@media (max-width: 550px) {
+  .cooh .ch-canvas {
+    height: clamp(330px, 63vh, 520px);
+  }
+  .cooh .hh-drawer {
+    width: min(280px, calc(100% - 16px));
+    right: 8px;
+  }
+}

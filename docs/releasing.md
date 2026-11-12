@@ -9,7 +9,7 @@
 1. 明确本次发布哪个插件，更新它自己的版本和 CHANGELOG。
 2. 执行根目录的 describe、check、test 和 pack:check。
 3. 执行 `npm run pack:all`，检查 dist 内的真实归档内容。不要上传部署配置、个人资源、密钥、日志或运行库。
-4. GitHub 标签使用 `wardrobe-studio-v<版本>`、`capture-guard-v<版本>` 或 `lulu-v<版本>`；GitHub Release 附件仅包含选中插件。
+4. GitHub 标签使用 `wardrobe-studio-v<版本>`、`capture-guard-v<版本>`、`lulu-v<版本>` 或 `coo-home-v<版本>`；GitHub Release 附件仅包含选中插件。
 5. npm 发布已验收的确切 TGZ，例如 `npm publish ./dist/cortico-world-capture-guard-<版本>.tgz --access public --registry=https://registry.npmjs.org`。发布前核对账号、权限和 registry 版本；已存在且相同的版本跳过，不得重发。发布后核对版本、dist-tag 和实际归档完整性。需要认证时等待所有者完成，不谎称已发布。
 6. 如需市场收录，按 Coopanion 当时的规则单独同步。不能把 GitHub Release 当作市场已经上架的证明。
 
