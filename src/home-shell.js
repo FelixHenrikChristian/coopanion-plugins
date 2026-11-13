@@ -231,6 +231,30 @@ export function buildHomeShell(k){
   domesticBay(bed,.26,1.64,.82,2.67,.49);
   domesticBay(kitchen,2.31,3.62,1.10,2.65,.535);
   domesticBay(side,.52,2.93,.92,2.62,.460);
+  // Line the broad street bay as a timber window seat. The deep ledge and
+  // shallow box header frame the room but leave the middle glazing transparent.
+  for(const u of [.329,3.700])box(streetLiving,u,1.723,-.098,.083,1.978,.154,'#9c7959');
+  box(streetLiving,2.014,.765,-.102,3.477,.075,.251,'#b28d67');
+  box(streetLiving,2.014,2.676,-.088,3.478,.083,.211,'#a28260');
+  box(streetLiving,2.014,2.622,-.123,2.69,.016,.023,'#ffdfb0',{emissive:'#ffca91',intensity:.41});
+  box(streetLiving,2.010,.612,-.083,3.493,.211,.031,'#a88f74');
+  for(let i=0;i<14;i++)box(streetLiving,.421+i*.242,.612,-.102,.011,.197,.011,'#90765d');
+  // One paper lattice leaf and a gathered linen edge occupy the ends only.
+  // The screen, low table and sofa stay visible through the central two bays.
+  function gatheredLinen(parent,x,z,mirror){
+    const pos=[],idx=[];
+    for(let i=0;i<=12;i++){
+      const f=i/12,xx=x+mirror*f*.246;
+      const depth=z-.031*Math.cos(f*6*Math.PI),hem=1.037+.024*Math.cos(f*Math.PI*6);
+      pos.push(xx,2.575,depth,x+mirror*(.013+f*.164),1.61,depth-.018,xx,hem,depth-.027);
+      if(i<12)for(let j=0;j<2;j++){const q=i*3+j;idx.push(q,q+1,q+3,q+1,q+4,q+3);}
+    }
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+    const drape=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:'#dbbb8e',emissive:'#dda773',emissiveIntensity:.14,roughness:.98,side:THREE.DoubleSide}));
+    drape.receiveShadow=true;parent.add(drape);
+    box(parent,x+mirror*.093,1.61,z-.044,.189,.031,.060,'#8e6954');
+  }
+  gatheredLinen(streetLiving,3.576,-.153,-1);
   function illuminatedShoji(g,x,y,w,h){
     // A single slid-aside paper section tucked into the window reveal; over
     // half the glazing remains clear for an unobstructed view of the room.
@@ -244,6 +268,7 @@ export function buildHomeShell(k){
   }
   illuminatedShoji(bed,.665,1.655,.56,1.40);
   illuminatedShoji(kitchen,3.288,1.736,.52,1.08);
+  illuminatedShoji(streetLiving,.732,1.696,.546,1.568);
   function paperSconce(g,x,y,z,normal=1){
     box(g,x,y,z,.234,.397,.053,darkWood);
     box(g,x,y,z+normal*.052,.178,.309,.063,'#ffdda6',{emissive:'#f4bc83',intensity:.82});
@@ -253,6 +278,14 @@ export function buildHomeShell(k){
   }
   paperSconce(bed,1.719,1.829,.104);
   paperSconce(kitchen,2.208,1.704,.104);
+  paperSconce(dining,.208,1.930,-.108,-1);
+  // Flush timber wainscot along the dining room's street wall and its
+  // concealed light shelf give the tea cabinet a domestic backdrop.
+  box(dining,1.908,.741,-.072,3.684,.594,.036,'#b39370');
+  for(let i=0;i<15;i++)box(dining,.197+i*.240,.741,-.096,.011,.565,.018,'#9c805e');
+  box(dining,1.908,1.061,-.096,3.71,.054,.089,'#917350');
+  box(dining,1.917,2.656,-.102,3.21,.059,.181,'#997854');
+  box(dining,1.917,2.614,-.148,2.86,.017,.023,'#ffe4b8',{emissive:'#f5c28f',intensity:.50});
   lampSpill(bed,1.708,1.712,.086,.79,1.21,.22);
   lampSpill(kitchen,2.213,1.617,.086,.72,1.07,.18);
   lampSpill(bed,1.52,.417,.466,1.32,.83,.30,true);

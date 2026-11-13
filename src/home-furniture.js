@@ -224,14 +224,26 @@ export function buildHomeFurniture(k, register) {
     const skirt=add(g,geom,new THREE.MeshStandardMaterial({map:print,roughness:1,side:THREE.DoubleSide}),0,0,0);
     skirt.name='kotatsu-quilt';
   }
-  const sofa=furniture('living','sofa','布艺沙发',-7.50,10.78,[-6.30,10.30],['sit','nap','tv','phone'],'living/sofa',[.18,.435,-.07]);
-  legs(sofa,0,0,1.88,.62,.20,steel,.029);
-  soft(sofa,0,.244,0,2.14,.28,.83,.06,'#627d76');
-  soft(sofa,0,.585,.315,2.05,.56,.245,.095,'#82998a');
+  // Across-room viewing leaves the street-facing window open and makes the
+  // kotatsu accessible from the hall along the entire north end of the sofa.
+  const across=-Math.PI/2;
+  const sofa=furniture('living','sofa','榉木扶手双人沙发',-8.47,9.88,[-7.81,10.67],['sit','nap','tv','phone'],'living/sofa',[.18,.435,-.07],across);
+  for(const side of [-1,1]){
+    box(sofa,side*.944,.129,.006,.068,.197,.659,'#82644c');
+    box(sofa,side*.944,.031,.012,.122,.048,.735,'#755941');
+  }
+  soft(sofa,0,.244,0,2.14,.253,.80,.050,'#a98566');
+  soft(sofa,0,.483,.321,2.026,.356,.187,.056,'#957251');
+  for(const side of [-1,1]){
+    const back=soft(sofa,side*.48,.642,.278,.925,.493,.184,.071,'#a8ac8c');
+    back.rotation.x=-.105;
+  }
   for(const i of [-1,1]){
-    soft(sofa,i*.474,.398,-.068,.927,.162,.61,.07,'#a7b7a1');
-    soft(sofa,i*1.02,.493,-.007,.169,.43,.781,.076,'#809789');
-    const p=soft(sofa,i*.641,.632,.105,.38,.36,.16,.072,i>0?redCheck:greenCheck);p.rotation.set(-.21,0,i*.15);
+    soft(sofa,i*.474,.398,-.068,.927,.162,.61,.07,'#b5b79c');
+    for(const z of [-.267,.234])box(sofa,i*.987,.465,z,.056,.397,.058,'#8f7054');
+    soft(sofa,i*.990,.660,-.012,.107,.062,.736,.028,'#bb9876');
+    const p=soft(sofa,i*.662,.617,.095,i>0?.360:.405,i>0?.329:.277,.152,.058,i>0?redCheck:greenCheck);
+    p.rotation.set(-.21,0,i*.15);
   }
   // A loose knitted throw wraps the far arm and falls behind the seat, visible from the garden.
   soft(sofa,.596,.875,.315,.391,.033,.255,.015,'#c98968');
@@ -248,7 +260,7 @@ export function buildHomeFurniture(k, register) {
     for(let y=0;y<h;y+=3){c.fillStyle=y%2?'rgba(255,244,216,.25)':'rgba(82,68,59,.15)';c.fillRect(0,y,w,1);}
   });
   surface(rug,rugArt,0,.023,0,2.606,1.70,0,true);
-  const coffee=furniture('living','coffeeTable','被炉与煎茶',-7.51,9.78,[-6.55,9.83],['drink','read'],null,[0,.384,.06]);
+  const coffee=furniture('living','coffeeTable','被炉与煎茶',-7.17,9.88,[-6.20,9.72],['drink','read'],null,[0,.384,.06],across);
   legs(coffee,0,0,.89,.445,.320,oak,.029);
   kotatsuSkirt(coffee);
   soft(coffee,0,.313,0,1.23,.048,.666,.023,'#b07154');
@@ -266,7 +278,7 @@ export function buildHomeFurniture(k, register) {
   for(const [x,y,z] of [[.217,.466,.030],[.282,.468,-.004],[.259,.492,.050]]){
     orb(coffee,x,y,z,.044,.039,.043,'#dd9850');orb(coffee,x,y+.037,z,.008,.004,.008,'#7e8561');
   }
-  const media=furniture('living','console','影音矮柜',-7.49,8.63,[-6.39,9.17],['inspect'],null,[0,.48,0]);
+  const media=furniture('living','console','双面桦木影音柜',-5.30,9.91,[-6.03,10.19],['inspect'],null,[0,.48,0],across);
   for(const x of [-.991,-.195,.991])for(const z of [-.171,.171])box(media,x,.232,z,.035,.414,.035,steel);
   box(media,0,.111,0,2.08,.035,.409,steel);box(media,0,.441,0,2.18,.038,.436,maple);
   soft(media,-.574,.238,.014,.644,.185,.331,.021,'#44515c');
@@ -275,12 +287,23 @@ export function buildHomeFurniture(k, register) {
   led(media,-.584,.25,.196,.16,'#a0ddce');
   for(let i=0;i<4;i++)box(media,-.685+i*.056,.205,.194,.022,.019,.01,ash);
   books(media,.104,.137,.04,5,.282);books(media,.666,.137,.031,6,.437);
-  const tv=furniture('living','tv','独立电视机',-7.49,8.63,[-6.40,9.25],['tv','toggle'],'living/tv',[0,1.05,.091]);
+  // The reverse faces the dining room: a finished cedar panel conceals cables,
+  // with paper inserts, shallow shadow gaps and one ledge for a ceramic bud vase.
+  box(media,0,.695,-.178,1.826,1.347,.061,'#806248');
+  box(media,0,1.388,-.172,1.860,.050,.100,'#b4906c');
+  for(const s of [-1,1]){
+    box(media,s*.455,.875,-.213,.824,.876,.017,'#d5be97');
+    for(const yy of [.484,.872,1.282])box(media,s*.455,yy,-.231,.828,.024,.020,'#a08360');
+    box(media,s*.455,.875,-.232,.024,.867,.021,'#aa8b67');
+  }
+  box(media,0,.411,-.252,1.880,.047,.153,'#ae8b68');
+  bowl(media,-.587,.439,-.254,.080,'#718c83');
+  const tv=furniture('living','tv','独立电视机',-5.30,9.91,[-6.00,9.67],['tv','toggle'],'living/tv',[0,1.05,.091],across);
   for(const s of [-1,1])rod(tv,[s*.479,.56,0],[s*.592,.469,.089],.020,charcoal);
   soft(tv,0,.97,0,1.52,.866,.067,.028,'#303a40');
   const display=surface(tv,cityFilm(),0,.970,.036,1.458,.792,0,false,.80);
   display.name='tv-screen';box(tv,.627,.553,.037,.015,.007,.007,'#94b898',{emissive:'#99cda4',intensity:.74});
-  const shelf=furniture('living','shelf','唱片与文库书架',-5.54,8.67,[-5.65,9.30],['read'],'living/shelf',[0,.75,.2]);
+  const shelf=furniture('living','shelf','唱片与窗边文库',-5.81,8.59,[-6.12,9.01],['read'],'living/shelf',[0,.75,.2]);
   for(const x of [-.375,.375])for(const z of [-.145,.145])box(shelf,x,.500,z,.03,1,.03,teal);
   for(const y of [.096,.411,.717,.976])box(shelf,0,y,0,.80,.027,.359,maple);
   books(shelf,0,.117,.017,9,.66);books(shelf,-.142,.432,.017,6,.41);
@@ -293,12 +316,23 @@ export function buildHomeFurniture(k, register) {
     surface(shelf,art,x,1.165,-.095,.313,.322,Math.PI);
   }
   box(shelf,0,1.005,-.04,.742,.024,.024,brass);
-  const water=furniture('living','water','玻璃饮水机',-5.30,10.87,[-5.56,10.37],['drink'],'living/water',[0,.91,-.13]);
+  // A low birch reading bench continues under the glass. Its display end is
+  // held by the same shelving, so it remains grounded with every wall lifted.
+  const bench=new THREE.Group();bench.name='Birch window seat';bench.position.set(-1.160,0,.056);shelf.add(bench);
+  for(const xx of [-.518,.518]){
+    box(bench,xx,.177,0,.062,.322,.364,'#997455');
+    box(bench,xx,.053,0,.096,.066,.391,'#81644c');
+  }
+  soft(bench,0,.351,0,1.291,.076,.423,.031,'#c59f78');
+  soft(bench,-.221,.413,.005,.628,.062,.351,.027,blueCheck);
+  book(bench,.304,.394,.030,.196,.038,.236,'#ab775d');
+  cup(bench,.190,.395,-.071,'#d6cbb8',.68);
+  const water=furniture('living','water','玻璃饮水机',-5.40,11.12,[-6.06,11.05],['drink'],'living/water',[0,.91,-.13],Math.PI/2);
   soft(water,0,.37,0,.38,.68,.35,.028,'#d3d9c5');box(water,0,.565,-.176,.215,.20,.016,'#697b78');
   cyl(water,0,.865,0,.126,.135,.28,'#a2c1c5',{segments:16,roughness:.30});
   cyl(water,0,.722,0,.137,.144,.038,'#678993',{segments:16});
   box(water,0,.62,-.197,.049,.044,.066,'#bc8b70');cup(water,0,.453,-.176,'#dfdbc4',.56);
-  const lightX=-1.22,lightZ=.03;
+  const lightX=-1.245,lightZ=.038;
   cyl(sofa,lightX,.023,lightZ,.126,.135,.046,steel,{segments:24});
   rod(sofa,[lightX,.037,lightZ],[lightX,1.163,lightZ],.016,steel);
   cyl(sofa,lightX,1.188,lightZ,.071,.029,.063,brass,{segments:16});
@@ -413,10 +447,31 @@ export function buildHomeFurniture(k, register) {
   stripedOak(dining,0,.777,0,1.542,.836);
   soft(dining,0,.784,0,.258,.014,.903,.006,'#576e75');
   for(const s of [-1,1])box(dining,s*.106,.793,0,.008,.003,.861,'#d6c2a4');
+  // Solid wood bench on the sheltered side and two individually drawn-up
+  // chairs on the hall side. The wood seat stays low in front of the window.
+  for(const x of [-.555,.555])box(dining,x,.228,-.673,.067,.418,.341,'#956e4f');
+  box(dining,0,.245,-.668,1.106,.064,.067,'#9a7959');
+  soft(dining,0,.452,-.665,1.495,.083,.420,.030,'#bc9671');
+  for(const x of [-.391,.391])soft(dining,x,.509,-.663,.521,.053,.354,.025,'#bd9776');
   for(const x of [-.402,.402])for(const s of [-1,1]){
-    stool(dining,x,s*.678,s===1?0:Math.PI);
+    if(s===1)stool(dining,x,s*.678);
     soft(dining,x,.790,s*.232,.547,.026,.337,.012,'#7f5c49');
     soft(dining,x,.807,s*.232,.512,.010,.307,.005,'#996e54');
+    if(x<0&&s<0){
+      // A recipe is open at the unoccupied fourth setting.
+      book(dining,x,.818,-.230,.338,.025,.241,'#b58f69');
+      const recipe=tex('simmered vegetables recipe',240,144,(c,w,h)=>{
+        c.fillStyle='#f1e8cb';c.fillRect(0,0,w,h);c.fillStyle='#d8c8ab';c.fillRect(w/2-2,0,4,h);
+        c.fillStyle='#586653';c.font='bold 15px "Yu Gothic",sans-serif';c.fillText('れんこんの煮物',10,25);
+        c.strokeStyle='#a39375';c.lineWidth=2;for(let j=0;j<5;j++){c.beginPath();c.moveTo(13,42+j*15);c.lineTo(99-j%3*14,42+j*15);c.stroke();}
+        for(const [xx,yy] of [[160,48],[192,88],[160,97]]){
+          c.fillStyle='#c39559';c.beginPath();c.arc(xx,yy,21,0,Math.PI*2);c.fill();
+          for(let n=0;n<5;n++){const a=n*Math.PI*.4;c.fillStyle='#eee5cb';c.beginPath();c.arc(xx+Math.cos(a)*11,yy+Math.sin(a)*11,3,0,Math.PI*2);c.fill();}
+        }
+      });
+      surface(dining,recipe,x,.845,-.230,.321,.226,0,true);
+      continue;
+    }
     const riceX=x-.116, soupX=x+.114;
     bowl(dining,riceX,.817,s*.215,.075,s===1?'#7c9890':'#94a4a8');
     orb(dining,riceX,.853,s*.215,.060,.024,.060,'#f7ecd5');
@@ -433,12 +488,26 @@ export function buildHomeFurniture(k, register) {
     for(let i=1;i<branch.length;i++)rod(dining,branch[i-1],branch[i],.0045,'#766454');
     for(let i=1;i<4;i++){const [x,y,z]=branch[i];orb(dining,x,y+.008,z,.019,.015,.018,i%2?'#ead0b8':'#dcad9e');}
   }
-  const sideboard=furniture('dining','teaCabinet','茶罐与珐琅水壶',-3.26,8.59,[-2.13,9.01],['tea','inspect'],null,[0,.827,.15]);
-  box(sideboard,0,.38,0,1.34,.71,.357,'#638787');box(sideboard,0,.75,0,1.38,.042,.396,'#d2c7ad');
+  const sideboard=furniture('dining','teaCabinet','篱木茶水柜',-3.26,8.59,[-2.13,9.01],['tea','inspect'],null,[0,.827,.15]);
+  box(sideboard,0,.076,0,1.37,.105,.311,'#755940');
+  soft(sideboard,0,.418,0,1.58,.623,.352,.016,'#947658');box(sideboard,0,.75,0,1.61,.042,.396,'#c5a783');
+  stripedOak(sideboard,0,.773,0,1.554,.363);
   for(const x of [-.32,.32]){
-    box(sideboard,x,.379,.186,.603,.59,.022,'#779b95');
-    box(sideboard,x,.414,.202,.056,.017,.019,brass);
+    box(sideboard,x*1.165,.426,.184,.714,.528,.022,'#92785f');
+    box(sideboard,x*1.165,.426,.202,.652,.471,.019,'#b39271');
+    for(let j=0;j<9;j++)box(sideboard,x*1.165-.283+j*.071,.426,.215,.018,.437,.017,'#9a7d5e');
+    soft(sideboard,x*.31,.490,.233,.038,.091,.013,.006,'#785940');
   }
+  // Dish cupboard above the worktop. Keep the upper section open so both
+  // its ceramics and the room beyond remain visible from the street.
+  for(const x of [-.732,.732])box(sideboard,x,1.147,-.110,.039,.788,.053,'#947758');
+  box(sideboard,0,1.537,-.072,1.526,.042,.243,'#b59871');
+  box(sideboard,0,1.515,-.148,1.439,.015,.022,'#ffe2ae',{emissive:'#f7c293',intensity:.54});
+  for(let i=0;i<4;i++)cyl(sideboard,-.429,1.572+i*.015,-.062,.118,.103,.015,i===2?'#829b92':'#d7d6bd',{segments:18});
+  cyl(sideboard,.225,1.617,-.054,.059,.054,.128,'#859b88',{segments:16});
+  cyl(sideboard,.225,1.686,-.054,.059,.061,.015,'#a48561',{segments:16});
+  cyl(sideboard,.383,1.637,-.054,.062,.061,.170,'#c3ad84',{segments:16});
+  cyl(sideboard,.383,1.729,-.054,.062,.062,.015,'#8f795a',{segments:16});
   bowl(sideboard,-.32,.772,.00,.116,'#79969a');cup(sideboard,-.07,.773,.024,cream,.76);
   for(let i=0;i<3;i++)cyl(sideboard,-.435,.786+i*.014,-.037,.109,.101,.014,'#dbe1ce',{segments:18});
   cyl(sideboard,.096,.845,-.073,.048,.046,.140,'#869b8b',{segments:14});
@@ -509,6 +578,14 @@ export function buildHomeFurniture(k, register) {
   box(sink,0,1.057,-.286,1.40,.431,.032,'#8b9d9b');
   tiledFace(sink,0,1.056,-.266,1.382,.402,13,5);
   box(sink,0,1.278,-.286,1.428,.018,.046,chrome);
+  // Dishcloth over a rail attached to the near cabinet front, free of the
+  // faucet and work surface. A spare pair of chopsticks dries in the caddy.
+  for(const x of [-.428,-.065])box(sink,x,.696,.325,.027,.035,.069,'#7e7161');
+  rod(sink,[-.443,.700,.352],[-.051,.700,.352],.011,brass);
+  soft(sink,-.259,.585,.362,.238,.233,.020,.009,'#dbd4bc');
+  for(const x of [-.334,-.308])box(sink,x,.586,.375,.010,.205,.006,'#73918b');
+  cyl(sink,.578,.920,-.202,.041,.046,.153,'#96846c',{segments:14});
+  for(const d of [-.013,.014])rod(sink,[.578+d,.979,-.202],[.566+d,1.114,-.194],.004,'#76573f');
   const stove=furniture('kitchen','stove','双口灶与汤锅',-1.50,14.20,[-2.30,14.2],['cook','heat'],'kitchen/stove',[0,.907,.11],-Math.PI/2);
   cupboard(stove,1.53,.561);
   box(stove,0,1.024,-.267,1.512,.359,.031,'#8b9d9b');
@@ -531,6 +608,14 @@ export function buildHomeFurniture(k, register) {
   rod(stove,[-.426,.628,.327],[.164,.628,.327],.014,chrome);
   for(let i=0;i<2;i++)cyl(stove,-.29+i*.23,.722,.309,.025,.025,.02,chrome,{segments:12}).rotation.x=Math.PI/2;
   const pantry=furniture('kitchen','pantry','调味料架',-4.62,13.44,[-3.95,13.60],['inspect'],null,[0,.93,.15],Math.PI/2);
+  // A fitted hutch consolidates the small jars and dishes into a warm wood
+  // elevation. Its back belongs to the cabinet when the room wall disappears.
+  box(pantry,0,1.014,-.149,1.075,1.848,.042,'#906f51');
+  for(let n=0;n<7;n++)box(pantry,-.450+n*.150,1.016,-.121,.140,1.804,.017,
+    ['#a6845f','#b28f66','#ae8a63'][n%3]);
+  for(const x of [-.527,.527])box(pantry,x,1.608,-.011,.036,.721,.292,'#9f7e5a');
+  box(pantry,0,1.957,-.012,1.095,.047,.321,'#b49166');
+  box(pantry,0,1.929,.087,.962,.013,.026,'#f8d59f',{emissive:'#efb984',intensity:.44});
   for(const x of [-.526,.526])box(pantry,x,.634,0,.043,1.24,.321,oak);
   for(const h of [.09,.58,1.066,1.251])box(pantry,0,h,0,1.094,.041,.328,maple);
   for(let i=0;i<4;i++){

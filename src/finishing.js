@@ -28,11 +28,20 @@ export function addFinishing(k) {
   const {group,box,cyl}=k;
   const p=group('Corner · illuminated Amane sign',2.63);
   const column = new THREE.Group();
-  column.position.set(2.89,.18,-3.89);column.rotation.y=.31;p.add(column);
-  box(column,0,.07,0,.39,.14,.43,'#718186');
-  cyl(column,0,1.98,0,.064,.095,3.90,'#8aa5a2',{metalness:.43});
-  box(column,0,3.99,0,1.17,1.30,.22,'#263e4d');
-  box(column,0,3.99,.009,1.20,1.22,.215,'#4e9090');
+  // The flat sidewalk widens behind the eave, before the parking recess.
+  // Both the footing and the rotated lightbox fit inside this pocket.
+  column.position.set(2.72,.18,-5.56);column.rotation.y=.42;p.add(column);
+  const headBottom=3.98,headHeight=1.30,headCenter=headBottom+headHeight/2;
+  const footingHeight=.14,shoeHeight=.032,collarHeight=.075;
+  box(column,0,footingHeight/2,0,.37,footingHeight,.39,'#718186');
+  box(column,0,footingHeight+shoeHeight/2,0,.262,shoeHeight,.277,'#526b70');
+  for(const x of [-.093,.093])for(const z of [-.101,.101])
+    cyl(column,x,.181,z,.015,.017,.018,'#aeb5aa',{segments:6});
+  const mastBase=footingHeight+shoeHeight,mastEnd=headBottom-collarHeight;
+  cyl(column,0,(mastBase+mastEnd)/2,0,.064,.092,mastEnd-mastBase,'#8aa5a2',{metalness:.43});
+  box(column,0,headBottom-collarHeight/2,0,.264,collarHeight,.172,'#657e83');
+  box(column,0,headCenter,0,1.17,headHeight,.22,'#263e4d');
+  box(column,0,headCenter,.009,1.20,1.22,.215,'#4e9090');
   const canvas=document.createElement('canvas');canvas.width=400;canvas.height=415;
   const c=canvas.getContext('2d');c.fillStyle='#fff2cc';c.fillRect(0,0,400,415);
   paintAmaneMark(c,200,130,91);
@@ -40,9 +49,8 @@ export function addFinishing(k) {
   c.fillStyle='#ee856d';c.fillRect(0,317,400,6);
   c.fillStyle='#187f79';c.fillRect(0,323,400,92);c.fillStyle='#fff4c9';
   c.font='bold 44px Arial';c.fillText('OPEN  24h',200,383);
-  printed(column,canvas,0,3.99,.123,1.13,1.205);
-  printed(column,canvas,0,3.99,-.116,1.13,1.205,Math.PI);
-  box(column,0,3.27,0,.48,.10,.22,'#657e83');
+  printed(column,canvas,0,headCenter,.123,1.13,1.205);
+  printed(column,canvas,0,headCenter,-.116,1.13,1.205,Math.PI);
 
   const light=group('Amane · neon and eave lights',2.79);
   const lineMat={emissive:'#56dbbc',intensity:1.33};

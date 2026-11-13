@@ -8,6 +8,10 @@ export function buildHomeGrounds(k, register) {
   const {box,cyl,line}=k;
   const {left:west,right:east,back:north,front:south,size:span}=NEIGHBORHOOD;
   const old=SITE;
+  const property={west:-10.81,east:17.74,street:7.64,rear:18.15};
+  const entries={
+    house:{left:-.04,right:1.94}, garden:{left:8.08,right:9.27}, cycle:{left:12.92,right:14.72}
+  };
   const foundation=k.group('街区の土台',0);
   const ground=k.group('街路と宅地',.22);
   const details=k.group('街路の設備と町内の囲い',.69);
@@ -99,6 +103,14 @@ export function buildHomeGrounds(k, register) {
   for(const z of [8.65,11.97,15.47]){drainStamp(3.98,z,.26,.48);drainStamp(12.74,z,.28,.50);}
   cityTiles(-1.25,7.24,3.62,1.07,.38,.32,['#92968c','#8a918b','#92958b','#8a8e87']);
   fill(12.97,7.39,4.89,10.53,'#545e64');
+  // Light stone sill markers line up with the jambs. The openings remain
+  // flush and open toward the house porch and the bicycle shelter forecourt.
+  for(const [key,gap] of Object.entries(entries)){
+    const from=gap.left+.103,to=gap.right-.103;
+    cityTiles(from,7.25,to-from,key==='cycle'?1.09:.66,.31,.31,
+      key==='garden'?['#a49c88','#999680','#aaa28e']:['#a7a69b','#a19e92','#b1ae9f']);
+    fill(from,property.street+.17,to-from,.028,'#8b8b7c');
+  }
   for(let z=8.14;z<14.27;z+=.93){fill(14.10,z,2.04,.040,'#9ca9a7');fill(14.10,z,.041,.29,'#9ca9a7');}
   for(let z=8.69;z<17.67;z+=2.17)drainStamp(17.45,z,.55,.21);
   for(let z=-9.82;z<1;z+=3.11)drainStamp(7.09,z,.44,.20);
@@ -194,37 +206,73 @@ export function buildHomeGrounds(k, register) {
   for(let x=-2.67;x<.33;x+=.29)warningTile(x,old.front+.39);
   for(let z=-.29;z<.99;z+=.29)warningTile(old.right+.39,z,true);
   scatter(details,new THREE.SphereGeometry(1,6,4),studs);
-  function wall(x1,z1,x2,z2,height,rail=false) {
-    const length=Math.hypot(x2-x1,z2-z1),dx=(x2-x1)/length,dz=(z2-z1)/length;
-    const rotation=-Math.atan2(dz,dx),x=(x1+x2)/2,z=(z1+z2)/2;
-    function block(px,y,pz,w,h,d,color){const o=box(details,px,y,pz,w,h,d,color);o.rotation.y=rotation;return o}
-    block(x,.16+height/2,z,length,height,.121,'#92938d');
-    block(x,.165+height,z,length+.018,.044,.145,'#b1afa1');
-    for(let t=.70;t<length-.07;t+=.79)block(x1+dx*t,.16+height/2,z1+dz*t,.013,height-.015,.127,'#777d7a');
-    if(height>.37)block(x,.16+height*.51,z,length,.012,.127,'#7a807a');
-    if(!rail)return;
-    const baseY=.16+height;
-    for(const h of [.10,.39])block(x,baseY+h,z,length,.029,.033,'#5d706e');
-    for(let t=.08;t<length;t+=.20)block(x1+dx*t,baseY+.23,z1+dz*t,.019,.36,.022,'#6e807c');
-    for(let t=.015;t<=length;t+=1.19)block(x1+dx*t,baseY+.22,z1+dz*t,.041,.44,.043,'#536967');
+  // One boundary datum for every panel, post and return. The coping panels
+  // stop at the square corner caps, leaving no stacked or coplanar corner faces.
+  const boundary=new THREE.Group();boundary.name='Residential perimeter fence';details.add(boundary);
+  const grade=.16,wallTop=.615,copingTop=.665,lowRail=.760,highRail=1.040,postTop=1.086;
+  const vertexMap=new Map(),gateMarks=new Map();
+  Object.entries(entries).forEach(([name,e])=>{
+    gateMarks.set(e.left+','+property.street,name);gateMarks.set(e.right+','+property.street,name);
+  });
+  function pierAt(x,z) {
+    const key=x+','+z;if(vertexMap.has(key))return vertexMap.get(key);
+    const entry=gateMarks.get(key),w=entry ? .186 : .170,capW=w+.036;
+    const pier=new THREE.Group();pier.position.set(x,0,z);pier.name=entry?'Gate jamb · '+entry:'Corner pier';
+    boundary.add(pier);
+    box(pier,0,(grade+wallTop)/2,0,w,wallTop-grade,w,'#92958f');
+    box(pier,0,(wallTop+copingTop)/2,0,capW,copingTop-wallTop,capW,'#b5b6aa');
+    // At the garden the full-height entrance arch supplies both steel uprights.
+    if(entry!=='garden'){
+      const pw=entry ? .095 : .070;
+      box(pier,0,(postTop+copingTop)/2,0,pw,postTop-copingTop,pw,'#536866');
+      box(pier,0,postTop+.012,0,pw+.024,.024,pw+.024,'#89948b');
+    }
+    const record={x,z,w,capW};vertexMap.set(key,record);return record;
   }
-  wall(-10.81,7.46,-9.79,7.46,.48,true);wall(-8.84,7.46,-.08,7.46,.44,true);
-  wall(1.82,7.46,3.04,7.46,.54);wall(4.67,7.56,8.04,7.56,.33,true);wall(9.31,7.56,12.44,7.56,.33,true);
-  wall(-10.81,7.49,-10.81,18.15,.54,true);wall(-10.81,18.15,2.44,18.15,.52,true);
-  wall(3.32,18.15,12.43,18.15,.48,true);wall(12.77,8.36,12.77,11.27,.27,true);
-  wall(12.77,13.53,12.77,16.51,.27,true);
+  function fenceRun(name,x0,z0,x1,z1){
+    const a=pierAt(x0,z0),b=pierAt(x1,z1),length=Math.hypot(x1-x0,z1-z0);
+    const g=new THREE.Group();g.name='Fence run · '+name;g.position.set(x0,0,z0);
+    g.rotation.y=-Math.atan2(z1-z0,x1-x0);boundary.add(g);
+    function span(lo,hi,y,h,d,color,part){
+      const mesh=box(g,(lo+hi)*.5,y,0,hi-lo,h,d,color);mesh.name=part;return mesh;
+    }
+    const wallA=a.w*.5,wallB=length-b.w*.5,capA=a.capW*.5,capB=length-b.capW*.5;
+    span(wallA,wallB,(grade+wallTop)/2,wallTop-grade,.126,'#959891','Concrete plinth');
+    span(capA,capB,(wallTop+copingTop)/2,copingTop-wallTop,.151,'#b1b4a9','Coping');
+    span(wallA,wallB,.388,.011,.130,'#848a83','Block bed joint');
+    const units=Math.max(1,Math.round((wallB-wallA)/.73));
+    for(let i=1;i<units;i++){
+      const u=wallA+(wallB-wallA)*i/units;
+      span(u-.006,u+.006,.385,.431,.130,'#808780','Block joint');
+    }
+    const bays=Math.max(1,Math.ceil(length/1.42)),bay=length/bays;
+    for(const h of [lowRail,highRail])span(0,length,h,.039,.041,'#637674','Continuous steel rail');
+    for(let j=1;j<bays;j++){
+      const x=bay*j;
+      box(g,x,(postTop+copingTop)*.5,0,.050,postTop-copingTop,.053,'#526763');
+      box(g,x,postTop+.008,0,.066,.016,.069,'#89968b');
+    }
+    for(let j=0;j<bays;j++){
+      const n=Math.ceil(bay/.164);
+      for(let i=1;i<n;i++)box(g,bay*(j+i/n),(lowRail+highRail)/2,0,.020,highRail-lowRail,.023,'#728780');
+    }
+  }
+  const {west:wx,east:ex,street:sz,rear:rz}=property;
+  let cursor=wx;
+  Object.entries(entries).forEach(([name,e])=>{fenceRun('street to '+name,cursor,sz,e.left,sz);cursor=e.right;});
+  fenceRun('street east',cursor,sz,ex,sz);
+  fenceRun('east',ex,sz,ex,rz);fenceRun('rear',ex,rz,wx,rz);fenceRun('west',wx,rz,wx,sz);
   // Entrance plinth, post boxes, door buzzer and the very low step from the paving.
   box(details,.95,.191,8.11,1.18,.062,.29,'#aca89d');
   box(details,.95,.275,8.24,1.18,.17,.15,'#a6a59c');
-  box(details,1.93,.55,7.51,.27,.78,.25,'#959b95');
-  box(details,1.93,1.04,7.51,.40,.26,.28,'#748480');
-  box(details,1.93,1.08,7.356,.30,.027,.014,'#293b41');box(details,1.93,.99,7.351,.17,.042,.015,'#bcbdb0');
-  box(details,2.30,.77,7.383,.091,.152,.05,'#536362');cyl(details,2.30,.79,7.355,.024,.024,.018,'#c4cbba').rotation.x=Math.PI/2;
+  box(details,2.24,.841,sz-.105,.40,.26,.13,'#748480');
+  box(details,2.24,.88,sz-.175,.30,.027,.014,'#293b41');box(details,2.24,.797,sz-.178,.17,.042,.014,'#bcbdb0');
+  box(details,1.94,.84,sz-.066,.091,.152,.05,'#536362');cyl(details,1.94,.86,sz-.097,.024,.024,.018,'#c4cbba').rotation.x=Math.PI/2;
   function fixture(parent,x,y,z,tint,power,reach) {
     box(parent,x,y,z,.23,.115,.19,'#4e605f');box(parent,x,y+.009,z-.103,.17,.058,.026,'#efdec3',{emissive:tint,intensity:1.10});
     const lamp=new THREE.PointLight(tint,power,reach,2);lamp.position.set(x,y+.035,z-.09);parent.add(lamp);
   }
-  fixture(details,2.62,.77,7.414,'#ffbf80',1.85,3.4);
+  fixture(details,2.65,.742,sz-.076,'#ffbf80',1.85,3.4);
   buildAllotmentStreet(k);
   // A pair of small, pruned street trees belong to the residential side.
   const urbanCrowns=[];
@@ -241,7 +289,7 @@ export function buildHomeGrounds(k, register) {
     for(const xx of [-.20,.20])rod(details,[x+xx,.27,z-.11],[x+xx*.5,1.14*s,z],.023,.023,'#8e836d');
     rod(details,[x-.22,1.02*s,z],[x+.23,1.02*s,z],.018,.018,'#6b7466');
   }
-  streetTree(-9.87,8.42,.93);streetTree(16.96,7.66,.89);
+  streetTree(-9.87,8.42,.93);streetTree(16.10,8.38,.89);
   scatter(details,new THREE.IcosahedronGeometry(1,1),urbanCrowns);
   function scatter(parent,geo,items,matOptions={}){
     if(!items.length)return;
@@ -348,7 +396,6 @@ export function buildHomeGrounds(k, register) {
   box(cycles,15.31,2.425,endZ+.042,1.28,.022,.024,'#d3bf96',{emissive:'#ddbc81',intensity:.35});
   k.label(cycles,'駐輪場   01–07',15.31,2.291,endZ+.033,1.21,.185,{color:'#ede3c6',font:'bold 82px "Yu Gothic",sans-serif'});
   // The small shared service yard is tucked against the rear, away from the plot approaches.
-  wall(13.08,17.99,17.74,17.99,.62,true);wall(17.74,17.95,17.74,14.38,.52,true);
   for(const [x,tint] of [[15.34,'#718889'],[16.08,'#6e8176']]){
     box(cycles,x,.521,17.26,.54,.67,.45,tint);
     box(cycles,x,.875,17.26,.61,.067,.50,'#a3b0a5');
