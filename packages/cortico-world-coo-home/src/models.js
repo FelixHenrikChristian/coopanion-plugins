@@ -26,6 +26,16 @@ export function furnish(scene) {
   function plain(c) {
     if (!cache.has(c)) {
       const m = new T.MeshStandardMaterial({ color: c, roughness: 0.85 });
+      // Compress direct diffuse shading into broad, softened animation-style bands.
+      m.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+          float lum = dot(reflectedLight.directDiffuse,vec3(.2126,.7152,.0722));
+          float band = floor(lum*8.0) / 8.0 + smoothstep(.34,.68,fract(lum*8.0))/8.0;
+          reflectedLight.directDiffuse *= mix(1.0,band/max(lum,.0001),.28);`,
+        );
+      };
       materials.add(m);
       cache.set(c, m);
     }
@@ -223,6 +233,7 @@ export function furnish(scene) {
   const block = B(scene, 1.68, -0.29, 0.02, 14.85, 0.52, 8.18, '#8b8a78');
   block.castShadow = false;
   for (const [id, a, b, c, d] of [...floors].reverse()) {
+    if (id === 'street' || id === 'shop') continue;
     const g = group((a + b) / 2, 0, (c + d) / 2);
     B(
       g,
@@ -252,6 +263,7 @@ export function furnish(scene) {
       );
   }
   for (const [a, b, c, d, h] of walls) {
+    if (a >= 15.5) continue;
     const len = Math.hypot(c - a, d - b),
       alongX = b === d;
     const g = group((a + c) / 2, 0, (b + d) / 2);
@@ -465,107 +477,6 @@ export function furnish(scene) {
     patchGroups.push(g);
     plantGroups.push({ spr, fruits });
   });
-  // Japanese residential street: paving joints, lane markings, a crossing, shop awnings, balconies and power lines.
-  B(scene, 1, -0.21, 5.02, 31, 0.36, 2.34, '#c4c5b7');
-  B(scene, 1, -0.25, 7.23, 34, 0.3, 2.93, '#697375');
-  B(scene, 1, -0.19, 9.44, 34, 0.38, 1.55, '#b9c0b6');
-  for (let x = -14; x <= 16; x += 1.05)
-    B(scene, x, -0.022, 5.06, 0.018, 0.01, 2.31, '#a6aea5');
-  for (let x = -15; x < 18; x += 3)
-    B(scene, x, -0.09, 7.22, 1.26, 0.012, 0.055, '#e2d8b8');
-  for (let z = 6.04; z < 8.67; z += 0.38)
-    B(scene, 7.5, -0.09, z, 1.3, 0.014, 0.165, '#e8e4ca');
-  function building(x, z, w, h, d, c, shop, seed) {
-    const g = group(x, -0.1, z);
-    B(g, 0, h / 2, 0, w, h, d, c);
-    B(g, 0, h + 0.07, 0, w + 0.17, 0.16, d + 0.17, '#788482');
-    const cols = Math.max(2, Math.floor(w / 0.97));
-    for (let y = 1.25; y < h - 0.42; y += 1.4)
-      for (let j = 0; j < cols; j++) {
-        let xx = ((j - (cols - 1) / 2) * w) / (cols + 0.3);
-        B(
-          g,
-          xx,
-          y,
-          d / 2 + 0.018,
-          0.58,
-          0.71,
-          0.06,
-          (j + seed) % 3 ? '#91adb4' : '#dfc99d',
-        );
-        B(g, xx, y - 0.39, d / 2 + 0.08, 0.67, 0.075, 0.19, '#a3aaa1');
-      }
-    if (shop) {
-      B(g, 0, 1.26, d / 2 + 0.12, w * 0.88, 0.15, 0.65, '#74978c');
-      for (let j = 0; j < 9; j++)
-        B(
-          g,
-          (j - 4) * w * 0.094,
-          1.18,
-          d / 2 + 0.4,
-          w * 0.094,
-          0.24,
-          0.04,
-          j % 2 ? '#e3d9bd' : '#6f9489',
-        );
-      label(
-        g,
-        0,
-        1.63,
-        d / 2 + 0.06,
-        w * 0.65,
-        0.46,
-        shop,
-        '#ece8d6',
-        '#47665d',
-        44,
-      );
-    }
-    if (h > 4) {
-      for (let level = 2.25; level < h - 1; level += 1.45) {
-        B(g, 0, level, d / 2 + 0.24, w * 0.82, 0.095, 0.44, '#9daca9');
-        B(g, 0, level + 0.38, d / 2 + 0.43, w * 0.82, 0.035, 0.035, '#64777b');
-        for (let col = 0; col < 8; col++)
-          B(
-            g,
-            (col - 3.5) * w * 0.1,
-            level + 0.19,
-            d / 2 + 0.43,
-            0.022,
-            0.38,
-            0.023,
-            '#788887',
-          );
-      }
-    }
-    if (shop) {
-      const curtain = group(0, 0.96, d / 2 + 0.33, g);
-      for (let j = 0; j < 3; j++)
-        B(curtain, (j - 1) * 0.31, 0, 0, 0.295, 0.48, 0.028, '#687d86');
-    }
-    return g;
-  }
-  building(-8.0, -1.4, 3.3, 3.8, 3.4, '#d1c8b4', '喫茶 みどり', 1);
-  building(-6.4, -12.8, 4.0, 5.4, 3.0, '#c8c2b4', '青葉商店', 2);
-  building(-1.6, -13.7, 4.1, 6.9, 3.7, '#b5c3c4', null, 4);
-  building(3.35, -13.25, 4.15, 4.5, 3.25, '#cfbda9', 'パン工房', 0);
-  building(8.5, -12.8, 4.1, 5.65, 3.1, '#bfc6b8', null, 2);
-  building(15.9, -5.65, 3.42, 5.25, 3.4, '#98a4ae', null, 1);
-  const windows = [];
-  function lamp(x, z) {
-    const g = group(x, 0, z);
-    C(g, 0, 1.46, 0, 0.058, 2.94, dark);
-    B(g, -0.23, 2.92, 0, 0.54, 0.065, 0.065, dark);
-    B(g, -0.46, 2.86, 0, 0.41, 0.09, 0.23, '#5f696b');
-    const bulb = new T.MeshStandardMaterial({
-      color: '#fee3ac',
-      emissive: '#ffbc67',
-    });
-    materials.add(bulb);
-    windows.push(bulb);
-    B(g, -0.46, 2.805, 0, 0.32, 0.032, 0.17, bulb);
-  }
-  for (const x of [-6.7, 9.55]) lamp(x, 5.39);
   // A noren, framed calendar and pendant mark the kitchen doorway.
   const noren = group(-1.3, 2.13, -0.5);
   B(noren, 0, 0.12, 0, 1.37, 0.045, 0.05, wood);
@@ -664,8 +575,8 @@ export function furnish(scene) {
     }
   }
   tree(-6.8, 3.52, 0.86);
-  tree(10.1, -2.8, 0.94);
-  tree(-3.0, -10.2, 1.1);
+  tree(8.28, -5.24, 0.81);
+  tree(-7.08, -7.5, 0.92);
   function wire(a, b, color) {
     const pts = [];
     for (let i = 0; i <= 22; i++) {
@@ -684,14 +595,24 @@ export function furnish(scene) {
     materials.add(m);
     scene.add(new T.Line(g, m));
   }
-  for (const x of [-9, 10.8]) {
-    C(scene, x, 2.85, -5.7, 0.098, 5.7, '#827866');
-    B(scene, x, 5.42, -5.7, 0.13, 0.12, 1.2, dark);
+  for (const [x, z] of [
+    [9.93, -9.1],
+    [9.93, 2.62],
+    [9.93, 13.8],
+    [24.12, 5.19],
+  ]) {
+    C(scene, x, 2.39, z, 0.085, 4.78, '#756d62');
+    B(scene, x, 4.55, z, 1.1, 0.075, 0.1, '#59646b');
+    for (const a of [-0.4, 0, 0.4])
+      C(scene, x + a, 4.65, z, 0.047, 0.14, '#9caaa9');
   }
-  for (const dz of [-0.44, 0, 0.44])
-    wire([-9, 5.44, -5.7 + dz], [10.8, 5.44, -5.7 + dz], '#636c6b');
+  for (const a of [-0.4, 0, 0.4]) {
+    wire([9.93 + a, 4.72, -9.1], [9.93 + a, 4.72, 2.62], '#414a58');
+    wire([9.93 + a, 4.72, 2.62], [9.93 + a, 4.72, 13.8], '#414a58');
+    wire([9.93 + a, 4.72, 2.62], [24.12 + a, 4.72, 5.19], '#414a58');
+  }
   B(scene, 0, -0.27, -5.88, 11.14, 0.49, 3.86, '#7d8075');
-  B(scene, 0, -0.58, 0, 93, 0.15, 78, '#aeb8aa');
+
   const skyLight = new T.HemisphereLight('#fff3dc', '#c4bdad', 2.1);
   scene.add(skyLight);
   const sun = new T.DirectionalLight('#ffe3bc', 2.55);
@@ -754,6 +675,7 @@ export function furnish(scene) {
     T,
   });
   const city = makeCity({
+    registerSolids,
     scene,
     B,
     C,
@@ -778,7 +700,15 @@ export function furnish(scene) {
     o.layers.enable(1);
     for (let p = o; p; p = p.parent) if (p.userData.dynamic) return;
     if (!o.material.isMeshStandardMaterial || o.material.transparent) return;
+    let stage = null;
+    for (let p = o.parent; p; p = p.parent)
+      if (p.userData.assembly) {
+        stage = p;
+        break;
+      }
+    o.userData.batchStage = stage?.uuid;
     const k = [
+      stage?.uuid ?? 'world',
       o.geometry.uuid,
       o.material.uuid,
       o.castShadow,
@@ -804,14 +734,18 @@ export function furnish(scene) {
       first.material,
       items.length,
     );
+    const stage = first.userData.batchStage
+      ? scene.getObjectByProperty('uuid', first.userData.batchStage)
+      : scene;
+    const inverse = stage.matrixWorld.clone().invert();
     items.forEach((m, i) => {
-      inst.setMatrixAt(i, m.matrixWorld);
+      inst.setMatrixAt(i, inverse.clone().multiply(m.matrixWorld));
       m.layers.set(1);
     });
     inst.castShadow = first.castShadow;
     inst.receiveShadow = first.receiveShadow;
     inst.computeBoundingSphere();
-    scene.add(inst);
+    stage.add(inst);
     instances.push(inst);
   }
   let lastStyle = '',
@@ -891,7 +825,7 @@ export function furnish(scene) {
       tvMat.needsUpdate = true;
       lastFrame = -1;
     },
-    update(s, now, outside, aim) {
+    update(s, now, outside, aim, camera, half) {
       const hour = new Date(now).getHours(),
         style =
           s.light === 'auto'
@@ -901,7 +835,7 @@ export function furnish(scene) {
                 ? 'dusk'
                 : 'day'
             : s.light;
-      city.update(s, now, style, outside);
+      city.update(s, now, style, outside, aim, half);
       home.update(style, outside, s.tvOn || phase(s, now) === 'tv');
       everyday.update(s, phase(s, now), style, outside, now);
       if (style !== lastStyle) {
@@ -911,15 +845,12 @@ export function furnish(scene) {
         scene.background = new T.Color(
           night ? '#0e192c' : dusk ? '#dac1ae' : '#d0ddd7',
         );
-        scene.fog = new T.Fog(scene.background, 29, 59);
-        skyLight.intensity = night ? 0.51 : dusk ? 1.18 : 1.74;
-        skyLight.groundColor.set(night ? '#4b5263' : '#c4bdad');
-        skyLight.color.set(night ? '#97b3ee' : dusk ? '#d7d2da' : '#f8f4e6');
-        sun.intensity = night ? 0.54 : dusk ? 1.88 : 2.38;
+        scene.fog = new T.Fog(scene.background, 41, 122);
+        skyLight.intensity = night ? 0.74 : dusk ? 1.18 : 1.74;
+        skyLight.groundColor.set(night ? '#676775' : '#c4bdad');
+        skyLight.color.set(night ? '#b2c3e0' : dusk ? '#d7d2da' : '#f8f4e6');
+        sun.intensity = night ? 0.81 : dusk ? 1.88 : 2.38;
         sun.color.set(night ? '#9ab9f3' : dusk ? '#ffc09a' : '#ffe5c3');
-        windows.forEach(
-          (w) => (w.emissiveIntensity = night ? 2.2 : dusk ? 1 : 0.15),
-        );
         lampLights.forEach((l) => (l.intensity = night ? 5.5 : dusk ? 2.5 : 0));
       }
       const near = fixtures

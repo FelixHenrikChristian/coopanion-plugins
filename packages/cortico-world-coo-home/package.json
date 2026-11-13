@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-coo-home",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "带当前桌宠装扮、日常作息和可交互街区的多房间 3D 小屋。",
@@ -16,7 +16,9 @@
     "webUiStyle": "src/panel.css",
     "describe": "describe.json",
     "screenshots": [
-      "assets/room.png"
+      "assets/room.png",
+      "assets/crossing.png",
+      "assets/shop.png"
     ]
   },
   "scripts": {

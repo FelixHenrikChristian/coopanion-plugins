@@ -64,6 +64,7 @@ export const stationName = (k) => furniture[k]?.label ?? '地面';
 export function fresh(now = Date.now()) {
   return {
     version: 2,
+
     revision: 0,
     pos: [-1.8, 1.5],
     activity: 'idle',
@@ -394,5 +395,24 @@ export function snapshot(s, now = Date.now()) {
     衣物: s.laundry,
     阅读写作页数: s.pages,
     自主生活: s.auto,
+  };
+}
+
+export function migrateMap(s, now = Date.now()) {
+  if (s.mapRevision === 3) return s;
+  const p = position(s, now);
+  // Old shops used coordinates now occupied by the road. Preserve inventories and completed chores.
+  const moved =
+    ['market', 'seeds', 'sell', 'vendor'].includes(s.trip?.target) || p[0] > 9;
+  if (!moved) return { ...s, mapRevision: 3, revision: s.revision + 1 };
+  return {
+    ...s,
+    mapRevision: 3,
+    revision: s.revision + 1,
+    pos: [9.12, 4.72],
+    station: null,
+    activity: 'idle',
+    trip: null,
+    next: now + 18000,
   };
 }

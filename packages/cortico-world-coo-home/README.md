@@ -1,14 +1,16 @@
 # Coo小屋
 
-在 Coopanion 的一个 World 扩展页面里，和当前装扮的 Coo 一起生活。默认进入客厅。点家具查看怎样使用，点地面让 Coo 走过去，也可以直接把 Coo 拖到家具旁。所有房间、阳台、菜园、隔壁店铺与街道在同一张地图上。
+在 Coopanion 的一个 World 扩展页面里，和当前装扮的 Coo 一起生活。默认进入客厅。点家具查看怎样使用，点地面让 Coo 走过去，也可以直接把 Coo 拖到家具旁。住宅与独立便利店分居十字路口的两个街角。Coo 从玄关走出，沿斑马线过街，经过滑门进入店内购物。
 
 ![实际宿主中的小屋](assets/room.png)
 
+[十字路口实景](assets/crossing.png) · [便利店内景](assets/shop.png)
+
 ## 安装
 
-从 [Coo小屋 GitHub Release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/coo-home-v0.2.0) 下载 `CooHome-0.2.0.zip`，解压到长期保留的目录。在 Coopanion 的 World 扩展管理中选择从本机目录安装，选解压后含 `package.json` 的 `coo-home` 文件夹。也可以选择源码仓库里的 `packages/cortico-world-coo-home`。按宿主提示重启，在 World 总览启用「Coo小屋」，从左侧打开。
+从 [Coo小屋 GitHub Release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/coo-home-v0.3.0) 下载 `CooHome-0.3.0.zip`，解压到长期保留的目录。在 Coopanion 的 World 扩展管理中选择从本机目录安装，选解压后含 `package.json` 的 `coo-home` 文件夹。也可以选择源码仓库里的 `packages/cortico-world-coo-home`。按宿主提示重启，在 World 总览启用「Coo小屋」，从左侧打开。
 
-运行时使用 Coopanion World API 6，已在 0.2.19 的隔离部署中验证。请同时启用桌宠 World，以便房间读取当时的形象和配色。包中带有构建好的浏览器面板。
+运行时使用 Coopanion World API 6，已在 0.2.20 的隔离部署中验证。请同时启用桌宠 World，以便房间读取当时的形象和配色。包中带有构建好的浏览器面板。
 
 ## 在家里
 
@@ -19,9 +21,11 @@
 | 卧室、书房 | 床、衣柜、床头柜、台灯、书架、书桌和电脑。睡觉恢复精神，读书或写字会留下记录。|
 | 玄关、洗面洗衣室、浴室 | 鞋柜、雨伞、洗手台、滚筒洗衣机、浴缸与便器。可以换鞋、洗漱、泡澡和洗衣。|
 | 阳台、菜园 | 把洗好的衣服拿来晾；四畦地可种萝卜、豌豆或番茄。播种后浇一次水，分别约 90、125、180 秒成熟。|
-| 街口、便利店 | 人行道、路灯、斑马线、车架、贩卖机和便利店门面。散步、买便当、买饮料、买种子和卖菜。小屋内的零钱只用于这些虚拟交易。|
+| 街口、便利店 | 人行道、路灯、斑马线、车架、贩卖机和可进入的便利店。散步、买便当、买饮料、买种子和卖菜。小屋内的零钱只用于这些虚拟交易。|
 
 ## 场景里的面板
+
+左键拖动环绕，右键拖动平移，滚轮缩放。聚焦场景后按 H 可隐藏或恢复浮层，Esc 也能恢复。镜头预设可用于定位，平移后停在自由观察的位置。初次观察街区时，便利店按地台、墙面、陈列与屋顶分层组装；系统开启减少动态效果时直接显示完成状态。靠近店内观察时屋顶让开。
 
 平时只显示场景、镜头入口和面板入口。点 Coo 打开角色面板，点家具打开对应的物件卡，拖放则直接执行。按 Esc 或 × 收起面板。「房间里的物件」提供键盘也能使用的点选方式。
 
@@ -46,6 +50,6 @@ Coo 能使用 `coo_home_look`、`coo_home_visit`、`coo_home_tv` 和 `coo_home_s
 
 `src/layout.js` 是地图、墙体、门洞、家具站位和步行障碍的共同来源。坐标按米计，X/Z 是地面。`models.js`、`interior.js`、`household.js` 和 `city.js` 绘制房间与街道。`life.js` 负责路径时间、活动与库存规则。扩建时请一并检查人物停靠点和家具占地。
 
-需要 Node.js 22.10+ 和 npm。在包目录执行 `npm install --ignore-scripts`、`npm run build`、`npm run describe`、`npm run check`、`npm test`、`npm run pack:check`。浏览器包内含 Three.js 和压缩的店面背景；使用时无需 CDN、额外服务或新窗口。
+需要 Node.js 22.10+ 和 npm。在包目录执行 `npm install --ignore-scripts`、`npm run build`、`npm run describe`、`npm run check`、`npm test`、`npm run pack:check`。浏览器包内含 Three.js，店内陈列和商品均为几何模型；使用时无需 CDN、额外服务或新窗口。
 
 [动画对照与待制作清单](ANIMATIONS.md) · [资源与许可](THIRD_PARTY.md)

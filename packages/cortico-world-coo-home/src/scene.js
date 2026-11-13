@@ -6,7 +6,7 @@ import { mountFigure } from './figure.js';
 
 export function createScene(
   ctx,
-  { stage, canvas, status, hint, visit, inspect },
+  { stage, canvas, status, hint, visit, inspect, free },
 ) {
   const renderer = new T.WebGLRenderer({
     canvas,
@@ -22,7 +22,7 @@ export function createScene(
   renderer.shadowMap.needsUpdate = true;
   const scene = new T.Scene(),
     model = furnish(scene),
-    cam = new T.PerspectiveCamera(31, 1, 0.1, 110),
+    cam = new T.PerspectiveCamera(31, 1, 0.1, 310),
     ray = new T.Raycaster();
   ray.layers.set(1);
   const figure = mountFigure(ctx, stage, status);
@@ -70,7 +70,7 @@ export function createScene(
     previousPose,
     stationShift = 0;
   let desiredAim = aim.clone(),
-    scaleTarget,
+    scaleTarget = 3,
     resizeDirty = true;
   const xy = (e) => {
     const r = canvas.getBoundingClientRect();
@@ -89,7 +89,9 @@ export function createScene(
     }
     const active =
       follow && state ? roomAt(position(state, Date.now())) : focus;
-    if (active && rooms[active]) {
+    if (active === 'free') {
+      /* Pointer pan owns the target until a bookmark is chosen. */
+    } else if (active && rooms[active]) {
       const r = rooms[active];
       desiredAim.set(
         r.center[0],
@@ -97,19 +99,17 @@ export function createScene(
         r.center[1],
       );
       scaleTarget =
-        active === 'street'
-          ? fit(12.4, 6.15)
-          : fit(r.size * 1.62, r.size * 0.99);
+        active === 'street' ? fit(25, 12.4) : fit(r.size * 1.62, r.size * 0.99);
     } else {
-      desiredAim.set(1.4, 0.49, -1.42);
-      scaleTarget = fit(19.6, 14.1);
+      desiredAim.set(8, 0.55, 3);
+      scaleTarget = fit(46, 32);
     }
     if (!lastFrame) {
       aim.copy(desiredAim);
-      half = scaleTarget / zoom;
+      half = Math.min(30, scaleTarget / zoom);
     }
     aim.lerp(desiredAim, 0.17);
-    half = T.MathUtils.lerp(half, scaleTarget / zoom, 0.18);
+    half = T.MathUtils.lerp(half, Math.min(30, scaleTarget / zoom), 0.18);
     yaw = T.MathUtils.lerp(yaw, wantedYaw, 0.18);
     pitch = T.MathUtils.lerp(pitch, wantedPitch, 0.18);
     const ratio = viewW / viewH;
@@ -168,7 +168,7 @@ export function createScene(
   canvas.addEventListener(
     'pointerdown',
     (e) => {
-      if (e.button !== 0 || drag || !state) return;
+      if (![0, 2].includes(e.button) || drag || !state) return;
       const [x, y] = xy(e);
       drag = {
         id: e.pointerId,
@@ -176,7 +176,10 @@ export function createScene(
         y,
         yaw,
         pitch,
-        actor: figure.hit(x, y),
+        pan: e.button === 2,
+        anchor: aim.clone(),
+        span: half,
+        actor: e.button === 0 && figure.hit(x, y),
         moved: false,
       };
       canvas.setPointerCapture(e.pointerId);
@@ -200,9 +203,46 @@ export function createScene(
         dy = y - drag.y;
       if (Math.hypot(dx, dy) < 4 && !drag.moved) return;
       drag.moved = true;
+      if (drag.pan) {
+        if (focus !== 'free') {
+          focus = 'free';
+          follow = false;
+          scaleTarget = drag.span * zoom;
+          free?.();
+        }
+        const meters = (2 * drag.span) / viewH,
+          across = -dx * meters,
+          forward = (-dy * meters) / Math.max(0.26, Math.sin(drag.pitch));
+        desiredAim.set(
+          T.MathUtils.clamp(
+            drag.anchor.x +
+              across * Math.cos(drag.yaw) +
+              forward * Math.sin(drag.yaw),
+            -9,
+            25,
+          ),
+          drag.anchor.y,
+          T.MathUtils.clamp(
+            drag.anchor.z -
+              across * Math.sin(drag.yaw) +
+              forward * Math.cos(drag.yaw),
+            -14,
+            20,
+          ),
+        );
+        return;
+      }
       if (!drag.actor) {
-        wantedYaw = T.MathUtils.clamp(drag.yaw - dx * 0.006, -0.93, 0.99);
-        wantedPitch = T.MathUtils.clamp(drag.pitch + dy * 0.004, 0.34, 0.95);
+        if (follow) {
+          follow = false;
+          focus = 'free';
+          desiredAim.copy(aim);
+          scaleTarget = half * zoom;
+          free?.();
+        }
+
+        wantedYaw = drag.yaw - dx * 0.007;
+        wantedPitch = T.MathUtils.clamp(drag.pitch + dy * 0.004, 0.13, 1.42);
         return;
       }
       const k = pick(e, true);
@@ -227,6 +267,10 @@ export function createScene(
     'pointerup',
     (e) => {
       if (!drag || drag.id !== e.pointerId) return;
+      if (drag.pan) {
+        clearPointer();
+        return;
+      }
       const actor = drag.actor,
         moved = drag.moved,
         k = pick(e, actor && moved);
@@ -252,6 +296,7 @@ export function createScene(
     },
     opt,
   );
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault(), opt);
   canvas.addEventListener('pointercancel', clearPointer, opt);
   canvas.addEventListener(
     'lostpointercapture',
@@ -263,9 +308,8 @@ export function createScene(
   canvas.addEventListener(
     'wheel',
     (e) => {
-      if (!e.ctrlKey) return;
       e.preventDefault();
-      zoom = T.MathUtils.clamp(zoom * Math.exp(-e.deltaY * 0.003), 0.68, 2.5);
+      zoom = T.MathUtils.clamp(zoom * Math.exp(-e.deltaY * 0.003), 0.32, 8);
     },
     { signal: ctx.signal, passive: false },
   );
@@ -282,7 +326,10 @@ export function createScene(
     );
     const length = visibilityRay.ray.origin.distanceTo(point);
     visibilityRay.far = Math.max(0, length - 0.1);
-    return !visibilityRay.intersectObjects(model.solids, false).length;
+    return !visibilityRay.intersectObjects(model.solids, false).some((hit) => {
+      for (let n = hit.object; n; n = n.parent) if (!n.visible) return false;
+      return true;
+    });
   }
   function render(ms) {
     if (!state || document.hidden) return;
@@ -354,7 +401,14 @@ export function createScene(
       carry ? 1 : fraction,
       dt,
     );
-    model.update(s, now, focus === 'street' && !follow, aim);
+    model.update(
+      s,
+      now,
+      aim.x > 9.2 || aim.z > 5.6 || half > 8,
+      aim,
+      cam,
+      half,
+    );
     renderer.render(scene, cam);
     lastFrame = now;
   }
@@ -376,22 +430,28 @@ export function createScene(
       state = s;
       renderer.shadowMap.needsUpdate = true;
     },
+    unlock() {
+      follow = false;
+      focus = 'free';
+      desiredAim.copy(aim);
+      scaleTarget = half * zoom;
+    },
     focus(id) {
       focus = id;
       follow = id === 'follow';
-      wantedPitch = id === 'street' ? 0.32 : id === 'living' ? 0.44 : 0.57;
+      wantedPitch = id === 'street' ? 0.51 : id === 'living' ? 0.44 : 0.57;
       wantedYaw = id === 'street' ? 0.44 : 0.56;
       zoom = 1;
       renderer.shadowMap.needsUpdate = true;
     },
     zoom(by) {
-      zoom = T.MathUtils.clamp(zoom * by, 0.68, 2.5);
+      zoom = T.MathUtils.clamp(zoom * by, 0.32, 8);
     },
     reset() {
       zoom = 1;
       wantedYaw = focus === 'street' ? 0.44 : 0.56;
       wantedPitch =
-        focus === 'street' ? 0.32 : focus === 'living' ? 0.44 : 0.57;
+        focus === 'street' ? 0.51 : focus === 'living' ? 0.44 : 0.57;
     },
     video: (v) => model.video(v),
     retry: figure.refresh,

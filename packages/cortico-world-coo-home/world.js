@@ -1,4 +1,11 @@
-import { fresh, issue, tick, setOption, snapshot } from './src/life.js';
+import {
+  fresh,
+  issue,
+  tick,
+  setOption,
+  migrateMap,
+  snapshot,
+} from './src/life.js';
 import { furniture } from './src/layout.js';
 import { figureDescriptor } from './src/appearance.js';
 const id = 'coo-home',
@@ -137,6 +144,9 @@ export default {
       envPromptVars: () => null,
       async start(h) {
         host = h;
+        const before = read(),
+          migrated = migrateMap(before);
+        if (before !== migrated) save(migrated);
         timer = setInterval(() => {
           try {
             now();

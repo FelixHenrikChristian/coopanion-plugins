@@ -306,6 +306,52 @@ export function dressHome(h) {
     C(sink, -0.44 + i * 0.11, 1.065, -0.08, 0.037, 0.16, bottleColors[i]);
     C(sink, -0.44 + i * 0.11, 1.158, -0.08, 0.022, 0.042, ink);
   }
+  // Joinery, translucent paper screens, and pools of lamplight tie the rooms to the night street.
+  const lattice = group(1.63, 1.72, -7.65);
+  B(lattice, 0, 0, 0, 1.76, 1.19, 0.055, '#a2a192');
+  for (let col = 0; col < 5; col++)
+    B(lattice, (col - 2) * 0.415, 0, 0.043, 0.024, 1.17, 0.036, '#80715f');
+  for (let row = 0; row < 4; row++)
+    B(lattice, 0, (row - 1.5) * 0.36, 0.044, 1.73, 0.021, 0.039, '#80715f');
+  const transom = group(-3.62, 1.72, -7.65);
+  B(transom, 0, 0, 0, 2.64, 1.26, 0.07, '#5a6465');
+  face(transom, 0, 0, 0.043, 2.53, 1.14, nightView);
+  for (const xx of [-1.22, 0, 1.22])
+    B(transom, xx, 0, 0.09, 0.044, 1.22, 0.062, '#796958');
+  B(transom, 0, -0.27, 0.09, 2.54, 0.032, 0.061, '#796958');
+  B(transom, 0, -0.66, 0.13, 2.76, 0.063, 0.22, '#ad9174');
+  const lampshade = group(-0.59, 1.8, 3.39);
+  C(lampshade, 0, 0, 0, 0.135, 0.34, lit('#ffe0a2', 0.66));
+  for (const y of [-0.16, -0.095, 0, 0.095, 0.16])
+    C(lampshade, 0, y, 0, 0.138, 0.012, '#8c745b');
+  const alcove = group(-4.98, 0, 1.02);
+  B(alcove, 0, 0.22, 0, 0.58, 0.42, 0.63, '#a1886d');
+  B(alcove, 0, 0.45, 0, 0.62, 0.058, 0.67, '#795f4c');
+  B(alcove, 0.03, 0.51, 0.07, 0.36, 0.047, 0.27, '#728e8c');
+  B(alcove, -0.02, 0.56, 0.07, 0.3, 0.038, 0.24, '#c4a580');
+  O(alcove, -0.03, 0.7, -0.12, 0.084, 0.125, 0.084, '#9eb1ab');
+  for (let j = 0; j < 4; j++) {
+    const twig = C(
+      alcove,
+      -0.034 + j * 0.021,
+      0.91,
+      -0.12,
+      0.008,
+      0.31,
+      '#747e5c',
+    );
+    twig.rotation.z = (j - 1.5) * 0.13;
+    O(
+      alcove,
+      -0.083 + j * 0.043,
+      1.054 + (j % 2) * 0.038,
+      -0.12,
+      0.043,
+      0.029,
+      0.037,
+      '#c7b093',
+    );
+  }
   // Soft contact shadows: shared 64px alpha texture instead of a screen-wide SSAO pass.
   const cv = document.createElement('canvas');
   cv.width = cv.height = 64;

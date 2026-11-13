@@ -248,3 +248,7 @@
     right: 8px;
   }
 }
+
+.cooh .hh-clean .hh-nav {
+  display: none;
+}

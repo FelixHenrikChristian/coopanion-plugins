@@ -9,6 +9,7 @@ import {
   plantStage,
   crops,
   position,
+  migrateMap,
 } from '../src/life.js';
 import definition from '../world.js';
 const t0 = Date.UTC(2026, 0, 1, 9);
@@ -134,4 +135,31 @@ test('room chat separates host tools and visitors, preserves text and emits a re
   } finally {
     await w.stop();
   }
+});
+
+test('walking to the relocated store requires the zebra crossing and the opening in the glass frontage', () => {
+  const p = route(furniture.shoes.point, furniture.market.point);
+  const hits = (axis, threshold) =>
+    p.slice(1).flatMap((b, i) => {
+      const a = p[i],
+        d = b[axis] - a[axis];
+      if (!d) return [];
+      const t = (threshold - a[axis]) / d;
+      return t >= 0 && t <= 1
+        ? [a[1 - axis] + (b[1 - axis] - a[1 - axis]) * t]
+        : [];
+    });
+  assert.ok(hits(0, 12).some((z) => z >= 4.1 && z <= 5.4));
+  assert.ok(hits(1, 3.8).some((x) => x > 18.49 && x < 20.21));
+  assert.equal(walkable([12, 1]), false);
+  assert.equal(walkable([21.1, -0.5]), false);
+});
+test('upgrade preserves completed purchases and crops while relocating a stale shopping trip', () => {
+  const s = issue(paused(), { target: 'market' }, '你', t0);
+  const migrated = migrateMap(s, t0);
+  assert.equal(migrated.trip, null);
+  assert.deepEqual(migrated.plots, s.plots);
+  assert.equal(migrated.coins, s.coins);
+  assert.equal(migrated.meals, s.meals);
+  assert.equal(migrateMap(migrated, t0), migrated);
 });

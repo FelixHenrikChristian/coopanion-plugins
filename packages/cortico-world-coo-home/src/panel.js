@@ -173,6 +173,7 @@ async function mount(ctx) {
     else canvas.focus({ preventScroll: true });
   }
   function show(id) {
+    stage.classList.remove('hh-clean');
     if (!open) previousFocus = document.activeElement;
     open = id;
     drawer.hidden = false;
@@ -204,6 +205,12 @@ async function mount(ctx) {
     show('object');
   }
   function focus(id) {
+    if (id === 'free') {
+      scene?.unlock();
+      camera = 'free';
+      $('[data-cmd="open:camera"]').textContent = '自由镜头';
+      return;
+    }
     camera = id;
     if (rooms[id]) {
       region = id;
@@ -354,7 +361,8 @@ async function mount(ctx) {
             '观察位置',
             'camera',
             {
-              all: '全屋俯瞰',
+              free: '自由镜头',
+              all: '街区全景',
               follow: '跟随 Coo',
               ...Object.fromEntries(
                 Object.entries(rooms).map(([k, r]) => [k, r.name]),
@@ -365,7 +373,8 @@ async function mount(ctx) {
           group(
             button('zoom-', '缩小') +
               button('zoom+', '放大') +
-              button('reset', '复位镜头'),
+              button('reset', '复位镜头') +
+              button('clean-view', '隐藏浮层（H）'),
           );
         break;
       case 'coo': {
@@ -561,7 +570,7 @@ async function mount(ctx) {
               button('auto', '自主生活 · ' + (s.auto ? '开' : '关')),
           ) +
           text(
-            '拖动空地转动镜头，点地面让 Coo 走过去。拖动 Coo 到家具旁，松手即可互动。',
+            '左键拖动环绕，右键拖动平移，滚轮缩放。点地面让 Coo 走过去。拖动 Coo 到家具旁，松手即可互动。',
           );
         if (gpuProblem || figureProblem)
           html +=
@@ -679,6 +688,12 @@ async function mount(ctx) {
         scene?.zoom(cmd === 'zoom-' ? 1 / 1.22 : 1.22);
         return;
       }
+      if (cmd === 'clean-view') {
+        close();
+        stage.classList.add('hh-clean');
+        canvas.focus({ preventScroll: true });
+        return;
+      }
       if (cmd === 'reset') {
         focus('living');
         scene?.reset();
@@ -726,6 +741,20 @@ async function mount(ctx) {
   root.addEventListener(
     'keydown',
     (e) => {
+      if (
+        !e.isComposing &&
+        !['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName) &&
+        e.key.toLowerCase() === 'h'
+      ) {
+        e.preventDefault();
+        close();
+        stage.classList.toggle('hh-clean');
+        canvas.focus({ preventScroll: true });
+        return;
+      }
+      if (e.key === 'Escape' && !open) {
+        stage.classList.remove('hh-clean');
+      }
       if (e.key === 'Escape' && open) {
         e.stopPropagation();
         close();
@@ -737,6 +766,10 @@ async function mount(ctx) {
   );
   try {
     scene = createScene(ctx, {
+      free: () => {
+        camera = 'free';
+        $('[data-cmd="open:camera"]').textContent = '自由镜头';
+      },
       stage,
       canvas,
       inspect,

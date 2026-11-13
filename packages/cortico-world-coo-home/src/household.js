@@ -226,13 +226,6 @@ export function household(h) {
   for (let j = 0; j < 3; j++)
     C(prep, -0.3, 1.07, -0.14 + j * 0.071, 0.089, 0.015, ivory).rotation.x =
       1.17;
-  // Shelf labels on the existing shop window are independent world targets.
-  const seeds = station('seeds');
-  label(seeds, 0, 1.44, 0.073, 0.36, 0.33, '種', '#798d64', '#fff2ce', 80);
-  interactive(seeds, 'seeds');
-  const sell = station('sell');
-  label(sell, 0, 0.96, 0.1, 0.52, 0.21, '青果受付', '#a48761', '#fff2ce', 60);
-  interactive(sell, 'sell');
   const lights = [];
   for (const [x, y, z, k] of [
     [-3.58, 1.76, -5.85, 5.8],

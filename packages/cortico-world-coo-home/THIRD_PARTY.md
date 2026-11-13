@@ -1,6 +1,6 @@
 # 来源与许可
 
-小屋代码、户型、家具、街区与招牌为本项目独立制作。便利店门面背后的单张货架背景由 OpenAI 图像生成工具专为本项目生成，其余场景纹理由程序绘制。角色从本机 Coopanion 的桌宠服务实时绘制。发行包附带的真实宿主截图使用内置 Coo，未打包其他形象或用户资料。
+小屋代码、户型、家具、街区与招牌为本项目独立制作。便利店内的货架、包装、灯箱、冷柜与柜台由几何体构建，表面图案由程序绘制。角色从本机 Coopanion 的桌宠服务实时绘制。发行包附带的真实宿主截图使用内置 Coo，未打包其他形象或用户资料。
 
 参考 [大肥鱼房子模板](https://github.com/sh2234113/feiyu-room-template) 的房间生活玩法，以及其 [房间界面](https://github.com/sh2234113/feiyu-room-template/blob/main/public/room/index.html) 与 [菜园面板](https://github.com/sh2234113/feiyu-room-template/blob/main/public/room/garden-ui.js) 的信息分组。未复制该项目的代码、文字或资产。户型动线另参考 [UR 住宅的户型说明](https://www.ur-net.go.jp/chintai/college/202405/000470.html)。用户提供的视频和截图仅用于分析材质、灯光、气氛与镜头，不在发行包内。
 
