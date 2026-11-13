@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
-import { SITE } from './layout.js';
+import {SITE,NEIGHBORHOOD as VILLAGE} from './layout.js';
 
 // A low-resolution reflected view is only refreshed when the model or camera
 // moves. Rain still disturbs its surface while the camera is at rest.
@@ -37,11 +37,11 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
         #include <colorspace_fragment>
       }`
   };
-  const mirror=new Reflector(new THREE.PlaneGeometry(SITE.size-.08,SITE.size-.08),{
+  const mirror=new Reflector(new THREE.PlaneGeometry(VILLAGE.size-.08,VILLAGE.size-.08),{
     textureWidth:896, textureHeight:640, multisample:0, clipBias:.002, shader
   });
   mirror.material.transparent=true; mirror.material.depthWrite=false;
-  mirror.position.set(SITE.centerX,.009,SITE.centerZ); mirror.rotation.x=-Math.PI/2;
+  mirror.position.set(VILLAGE.centerX,.009,VILLAGE.centerZ); mirror.rotation.x=-Math.PI/2;
   mirror.renderOrder=1;stageFloor.add(mirror);
   const capture=mirror.onBeforeRender;
   let changing=true, lastCapture=-100, elapsed=0;
@@ -53,9 +53,9 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
 
   let seed=4125;
   const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
-  const drops=Math.round(SITE.size**2*2.69), coords=[], velocities=[], extent=[];
+  const drops=Math.round(VILLAGE.size**2*1.72), coords=[], velocities=[], extent=[];
   for(let i=0;i<drops;i++){
-    coords.push(SITE.left+.15+random()*(SITE.size-.60),random()*9.6,SITE.back+.22+random()*(SITE.size-.55));
+    coords.push(VILLAGE.left+.15+random()*(VILLAGE.size-.60),random()*9.6,VILLAGE.back+.22+random()*(VILLAGE.size-.55));
     velocities.push(4.3+random()*2.7);extent.push(.11+random()*.14);
   }
   const rainGeo=new THREE.BufferGeometry();
@@ -71,7 +71,12 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
         p.x+=(9.6-y)*.028;p.z-=(9.6-y)*.012;p.y=y;
         float shop=step(-5.16,p.x)*step(p.x,2.53)*step(-4.93,p.z)*step(p.z,1.06);
         float tea=step(-10.5,p.x)*step(p.x,-6.27)*step(-4.4,p.z)*step(p.z,1.17);
-        float roofHeight=max(3.82*shop,tea*(3.83-abs(p.x+8.33)*.52));
+        float home=step(-9.5,p.x)*step(p.x,3.5)*step(7.8,p.z)*step(p.z,16.7);
+        float records=step(7.06,p.x)*step(p.x,11.69)*step(-3.,p.z)*step(p.z,1.40);
+        float wash=step(12.40,p.x)*step(p.x,17.2)*step(-3.03,p.z)*step(p.z,1.13);
+        float flats=step(7.57,p.x)*step(p.x,15.2)*step(-9.81,p.z)*step(p.z,-4.35);
+        float cityRoof=max(7.44*flats,max(5.34*records,3.25*wash));
+        float roofHeight=max(cityRoof,max(3.63*home,max(3.82*shop,tea*(3.83-abs(p.x+8.33)*.52))));
         a=smoothstep(roofHeight,roofHeight+.25,y)*(1.-smoothstep(8.,9.6,y));
         float lamp=length(p-vec3(-8.35,2.65,1.78)), corner=length(p-vec3(3.87,3.85,1.4));
         lit=max(1.-smoothstep(.45,3.25,lamp),1.-smoothstep(.4,2.6,corner));
@@ -89,13 +94,13 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
   }));
   rain.frustumCulled=false;rain.renderOrder=4;scene.add(rain);
   const rippleVerts=[], delays=[], centers=[];
-  const roadArea=SITE.size**2-(SITE.sideCurb-SITE.left)*(SITE.frontCurb-SITE.back);
+  const roadArea=VILLAGE.size*(SITE.front-SITE.frontCurb)+(SITE.right-SITE.sideCurb)*(SITE.frontCurb-VILLAGE.back);
   for(let i=0;i<Math.round(roadArea*.52);i++){
     let x,z;
     do{
-      x=SITE.left+.25+random()*(SITE.size-.50);
-      z=SITE.back+.25+random()*(SITE.size-.55);
-    }while(x<SITE.sideCurb+.08&&z<SITE.frontCurb+.17);
+      x=VILLAGE.left+.25+random()*(VILLAGE.size-.50);
+      z=VILLAGE.back+.25+random()*(SITE.front-VILLAGE.back-.47);
+    }while((x<SITE.sideCurb+.08||x>SITE.right-.08)&&z<SITE.frontCurb+.17);
     const delay=random()*3;
     for(let j=0;j<16;j++) for(const a of [j,j+1]) {
       const theta=a*Math.PI/8; rippleVerts.push(Math.cos(theta),0,Math.sin(theta));delays.push(delay);centers.push(x,z);

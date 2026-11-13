@@ -4,7 +4,6 @@ import { SITE } from './layout.js';
 // This keeps painted surfaces, drains and the model geometry in the same coordinates.
 export function buildGround(k) {
   const { THREE } = k;
-  const base = k.group('鋳型・基台', 0);
   const street = k.group('雨の路面', .18);
   const paving = k.group('歩道と縁石', .34);
   const hardware = k.group('路面標示と排水', .58);
@@ -69,35 +68,8 @@ export function buildGround(k) {
     parent.add(mesh);
     return mesh;
   }
-  function desk(oldHalfWidth, radius) {
-    const inset = 7 - oldHalfWidth;
-    return corners(x0 + inset, z0 + inset, x1 - inset, z1 - inset, Array(4).fill(radius));
-  }
-  // The continuous chamfers catch the rim light when the model is turned.
-  const sections = [
-    [6.79, .20, -.96, '#171c30'],
-    [6.90, .20, -.89, '#354059'],
-    [6.91, .19, -.82, '#525069'],
-    [6.945, .17, -.795, '#796d74'],
-    [6.945, .17, -.765, '#282b41'],
-    [6.91, .17, -.735, '#29283c'],
-    [6.95, .16, -.69, '#303044'],
-    [6.995, .135, -.62, '#404055'],
-    [6.995, .135, -.135, '#343749'],
-    [7, .13, -.12, '#171f31'],
-    [7, .13, -.080, '#484b5c'],
-    [7, .13, -.042, '#5b5969'],
-    [6.975, .12, -.002, '#6a6975']
-  ];
-  sections.forEach(([r, radius, y, c], i) => {
-    if (!i) return;
-    const [r0, rad0, y0] = sections[i - 1];
-    band(base, desk(r0, rad0), y0, desk(r, radius), y, standard(c, .44, .22));
-  });
-  const bottom = plate(base, desk(6.79, .20), -.96, standard('#191c29'));
-  bottom.material.side = THREE.DoubleSide;
-  const roadOutline = desk(6.975, .12);
-  const walkX = x0 + .047, walkZ = z0 + .050;
+  const roadOutline = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+  const walkX = x0, walkZ = z0;
   const walkOutline = corners(walkX,walkZ,sideCurb,frontCurb,[.055,.90,.055,.07]);
   const layByOutline=[
     [layBy.outer,layBy.back],[layBy.inner,layBy.back],
@@ -317,6 +289,7 @@ export function buildGround(k) {
   const perimeter=[...walkOutline.slice(0,9),...layByOutline,...walkOutline.slice(9)];
   for(let i=0;i<perimeter.length;i++){
     const [ax,az]=perimeter[i],[bx,bz]=perimeter[(i+1)%perimeter.length],dx=bx-ax,dz=bz-az;
+    if((ax===x0&&bx===x0)||(az===z0&&bz===z0))continue;
     const breaks=[0,1];
     if(dx)xs.forEach(x=>{const t=(x-ax)/dx;if(t>0&&t<1)breaks.push(t)});
     if(dz)zs.forEach(z=>{const t=(z-az)/dz;if(t>0&&t<1)breaks.push(t)});
@@ -378,10 +351,10 @@ export function buildGround(k) {
   ink.textAlign='center';ink.textBaseline='middle';ink.font='bold 81px "Yu Gothic", "Noto Sans JP", sans-serif';
   ink.fillStyle='#c1c7bf';ink.fillText('軽',0,0);ink.restore();
   const edge='#aebbc2',lane='#c6ced0',stop='#d4d8d2';
-  stroke(ink,[[x0+.04,2.83],[-3.34,2.83]],edge,.083);
+  stroke(ink,[[x0,2.83],[-3.34,2.83]],edge,.083);
   stroke(ink,[[.91,2.83],[1.99,2.83]],edge,.083);
-  stroke(ink,[[x0+.04,z1-.15],[-3.34,z1-.15]],edge,.075);
-  stroke(ink,[[.94,z1-.15],[x1-.045,z1-.15]],edge,.075);
+  stroke(ink,[[x0,z1-.15],[-3.34,z1-.15]],edge,.075);
+  stroke(ink,[[.94,z1-.15],[x1,z1-.15]],edge,.075);
   stroke(ink,[[sideCurb+.14,z0+.05],[sideCurb+.14,layBy.back-.09]],edge,.073);
   stroke(ink,[[sideCurb+.14,layBy.front+.12],[sideCurb+.14,-1.04]],edge,.073);
   stroke(ink,[[x1-.14,z0+.05],[x1-.14,-1.01]],edge,.073);
@@ -439,4 +412,5 @@ export function buildGround(k) {
   }
   cover(1.83,3.59,.30);cover(4.87,-3.07,.285);
   plate(hardware,roadOutline,.026,mapped(steelImg,true,.18)).renderOrder=4;
+  return street;
 }

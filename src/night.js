@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // A painted band of distant city light under a low rain ceiling. The
 // horizon follows the view direction while the lower field holds the model.
 export function makeNightSky(scene) {
-  const uniforms={viewRotation:{value:new THREE.Matrix3()}, viewScale:{value:new THREE.Vector2()}};
+  const uniforms={viewRotation:{value:new THREE.Matrix3()}, viewScale:{value:new THREE.Vector2()},mistElevation:{value:-.285}};
   const sky=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({
     uniforms,depthTest:false,depthWrite:false,toneMapped:false,
     vertexShader:`varying vec2 screen;
@@ -11,6 +11,7 @@ export function makeNightSky(scene) {
     fragmentShader:`
       uniform mat3 viewRotation;
       uniform vec2 viewScale;
+      uniform float mistElevation;
       varying vec2 screen;
       float hash(vec2 p){
         vec3 q=fract(vec3(p.xyx)*.1031);
@@ -24,8 +25,8 @@ export function makeNightSky(scene) {
       void main(){
         vec3 ray=normalize(viewRotation*vec3(screen*viewScale,-1.));
         vec2 az=normalize(ray.xz+vec2(.0001));
-        float band=exp(-pow((ray.y+.286)/.084,2.));
-        float dome=exp(-pow((ray.y+.255)/.21,2.));
+        float band=exp(-pow((ray.y-mistElevation)/.084,2.));
+        float dome=exp(-pow((ray.y-mistElevation-.031)/.21,2.));
         vec2 sampleAt=az*2.8+vec2(ray.y*1.9,ray.y*9.);
         float clouds=.65*cloud(sampleAt)+.35*cloud(sampleAt*2.7+1.7);
         float warm=.5+.5*dot(az,normalize(vec2(-.9,-.15)));
@@ -43,6 +44,8 @@ export function makeNightSky(scene) {
     uniforms.viewRotation.value.setFromMatrix4(camera.matrixWorld);
     const m=camera.projectionMatrix.elements;
     uniforms.viewScale.value.set(1/m[0],1/m[5]);
+    const pitch=-camera.matrixWorld.elements[9];
+    uniforms.mistElevation.value=-.286+Math.min(0,pitch+.36)*.84;
   };
   scene.add(sky);
 }

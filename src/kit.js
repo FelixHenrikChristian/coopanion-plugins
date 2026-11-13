@@ -83,13 +83,19 @@ export function batchStage(g) {
   g.updateWorldMatrix(true,true);
   const inverse = g.matrixWorld.clone().invert();
   const batches = new Map();
-  g.traverse(o=>{
+  const gather=o=>{
+    if(o!==g&&o.userData.preserveBatch){
+      batchStage(o);
+      return;
+    }
+    for(const child of o.children)gather(child);
     const m=o.material;
     if(!o.isMesh || o.isInstancedMesh || !m?.isMeshStandardMaterial || m.map || m.transparent || m.vertexColors || m.emissiveMap || !o.geometry.attributes.normal) return;
     const key=[m.roughness,m.metalness,m.emissive.getHex(),m.emissiveIntensity,m.side,o.castShadow,o.receiveShadow].join('/');
     if(!batches.has(key)) batches.set(key,[]);
     batches.get(key).push(o);
-  });
+  };
+  gather(g);
   for(const batch of batches.values()) {
     if(batch.length<2) continue;
     const originals=batch.map(o=>{
