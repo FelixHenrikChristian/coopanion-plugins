@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { SITE } from './layout.js';
 
 // A low-resolution reflected view is only refreshed when the model or camera
 // moves. Rain still disturbs its surface while the camera is at rest.
@@ -36,11 +37,11 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
         #include <colorspace_fragment>
       }`
   };
-  const mirror=new Reflector(new THREE.PlaneGeometry(18.72,18.72),{
+  const mirror=new Reflector(new THREE.PlaneGeometry(SITE.size-.08,SITE.size-.08),{
     textureWidth:896, textureHeight:640, multisample:0, clipBias:.002, shader
   });
   mirror.material.transparent=true; mirror.material.depthWrite=false;
-  mirror.position.set(-1.4,.009,.6); mirror.rotation.x=-Math.PI/2;
+  mirror.position.set(SITE.centerX,.009,SITE.centerZ); mirror.rotation.x=-Math.PI/2;
   mirror.renderOrder=1;stageFloor.add(mirror);
   const capture=mirror.onBeforeRender;
   let changing=true, lastCapture=-100, elapsed=0;
@@ -52,9 +53,9 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
 
   let seed=4125;
   const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
-  const drops=950, coords=[], velocities=[], extent=[];
+  const drops=Math.round(SITE.size**2*2.69), coords=[], velocities=[], extent=[];
   for(let i=0;i<drops;i++){
-    coords.push(random()*18.2-10.65,random()*9.6,random()*18.25-8.58);
+    coords.push(SITE.left+.15+random()*(SITE.size-.60),random()*9.6,SITE.back+.22+random()*(SITE.size-.55));
     velocities.push(4.3+random()*2.7);extent.push(.11+random()*.14);
   }
   const rainGeo=new THREE.BufferGeometry();
@@ -88,8 +89,13 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
   }));
   rain.frustumCulled=false;rain.renderOrder=4;scene.add(rain);
   const rippleVerts=[], delays=[], centers=[];
-  for(let i=0;i<102;i++){
-    let x,z;do{x=random()*18.3-10.55;z=random()*18.25-8.55;}while(x<3.43&&z<2.72);
+  const roadArea=SITE.size**2-(SITE.sideCurb-SITE.left)*(SITE.frontCurb-SITE.back);
+  for(let i=0;i<Math.round(roadArea*.52);i++){
+    let x,z;
+    do{
+      x=SITE.left+.25+random()*(SITE.size-.50);
+      z=SITE.back+.25+random()*(SITE.size-.55);
+    }while(x<SITE.sideCurb+.08&&z<SITE.frontCurb+.17);
     const delay=random()*3;
     for(let j=0;j<16;j++) for(const a of [j,j+1]) {
       const theta=a*Math.PI/8; rippleVerts.push(Math.cos(theta),0,Math.sin(theta));delays.push(delay);centers.push(x,z);

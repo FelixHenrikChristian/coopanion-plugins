@@ -9,6 +9,7 @@ import {addFinishing} from './finishing.js';
 import {buildTeahouse} from './teahouse.js';
 import {buildGarden} from './garden.js';
 import {makeNightSky} from './night.js';
+import {SITE} from './layout.js';
 
 const canvas=document.querySelector('canvas');
 const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -51,7 +52,7 @@ for(const s of stages){
 }
 const camera=new THREE.PerspectiveCamera(24,1,.10,220);
 camera.layers.enable(1);
-const look=new THREE.Vector3(-1.58,1.44,.56);
+const look=new THREE.Vector3(SITE.centerX,1.56,-.94);
 const viewDir=new THREE.Vector3(7.25,8.85,21.5).normalize();
 camera.position.copy(look).addScaledVector(viewDir,38);
 const controls=new OrbitControls(camera,canvas);
@@ -61,8 +62,8 @@ controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI/2-.075;
 controls.rotateSpeed=.63;controls.panSpeed=.76;controls.zoomSpeed=.85;
 controls.screenSpacePanning=true;controls.update();
 const boundsPoints=[];
-for(const x of [-10.8,8])for(const z of [-8.8,10])for(const y of [-1,0])boundsPoints.push(new THREE.Vector3(x,y,z));
-for(const [x,z,h] of [[-10.18,1.47,6.48],[-10.18,-7.59,6.60],[3.0,-7.59,5.98],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
+for(const x of [SITE.left,SITE.right])for(const z of [SITE.back,SITE.front])for(const y of [-1,0])boundsPoints.push(new THREE.Vector3(x,y,z));
+for(const [x,z,h] of [[-10.18,1.47,6.48],[-10.18,-7.59,6.60],[.80,-9.40,5.98],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
 function fittedDistance(aspect) {
   const horizontal=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),viewDir).normalize();
   const vertical=new THREE.Vector3().crossVectors(viewDir,horizontal);
@@ -94,10 +95,11 @@ const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCan
 const shadowCtx=shadowCanvas.getContext('2d');
 shadowCtx.shadowColor='rgba(0,0,0,1)';shadowCtx.shadowBlur=25;
 shadowCtx.fillStyle='rgba(0,0,0,.95)';shadowCtx.fillRect(93,93,326,326);
-const foot=new THREE.Mesh(new THREE.PlaneGeometry(28.8,28.8),new THREE.MeshBasicMaterial({
+const shadowSpan=SITE.size*(512/326);
+const foot=new THREE.Mesh(new THREE.PlaneGeometry(shadowSpan,shadowSpan),new THREE.MeshBasicMaterial({
   map:new THREE.CanvasTexture(shadowCanvas),color:0x02040b,transparent:true,opacity:.5,depthWrite:false,toneMapped:false
 }));
-foot.rotation.x=-Math.PI/2;foot.position.set(-1.30,-1.03,.73);foot.renderOrder=-4;scene.add(foot);
+foot.rotation.x=-Math.PI/2;foot.position.set(SITE.centerX+.10,-1.03,SITE.centerZ+.13);foot.renderOrder=-4;scene.add(foot);
 const isReduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const maxDuration=7.1;
 let began=0, ready=false, lastShadow=-1, animatingPrev=true;

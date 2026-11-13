@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {paintAmaneMark} from './store.js';
+import {SITE} from './layout.js';
 
 // Low, feathered light reflected back from the humid air under the canopy.
 function lightRibbon(parent,x,y,z,w,h,tint,angle=0,strength=.22) {
@@ -58,12 +59,13 @@ export function addFinishing(k) {
 
   // A low garden boundary leaves the passage between the shops open to the rear.
   const alley=group('Alley · fence and entrance',1.33);
+  const fenceZ=SITE.back+.22;
   const wood=['#615a60','#655c60','#705f61','#605d64','#6b6165'];
   for(let j=0;j<51;j++){
     const x=-10.31+j*.26,h=1.13+(j%7===0?.025:0);
-    box(alley,x,h*.5+.18,-8.47,.245,h,.095,wood[j%5]);
+    box(alley,x,h*.5+.18,fenceZ,.245,h,.095,wood[j%5]);
   }
-  for(const x of [-10.41,-7.8,-5.16,-2.57,.08,2.76])box(alley,x,.78,-8.45,.102,1.22,.17,'#414952');
-  for(const y of [.48,1.12])box(alley,-3.81,y,-8.53,13.28,.081,.13,'#414b55');
-  box(alley,-3.81,1.34,-8.47,13.28,.062,.154,'#958b88');
+  for(const x of [-10.41,-7.8,-5.16,-2.57,.08,2.76])box(alley,x,.78,fenceZ+.02,.102,1.22,.17,'#414952');
+  for(const y of [.48,1.12])box(alley,-3.81,y,fenceZ-.06,13.28,.081,.13,'#414b55');
+  box(alley,-3.81,1.34,fenceZ,13.28,.062,.154,'#958b88');
 }

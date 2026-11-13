@@ -230,7 +230,7 @@ export function buildProps(k) {
   });
 
   const wireTone='#353346', oldWood='#827568', oldMetal='#767f84';
-  const poles=[[-10.18,1.47,6.30],[-10.18,-7.59,6.42],[3.0,-7.59,5.80]];
+  const poles=[[-10.18,1.47,6.30],[-10.18,-7.59,6.42],[.80,-9.40,5.80]];
   const towers=group('utility-poles',2.02);
   poles.forEach(([x,z,h],idx)=>{
     const pole=part(towers,x,.18,z);
