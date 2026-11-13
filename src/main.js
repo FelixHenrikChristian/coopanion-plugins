@@ -1,0 +1,157 @@
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {buildGround} from './ground.js';
+import {buildStore} from './store.js';
+import {buildProps} from './props.js';
+import {makeKit,batchStage} from './kit.js';
+import {makeWeather} from './weather.js';
+import {addFinishing} from './finishing.js';
+
+const canvas=document.querySelector('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
+renderer.setClearColor(0x142134,0);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate=false;
+renderer.shadowMap.needsUpdate=true;
+const scene=new THREE.Scene();
+const stages=[];
+const kit=makeKit(scene,stages);
+buildGround(kit);
+buildStore(kit);
+buildProps(kit);
+addFinishing(kit);
+
+const sky=new THREE.HemisphereLight(0xbbd5f4,0x9b7b89,1.10);
+const moon=new THREE.DirectionalLight(0xbacbff,1.41);
+moon.position.set(-5.5,16,-6.5);moon.castShadow=true;
+moon.shadow.mapSize.set(2048,2048);
+Object.assign(moon.shadow.camera,{near:1,far:40,left:-10,right:10,top:10,bottom:-10});
+moon.shadow.camera.updateProjectionMatrix();moon.shadow.normalBias=.022;moon.shadow.bias=-.00028;
+const fill=new THREE.DirectionalLight(0xffc6a0,.39);fill.position.set(-7.5,7.2,10);
+const rim=new THREE.DirectionalLight(0x8bd6f2,.62);rim.position.set(9,6,2);
+scene.add(sky,moon,fill,rim);
+
+for(const s of stages){
+  batchStage(s.g);
+  if(s.g.name.startsWith('Store ·'))s.g.traverse(o=>{
+    if(o.isInstancedMesh&&/canopy|roof|walls|foundation|equipment/.test(s.g.name)&&o.material.isMeshStandardMaterial)o.castShadow=true;
+  });
+  s.origin=s.g.position.clone();
+  s.duration=s.start===0?1.35:1.18;
+}
+// Transparent road markings must follow the reflective film in the draw order.
+stages[3].g.traverse(o=>{if(o.material?.transparent)o.renderOrder=2;});
+
+const camera=new THREE.PerspectiveCamera(24,1,.10,220);
+const look=new THREE.Vector3(-.18,1.55,-.05);
+const viewDir=new THREE.Vector3(10.9,9.1,19.4).normalize();
+camera.position.copy(look).addScaledVector(viewDir,38);
+const controls=new OrbitControls(camera,canvas);
+controls.target.copy(look);controls.enableDamping=true;controls.dampingFactor=.085;
+controls.minDistance=4.2;controls.maxDistance=80;
+controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI/2-.075;
+controls.rotateSpeed=.63;controls.panSpeed=.76;controls.zoomSpeed=.85;
+controls.screenSpacePanning=true;controls.update();
+const boundsPoints=[];
+for(const x of [-7,7])for(const z of [-7,7])for(const y of [-1,0])boundsPoints.push(new THREE.Vector3(x,y,z));
+for(const [x,z,h] of [[-6.53,1.91,6.42],[-6.39,-5.83,6.30],[2.84,-5.83,6.10],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
+function fittedDistance(aspect) {
+  const horizontal=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),viewDir).normalize();
+  const vertical=new THREE.Vector3().crossVectors(viewDir,horizontal);
+  const tan=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
+  return Math.max(...boundsPoints.map(p=>{
+    const d=p.clone().sub(look),z=d.dot(viewDir);
+    return z+Math.max(Math.abs(d.dot(horizontal))/(tan*aspect*.91),Math.abs(d.dot(vertical))/(tan*.89));
+  }));
+}
+const weather=makeWeather(scene,renderer,camera,stages[1].g);
+controls.addEventListener('change',()=>weather.invalidate());
+controls.addEventListener('start',()=>canvas.classList.add('moving'));
+controls.addEventListener('end',()=>canvas.classList.remove('moving'));
+let previousFit=0;
+function resize(){
+  const w=innerWidth,h=innerHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  const distance=fittedDistance(camera.aspect);
+  const factor=previousFit?distance/previousFit:distance/camera.position.distanceTo(controls.target);
+  camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);
+  controls.maxDistance=Math.max(80,distance*2.3);previousFit=distance;
+  controls.update();weather.invalidate();
+}
+resize();window.addEventListener('resize',resize);
+
+// A broad soft contact shadow anchors the bevel to the matte studio backdrop.
+const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=512;
+const shadowCtx=shadowCanvas.getContext('2d');
+shadowCtx.shadowColor='rgba(0,0,0,1)';shadowCtx.shadowBlur=25;
+shadowCtx.fillStyle='rgba(0,0,0,.95)';shadowCtx.fillRect(93,93,326,326);
+const foot=new THREE.Mesh(new THREE.PlaneGeometry(21.2,21.2),new THREE.MeshBasicMaterial({
+  map:new THREE.CanvasTexture(shadowCanvas),color:0x101824,transparent:true,opacity:.48,depthWrite:false,toneMapped:false
+}));
+foot.rotation.x=-Math.PI/2;foot.position.set(.08,-1.03,.13);foot.renderOrder=-4;scene.add(foot);
+const isReduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const maxDuration=7.1;
+let began=0, ready=false, lastShadow=-1, animatingPrev=true;
+let weatherTime=0, frameCount=0, lastFrame=0;
+function assembly(time){
+  for(const s of stages){
+    const t=THREE.MathUtils.clamp((time-s.start*1.43)/s.duration,0,1);
+    const ease=1-Math.pow(1-t,3.15);
+    s.g.visible=t>0;
+    s.g.position.copy(s.origin);
+    if(s.start===0){
+      s.g.scale.set(1,.15+.85*ease,1);
+      s.g.position.y-=.78*(1-ease);
+    } else {
+      const travel=s.start<.6?.44:s.start>2.6?1.15:.77;
+      s.g.position.y+=travel*(1-ease);
+      s.g.scale.set(1,.86+.14*ease,1);
+    }
+  }
+}
+function frame(stamp){
+  if(!ready){began=stamp;ready=true;}
+  const elapsed=(stamp-began)/1000;
+  const t=isReduced?maxDuration:elapsed;
+  const animating=t<maxDuration;
+  if(animating||animatingPrev)assembly(t+.01);
+  if((animating&&t-lastShadow>.15)||animating!==animatingPrev||lastShadow<0){
+    renderer.shadowMap.needsUpdate=true;lastShadow=t;
+  }
+  if(animatingPrev&&!animating)weather.invalidate();
+  animatingPrev=animating;
+  const dt=lastFrame?Math.min((stamp-lastFrame)/1000,.05):0;
+  lastFrame=stamp;weatherTime+=dt;
+  controls.update();weather.update(weatherTime,isReduced?.55:THREE.MathUtils.smoothstep(t,1.4,5.4),animating);
+  renderer.render(scene,camera);
+  frameCount++;
+  if(!animating)canvas.dataset.assembled='true';
+  canvas.dataset.frames=frameCount;
+}
+
+// Compile shaders against the finished scene before starting the entrance.
+// The first visible frame therefore belongs to the base even on a cold device.
+renderer.compile(scene,camera);
+assembly(.01);
+renderer.setAnimationLoop(frame);
+canvas.addEventListener('keydown',e=>{
+  const offset=camera.position.clone().sub(controls.target);
+  const sphere=new THREE.Spherical().setFromVector3(offset);
+  switch(e.key){
+    case 'ArrowLeft':sphere.theta-=.11;break;
+    case 'ArrowRight':sphere.theta+=.11;break;
+    case 'ArrowUp':sphere.phi=Math.max(controls.minPolarAngle,sphere.phi-.07);break;
+    case 'ArrowDown':sphere.phi=Math.min(controls.maxPolarAngle,sphere.phi+.07);break;
+    case '+':case '=':sphere.radius=Math.max(controls.minDistance,sphere.radius*.88);break;
+    case '-':sphere.radius=Math.min(controls.maxDistance,sphere.radius/.88);break;
+    case 'Home':controls.target.copy(look);camera.position.copy(look).addScaledVector(viewDir,previousFit);controls.update();e.preventDefault();return;
+    default:return;
+  }
+  camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(sphere));
+  controls.update();e.preventDefault();
+});

@@ -1,0 +1,14 @@
+{
+  "name": "amane-mart",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "three": "0.179.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
