@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const views=['exterior','cutaway','open'];
-const titles={exterior:'完整外观',cutaway:'自动剖墙',open:'无墙俯览'};
+const views=['exterior','walls','cutaway','open'];
+const titles={exterior:'完整外观',walls:'全部墙面',cutaway:'自动剖墙',open:'无墙俯览'};
 const focus=new THREE.Vector3(-3,.55,12.2);
 const roomSpans=[
   [-9,-4.95,8.3,11.45],[-4.95,-1.1,8.3,11.45],[-1.1,3,8.3,11.45],
@@ -35,7 +35,7 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
   function visibleWalls(){
     let changed=false;
     for(const wall of shell.walls){
-      let show=mode==='exterior';
+      let show=mode==='exterior'||mode==='walls';
       if(mode==='cutaway'){
         if(wall.outer&&wall.outward){
           const mx=(wall.a[0]+wall.b[0])/2,mz=(wall.a[1]+wall.b[1])/2;
@@ -78,14 +78,14 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
     }else if(next==='exterior'&&savedView){goTo(savedView);savedView=null;}
     mode=next;updated=true;
     const i=views.indexOf(mode);
-    name.textContent=titles[mode];step.textContent=(i+1)+' / 3';
+    name.textContent=titles[mode];step.textContent=(i+1)+' / '+views.length;
     button.dataset.mode=mode;
-    const description='小屋视图：'+titles[mode]+'。切换至'+titles[views[(i+1)%3]];
+    const description='小屋视图：'+titles[mode]+'。切换至'+titles[views[(i+1)%views.length]];
     button.setAttribute('aria-label',description);button.title=description;
     visibleWalls();
     window.dispatchEvent(new CustomEvent('amane:home-view',{detail:{mode}}));
   }
-  button.addEventListener('click',()=>setMode(views[(views.indexOf(mode)+1)%3]));
+  button.addEventListener('click',()=>setMode(views[(views.indexOf(mode)+1)%views.length]));
   controls.addEventListener('start',()=>{travel=null;});
   function update(){
     if(travel){

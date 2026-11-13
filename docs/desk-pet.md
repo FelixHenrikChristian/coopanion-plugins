@@ -8,7 +8,7 @@
 | `getItem(id)` | 读取名称、房间、动作、交互点和走近位置。 |
 | `getObject(id)` | 获取对应的 Three.js 对象组，可更新自己的材质或动画。 |
 | `getView()` | 读取当前的小屋显示状态。 |
-| `setView(mode)` | `exterior` 为完整外观，`cutaway` 为自动剖墙，`open` 为无墙视图。 |
+| `setView(mode)` | `exterior` 显示完整外观，`walls` 收起屋顶并保留全部墙面，`cutaway` 随视角剖墙，`open` 收起屋顶和全部墙面。 |
 
 例如，取得可换画面的电视屏幕：
 
