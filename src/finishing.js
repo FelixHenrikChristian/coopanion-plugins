@@ -27,7 +27,7 @@ export function addFinishing(k) {
   const {group,box,cyl}=k;
   const p=group('Corner · illuminated Amane sign',2.63);
   const column = new THREE.Group();
-  column.position.set(-5.3,.18,1.67);column.rotation.y=.10;p.add(column);
+  column.position.set(2.89,.18,-3.89);column.rotation.y=.31;p.add(column);
   box(column,0,.07,0,.39,.14,.43,'#718186');
   cyl(column,0,1.98,0,.064,.095,3.90,'#8aa5a2',{metalness:.43});
   box(column,0,3.99,0,1.17,1.30,.22,'#263e4d');
@@ -52,20 +52,18 @@ export function addFinishing(k) {
   lightRibbon(light,-1.35,3.52,1.075,8.3,.49,'#8de6c4',0,.24);
   lightRibbon(light,-1.35,2.87,1.072,8.6,.55,'#ffad67',0,.31);
   lightRibbon(light,2.57,2.88,-1.90,6.7,.53,'#ffb675',Math.PI/2,.34);
-  lightRibbon(light,-5.68,1.85,.90,1.67,1.83,'#ff9984',0,.12);
+  lightRibbon(light,-4.35,1.85,1.62,1.67,1.83,'#ff9984',0,.15);
   lightRibbon(light,3.885,3.897,1.48,.91,.44,'#ffe0aa',0,.47);
   k.glow(light,3.887,3.90,1.43,'#ffcf93',1.44,.36);
 
-  // Narrow service passage behind the shop, with a timber screen and a back gate.
+  // A low garden boundary leaves the passage between the shops open to the rear.
   const alley=group('Alley · fence and entrance',1.33);
   const wood=['#615a60','#655c60','#705f61','#605d64','#6b6165'];
-  for(let j=0;j<35;j++){
-    const x=-6.29+j*.26,h=1.22+(j%7===0?.02:0);
-    box(alley,x,h*.5+.18,-6.61,.245,h,.095,wood[j%5]);
+  for(let j=0;j<51;j++){
+    const x=-10.31+j*.26,h=1.13+(j%7===0?.025:0);
+    box(alley,x,h*.5+.18,-8.47,.245,h,.095,wood[j%5]);
   }
-  for(const x of [-6.40,-3.40,-.40,2.64])box(alley,x,.85,-6.59,.102,1.36,.17,'#414952');
-  for(const y of [.51,1.16])box(alley,-1.87,y,-6.67,9.19,.081,.13,'#414b55');
-  box(alley,-1.87,1.446,-6.61,9.20,.062,.154,'#958b88');
-  for(let j=0;j<7;j++)box(alley,2.76,.69,-6.47+j*.175,.09,1.02,.164,wood[(j+2)%5]);
-  box(alley,2.76,1.235,-5.94,.158,.056,1.28,'#93908b');
+  for(const x of [-10.41,-7.8,-5.16,-2.57,.08,2.76])box(alley,x,.78,-8.45,.102,1.22,.17,'#414952');
+  for(const y of [.48,1.12])box(alley,-3.81,y,-8.53,13.28,.081,.13,'#414b55');
+  box(alley,-3.81,1.34,-8.47,13.28,.062,.154,'#958b88');
 }

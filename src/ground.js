@@ -6,8 +6,10 @@ export function buildGround(k) {
   const street = k.group('雨の路面', .18);
   const paving = k.group('歩道と縁石', .34);
   const hardware = k.group('路面標示と排水', .58);
-  const size = 1536;
-  const ppm = size / 14;
+  const size = 2048;
+  const x0 = -10.8, z0 = -8.8, side = 18.8;
+  const x1 = x0 + side, z1 = z0 + side;
+  const ppm = size / side;
   let seed = 307096;
   const rnd = () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -37,7 +39,7 @@ export function buildGround(k) {
     for (let i = 0; i < points.length; i++) {
       for (const [x, z] of [center, points[(i + 1) % points.length], points[i]]) {
         positions.push(x, height, z);
-        uvs.push(.5 + x / 14, .5 - z / 14);
+        uvs.push((x - x0) / side, (z1 - z) / side);
       }
     }
     const geo = new THREE.BufferGeometry();
@@ -65,7 +67,10 @@ export function buildGround(k) {
     parent.add(mesh);
     return mesh;
   }
-  function desk(out, radius) { return corners(-out, -out, out, out, Array(4).fill(radius)); }
+  function desk(oldHalfWidth, radius) {
+    const inset = 7 - oldHalfWidth;
+    return corners(x0 + inset, z0 + inset, x1 - inset, z1 - inset, Array(4).fill(radius));
+  }
   // The continuous chamfers catch the rim light when the model is turned.
   const sections = [
     [6.79, .20, -.96, '#171c30'],
@@ -90,14 +95,14 @@ export function buildGround(k) {
   const bottom = plate(base, desk(6.79, .20), -.96, standard('#191c29'));
   bottom.material.side = THREE.DoubleSide;
   const roadOutline = desk(6.975, .12);
-  const walkOutline = corners(-6.953, -6.95, 3.35, 2.55, [.055, .90, .055, .07]);
-  const walkTop = corners(-6.936, -6.932, 3.335, 2.533, [.05, .89, .05, .062]);
+  const walkX = x0 + .047, walkZ = z0 + .050;
+  const walkOutline = corners(walkX,walkZ,3.35,2.55,[.055,.90,.055,.07]);
 
   function canvas() {
     const e = document.createElement('canvas');
     e.width = e.height = size;
     const g = e.getContext('2d');
-    g.setTransform(ppm, 0, 0, ppm, size / 2, size / 2);
+    g.setTransform(ppm, 0, 0, ppm, -x0 * ppm, -z0 * ppm);
     return [e, g];
   }
   function mapped(image, transparent = false, emissive = .12) {
@@ -126,7 +131,7 @@ export function buildGround(k) {
   }
   function dapples(g, count, palette, extent = .022) {
     for (let i = 0; i < count; i++) {
-      const x = between(-7, 7), z = between(-7, 7), s = between(.006, extent);
+      const x = between(x0, x1), z = between(z0, z1), s = between(.006, extent);
       rect(g, x, z, s * between(.8, 2.3), s, choose(palette));
     }
   }
@@ -144,12 +149,12 @@ export function buildGround(k) {
     grad.addColorStop(1, rgba(0));
     g.fillStyle = grad; g.fillRect(-1, -.35, 2, 1.65);
     g.restore();
-    for (let i = 0; i < Math.floor(34 + width * length * 16); i++) {
+    for (let i = 0; i < Math.floor(4 + width * length * 1.25); i++) {
       const t = rnd(), offset = ((rnd()+rnd()+rnd()) / 3 - .5) * width * (1.45 + t);
       const t0 = 1 - t * .74;
       const cx = x + offset + lean * length * t, cz = z + t * length;
-      const w = between(.045, .42) * (1 + t * .7);
-      const h = between(.010, .072) * (1 - t * .22);
+      const w = between(.055, .31) * (1 + t * .6);
+      const h = between(.007, .020) * (1 - t * .22);
       g.beginPath();
       g.moveTo(cx - w / 2, cz);
       g.lineTo(cx - w * .32, cz - h * .53);
@@ -157,16 +162,16 @@ export function buildGround(k) {
       g.lineTo(cx + w * .35, cz + h * .46);
       g.lineTo(cx - w * .44, cz + h * .45);
       g.closePath();
-      g.fillStyle = rgba(strength * t0 * between(.15, .80)); g.fill();
+      g.fillStyle = rgba(strength * t0 * between(.08, .24)); g.fill();
     }
   }
 
   const [roadImg, road] = canvas();
-  const shade = road.createLinearGradient(-6.8, -4.0, 4.9, 7);
-  shade.addColorStop(0, '#303d56'); shade.addColorStop(.56, '#39455d'); shade.addColorStop(1, '#343f55');
-  rect(road, -7, -7, 14, 14, shade);
-  for (let i = 0; i < 460; i++) {
-    const x = between(-7, 7), z = between(-7, 7), a = between(.08, .84), b = between(.033, .23);
+  const shade = road.createLinearGradient(x0,-5.0,5.9,z1);
+  shade.addColorStop(0,'#222c40'); shade.addColorStop(.52,'#2d374b'); shade.addColorStop(1,'#273247');
+  rect(road,x0,z0,side,side,shade);
+  for (let i = 0; i < 168; i++) {
+    const x = between(x0,x1), z = between(z0,z1), a = between(.22,1.13), b = between(.055,.24);
     road.beginPath();
     for (let j = 0; j < 13; j++) {
       const t = j / 12 * Math.PI * 2;
@@ -175,23 +180,17 @@ export function buildGround(k) {
       if (!j) road.moveTo(u,v); else road.lineTo(u,v);
     }
     road.closePath();
-    road.fillStyle = choose(['#586d861e', '#61769125', '#182c422c', '#1f2c4624', '#8aa0b512']); road.fill();
+    road.fillStyle = choose(['#61758a0c','#73879b0d','#13233713','#141f3014']); road.fill();
   }
-  dapples(road, 72000, ['#b0b9c21a','#101b3030','#7e94af22','#20314538','#b6bdc818']);
-  for (let i = 0; i < 48; i++) {
-    const x = between(-7,7), z = between(-7,7);
-    const dx = between(-.57,.51), dz = between(-.45,.43);
-    stroke(road, [[x,z],[x+dx*.31,z+dz*.2-.02],[x+dx*.4-.04,z+dz*.49],[x+dx,z+dz]], '#1b243770', between(.009,.018));
-  }
-  reflectedLight(road, -1.13, 2.46, 3.37, 3.24, [239,165,115], .56, -.075);
-  reflectedLight(road, -.88, 2.48, 1.4, 2.25, [255,224,154], .45, -.09);
-  reflectedLight(road, -5.55, 2.46, 1.17, 3.22, [236,96,105], .64, -.075);
-  reflectedLight(road, -4.20, 2.53, 1.28, 1.73, [143,224,216], .44, -.06);
-  reflectedLight(road, 2.11, 2.43, 1.86, 2.4, [134,196,209], .40, -.09);
-  reflectedLight(road, 3.79, 1.62, 1.26, 3.62, [251,190,126], .60, -.065);
-  reflectedLight(road, 3.63, -3.0, .95, 3.18, [102,184,207], .39, .15);
-  for (let i = 0; i < 65; i++) {
-    const x = between(-7,7), z = between(-7,7), r = between(.06, .22);
+  dapples(road,47000,['#a0acba12','#101a281b','#768aa013','#24324616'],.017);
+  reflectedLight(road,-8.28,2.40,2.75,5.60,[244,168,100],.55,-.06);
+  reflectedLight(road,-4.35,2.51,1.55,3.95,[240,136,131],.52,-.07);
+  reflectedLight(road,-1.0,2.51,4.05,4.0,[241,194,140],.45,-.05);
+  reflectedLight(road,1.36,2.51,2.04,3.17,[140,200,201],.31,-.04);
+  reflectedLight(road,3.56,1.90,1.85,4.59,[250,192,132],.54,-.055);
+  reflectedLight(road,3.65,-2.7,1.05,3.48,[112,178,197],.31,.14);
+  for (let i = 0; i < 38; i++) {
+    const x = between(x0,x1), z = between(z0,z1), r = between(.085,.18);
     road.strokeStyle = choose(['#93b3c34d','#a5c1d048','#879fbd42']);
     road.lineWidth = between(.006,.013);
     road.beginPath(); road.ellipse(x,z,r,r*.82,0,.32,between(3.8,5.9)); road.stroke();
@@ -202,51 +201,130 @@ export function buildGround(k) {
   plate(street, roadOutline, 0, mapped(roadImg));
 
   const [walkImg, walk] = canvas();
-  rect(walk,-7,-7,14,14,'#4a5562');
-  const tilePalette = ['#727c85','#77818a','#697583','#747e89','#79818a','#6e7985','#6c7886'];
+  rect(walk,x0,z0,side,side,'#4a5562');
+  const tilePalette = ['#717b83','#747e88','#6d7983','#737e87','#778089','#6f7a84'];
   const tileW = .79, tileH = .47;
-  for (let j = 0; j < 31; j++) for (let i = -1; i < 19; i++) {
-    const x = -7 + i * tileW + (j % 2) * tileW * .5, z = -7 + j * tileH;
+  for (let j = 0; j < Math.ceil(side/tileH); j++) for (let i = -1; i < Math.ceil(side/tileW); i++) {
+    const x = x0 + i * tileW + (j % 2) * tileW * .5, z = z0 + j * tileH;
     rect(walk,x+.012,z+.010,tileW-.024,tileH-.020,choose(tilePalette));
     rect(walk,x+.012,z+.010,tileW-.024,.009,'#bac3c44c');
   }
-  dapples(walk,37000,['#dbe0db21','#152b3c27','#38455430','#d6d7ca15']);
+  dapples(walk,28000,['#dbe0db14','#152b3c1a','#3845541a','#d6d7ca10']);
   // The deep alley gets cooler as it passes behind the shop.
   const alley = walk.createLinearGradient(0,-6.7,0,.7);
   alley.addColorStop(0,'#18273788'); alley.addColorStop(.74,'#26364348'); alley.addColorStop(1,'#223e5106');
-  rect(walk,-7,-7,14,8,alley);
-  reflectedLight(walk,-1.61,.47,5.5,1.96,[253,195,133],.65,-.08);
-  reflectedLight(walk,-5.68,.54,1.18,2,[243,108,119],.62,-.06);
-  reflectedLight(walk,1.13,.51,1.34,1.89,[151,220,211],.43,-.06);
+  rect(walk,x0,z0,side,.7-z0,alley);
+  reflectedLight(walk,-8.30,.76,2.58,1.7,[251,174,106],.75,-.05);
+  reflectedLight(walk,-4.35,1.07,1.18,1.41,[242,130,128],.55,-.06);
+  reflectedLight(walk,-1.55,.52,5.46,1.98,[253,195,133],.68,-.05);
+  reflectedLight(walk,1.17,.53,1.33,1.89,[151,220,211],.43,-.06);
+
+  // A gravel service yard, a moss bed and a narrow stone walk connect both back doors.
+  rect(walk,walkX,walkZ,13.75,3.97,'#4d514d');
+  rect(walk,walkX,walkZ,13.75,2.10,'#37433b');
+  rect(walk,walkX,-6.75,4.25,2.49,'#3b453b');
+  rect(walk,-6.50,-6.78,1.47,6.38,'#495151');
+  rect(walk,walkX+.16,walkZ+.16,13.38,.075,'#62665b');
+  rect(walk,walkX+.16,walkZ+.17,.08,4.22,'#64665a');
+  for (let i=0;i<11200;i++) {
+    const x=between(walkX+.17,2.99),z=between(walkZ+.18,-4.81);
+    const planted=z < -6.65 || (x < -6.51 && z < -4.30);
+    const tint=planted ? choose(['#9eaa7934','#1f292444','#81906d30']) : choose(['#a4a69b52','#222e3552','#8c938760']);
+    const s=between(.011,.036);
+    rect(walk,x,z,s*1.28,s,tint);
+  }
+  function steppingStone(x,z,w,h,angle) {
+    walk.save();walk.translate(x,z);walk.rotate(angle);
+    const outline=[[-w*.49,-h*.28],[-w*.36,-h*.50],[w*.35,-h*.48],[w*.51,-h*.28],[w*.48,h*.31],[w*.33,h*.5],[-w*.37,h*.48],[-w*.5,h*.23]];
+    walk.beginPath();walk.moveTo(...outline[0]);outline.slice(1).forEach(p=>walk.lineTo(...p));walk.closePath();
+    walk.fillStyle=choose(['#6c746e','#6e756f','#68716b','#767b73']);walk.fill();
+    stroke(walk,outline,'#313d3b',.018,true);
+    stroke(walk,outline.slice(0,4),'#969c8d',.012);
+    walk.restore();
+  }
+  for(let z=-.75;z>-8.02;z-=.62) steppingStone(-5.76+between(-.09,.09),z,between(.77,.95),between(.45,.53),between(-.09,.09));
+  for(let x=walkX+.55;x<2.77;x+=.70) {
+    if(Math.abs(x+5.76)>.54) steppingStone(x,-6.15+between(-.065,.065),between(.55,.64),between(.58,.68),between(-.06,.06));
+  }
   // Granite curb units follow the radius instead of ending in a square junction.
   const cornerCenter = [2.45,1.65], radius = .795;
-  walk.beginPath(); walk.moveTo(-7,2.444); walk.lineTo(2.45,2.444);
-  walk.arc(cornerCenter[0], cornerCenter[1], radius, Math.PI / 2, 0, true); walk.lineTo(3.245,-7);
+  walk.beginPath(); walk.moveTo(walkX,2.444); walk.lineTo(2.45,2.444);
+  walk.arc(cornerCenter[0], cornerCenter[1], radius, Math.PI / 2, 0, true); walk.lineTo(3.245,walkZ);
   walk.lineWidth=.187; walk.strokeStyle='#a4a9a7'; walk.stroke();
-  walk.beginPath(); walk.moveTo(-7,2.522); walk.lineTo(2.45,2.522);
-  walk.arc(2.45,1.65,.871,Math.PI/2,0,true); walk.lineTo(3.321,-7);
+  walk.beginPath(); walk.moveTo(walkX,2.522); walk.lineTo(2.45,2.522);
+  walk.arc(2.45,1.65,.871,Math.PI/2,0,true); walk.lineTo(3.321,walkZ);
   walk.lineWidth=.016; walk.strokeStyle='#d3cdc1'; walk.stroke();
-  for (let x = -6.74; x < 2.46; x+=.77) {
+  for (let x = walkX+.20; x < 2.46; x+=.77) {
     stroke(walk,[[x,2.339],[x+.008,2.53]],'#4e5865',.022);
   }
-  for (let z=-6.78; z<1.65; z+=.77) stroke(walk,[[3.144,z],[3.346,z-.012]],'#505a65',.022);
+  for (let z=walkZ+.17; z<1.65; z+=.77) stroke(walk,[[3.144,z],[3.346,z-.012]],'#505a65',.022);
   for (let i=0;i<4;i++) {
     const a=i*Math.PI/6;
     stroke(walk,[[2.45+.69*Math.cos(a),1.65+.69*Math.sin(a)],[2.45+.9*Math.cos(a),1.65+.9*Math.sin(a)]],'#515a67',.022);
   }
   // Low yellow tactile tiles lead from the shop frontage to the crossing.
-  for (let x=-5.06;x< -2.96;x+=.29) {
-    rect(walk,x,1.996,.279,.28,'#414a4c');
-    rect(walk,x+.007,2.003,.265,.262,choose(['#c59b57','#c69e60','#c0a067']));
+  function tactile(x,z) {
+    rect(walk,x,z,.279,.28,'#595448');
+    rect(walk,x+.007,z+.007,.265,.262,choose(['#c59b57','#c69e60','#c0a067']));
     for (let a=0;a<4;a++) for (let b=0;b<4;b++) {
-      const xx=x+.044+a*.061, zz=2.034+b*.061;
+      const xx=x+.044+a*.061, zz=z+.038+b*.061;
       oval(walk,xx,zz,.015,.015,'#806e51');
       oval(walk,xx-.003,zz-.004,.012,.010,'#e0bd78');
     }
   }
-  band(paving,walkOutline,.009,walkOutline,.143,standard('#6c737b',.66));
-  band(paving,walkOutline,.143,walkTop,.18,standard('#a3a5a2',.52));
-  plate(paving,walkTop,.18,mapped(walkImg));
+  for(let x=-2.94;x<.49;x+=.291) tactile(x,2.025);
+  for(let z=-.72;z<1.17;z+=.291) tactile(2.777,z);
+
+  // Cut the shelf at the ramp transitions so its large top face actually slopes.
+  const xs=[walkX,-3.40,-3,.60,.99,2.97,3.35];
+  const zs=[walkZ,-.97,-.72,1.20,1.54,1.98,2.55];
+  const unit=n=>Math.max(0,Math.min(1,n));
+  function sidewalkHeight(x,z) {
+    const front=unit((z-1.98)/.57)*Math.min(unit((x+3.40)/.4),unit((.99-x)/.39));
+    const right=unit((x-2.97)/.38)*Math.min(unit((z+.97)/.25),unit((1.54-z)/.34));
+    return .18-.143*Math.max(front,right);
+  }
+  function clip(poly,axis,limit,sign) {
+    const out=[];
+    for(let i=0;i<poly.length;i++){
+      const a=poly[i],b=poly[(i+1)%poly.length];
+      const da=sign*(a[axis]-limit),db=sign*(b[axis]-limit);
+      if(da>=0) out.push(a);
+      if(da*db<0){const t=da/(da-db);out.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])]);}
+    }
+    return out;
+  }
+  const topVertices=[],topUVs=[],edgeVertices=[];
+  for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){
+    let cell=clip(walkOutline,0,xs[i],1);
+    cell=clip(cell,0,xs[i+1],-1);cell=clip(cell,1,zs[j],1);cell=clip(cell,1,zs[j+1],-1);
+    for(let t=1;t<cell.length-1;t++)for(const [x,z] of [cell[0],cell[t+1],cell[t]]){
+      topVertices.push(x,sidewalkHeight(x,z),z);topUVs.push((x-x0)/side,(z1-z)/side);
+    }
+  }
+  for(let i=0;i<walkOutline.length;i++){
+    const [ax,az]=walkOutline[i],[bx,bz]=walkOutline[(i+1)%walkOutline.length],dx=bx-ax,dz=bz-az;
+    const breaks=[0,1];
+    if(dx)xs.forEach(x=>{const t=(x-ax)/dx;if(t>0&&t<1)breaks.push(t)});
+    if(dz)zs.forEach(z=>{const t=(z-az)/dz;if(t>0&&t<1)breaks.push(t)});
+    breaks.sort((a,b)=>a-b);
+    for(let j=1;j<breaks.length;j++) {
+      if(breaks[j]-breaks[j-1]<.00001) continue;
+      const x=ax+dx*breaks[j-1],z=az+dz*breaks[j-1],u=ax+dx*breaks[j],v=az+dz*breaks[j];
+      const p=[x,.006,z],q=[x,sidewalkHeight(x,z),z],r=[u,sidewalkHeight(u,v),v],s=[u,.006,v];
+      edgeVertices.push(...p,...q,...r,...p,...r,...s);
+    }
+  }
+  function surface(parent,vertices,uvs,material) {
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    if(uvs)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    geo.computeVertexNormals();
+    const mesh=new THREE.Mesh(geo,material);
+    mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);
+  }
+  surface(paving,edgeVertices,null,standard('#818789',.70));
+  surface(paving,topVertices,topUVs,mapped(walkImg));
 
   // A recessed charcoal rubber mat aligns with the sliding-door threshold.
   const matOutline = corners(-.27,.635,1.32,1.30,[.042,.042,.042,.042]);
@@ -265,38 +343,48 @@ export function buildGround(k) {
   hardware.add(new THREE.Mesh(ribsGeometry,standard('#303d40',.90)));
 
   const [inkImg, ink] = canvas();
-  // Road paint has hard silkscreen edges and a small amount of wear.
-  for (let i=0;i<6;i++) {
-    const z = 2.79 + i * .71;
-    rect(ink,-5.15,z,2.07,.365,choose(['#c0c8c9','#bbc4c9','#c5ccca']));
-    rect(ink,-5.15,z+.356,2.07,.012,'#d8deda');
-    rect(ink,-5.15,z,.014,.366,'#929da7');
+  // Eight equal 45 cm stripes make one 3.60 m pedestrian crossing.
+  // The short side street has a separate crossing and its own stop line.
+  const chalk=ink.createLinearGradient(0,2.6,0,z1);
+  chalk.addColorStop(0,'#d1d5ce');chalk.addColorStop(.46,'#ced4d1');chalk.addColorStop(1,'#b9c3c8');
+  for(let i=0;i<8;i++){
+    const z=2.88+i*.90;
+    rect(ink,-3,z,3.60,.45,chalk);
+    rect(ink,-3,z,3.60,.015,'#e4e4d7');
   }
-  // One marked kei parking bay, aligned parallel to the side street.
-  stroke(ink,[[4.64,-5.95],[6.60,-5.95],[6.6,-2.58],[4.64,-2.58]],'#b0bcc1',.055);
-  stroke(ink,[[4.64,-5.97],[4.64,-5.59]],'#b0bcc1',.055);
-  stroke(ink,[[4.64,-2.55],[4.64,-2.94]],'#b0bcc1',.055);
-  ink.save(); ink.translate(5.69,-4.24); ink.rotate(Math.PI/2);
-  ink.textAlign='center'; ink.textBaseline='middle'; ink.font='bold .53px "Yu Gothic", "Noto Sans JP", sans-serif';
-  ink.fillStyle='#c5c8bc'; ink.fillText('軽',0,0); ink.restore();
-  // White edge marks are interrupted at the mouth of the crossing.
-  stroke(ink,[[-6.93,2.83],[-5.55,2.83]],'#b1bec487',.048);
-  stroke(ink,[[-2.68,2.83],[1.85,2.83]],'#b1bec49c',.051);
-  stroke(ink,[[3.63,-6.94],[3.63,-1.60]],'#bec6c785',.049);
-  stroke(ink,[[3.63,-1.20],[3.63,-.63]],'#bec6c77a',.049);
-  for (const x of [-6.25,-.65,1.9,4.55]) {
-    rect(ink,x,5.31,1.25,.067,'#d4b391bc');
+  for(let i=0;i<5;i++){
+    const x=3.56+i*.91;
+    rect(ink,x,-.48,.45,2.55,'#c3cbc9');
+    rect(ink,x,-.48,.013,2.55,'#d7dbd4');
   }
+  // The eastern margin accommodates a kei car, leaving ~2.60 m for the one-way lane.
+  stroke(ink,[[6.03,-7.83],[7.65,-7.83],[7.65,-4.01],[6.03,-4.01]],'#aebac0',.073);
+  stroke(ink,[[6.03,-7.865],[6.03,-7.42]],'#aebac0',.073);
+  stroke(ink,[[6.03,-3.975],[6.03,-4.42]],'#aebac0',.073);
+  ink.save();ink.translate(6.90,-5.96);ink.rotate(Math.PI/2);ink.scale(.008,.008);
+  ink.textAlign='center';ink.textBaseline='middle';ink.font='bold 81px "Yu Gothic", "Noto Sans JP", sans-serif';
+  ink.fillStyle='#c1c7bf';ink.fillText('軽',0,0);ink.restore();
+  const edge='#aebbc2',lane='#c6ced0',stop='#d4d8d2';
+  stroke(ink,[[x0+.04,2.83],[-3.34,2.83]],edge,.083);
+  stroke(ink,[[.91,2.83],[1.99,2.83]],edge,.083);
+  stroke(ink,[[x0+.04,9.73],[-3.34,9.73]],edge,.083);
+  stroke(ink,[[.94,9.73],[x1-.045,9.73]],edge,.083);
+  stroke(ink,[[3.59,z0+.05],[3.59,-1.04]],edge,.083);
+  stroke(ink,[[7.75,-3.65],[7.75,-1.01]],edge,.083);
+  for(const [start,end] of [[x0+.035,-9.35],[-7.9,-5.92],[1.17,2.48]]) {
+    stroke(ink,[[start,6.28],[end,6.28]],lane,.115);
+  }
+  stroke(ink,[[-4.17,2.99],[-4.17,6.06]],stop,.20);
+  stroke(ink,[[3.75,-1.22],[7.58,-1.22]],stop,.19);
   ink.save(); ink.globalCompositeOperation='destination-out';
-  for(let i=0;i<22500;i++) {
-    rect(ink,between(-7,7),between(-7,7),between(.012,.077),between(.008,.026),choose(['#0007','#000a','#000d']));
-  }
-  for(let i=0;i<90;i++) {
-    const x=between(-5.3,-2.96), z=between(2.72,6.72);
-    stroke(ink,[[x,z],[x+.036,z+.009],[x+.099,z+.007]],'#0008',.012);
+  for(let i=0;i<1900;i++) {
+    rect(ink,between(x0,x1),between(z0,z1),between(.009,.034),between(.007,.020),choose(['#0003','#0004','#0005']));
   }
   ink.restore();
   const markings = plate(hardware,roadOutline,.021,mapped(inkImg,true,.19));
+  // A thin film of water carries the storefront reflection over the paint.
+  markings.material.opacity=.86;
+  markings.renderOrder=3;
   markings.receiveShadow = true;
 
   const [steelImg,steel] = canvas();
@@ -312,7 +400,7 @@ export function buildGround(k) {
     for(const xx of [-.324,.324]) for(const zz of [-.099,.099]) oval(steel,xx,zz,.008,.008,'#202b35');
     steel.restore();
   }
-  drain(-6.02,2.69);drain(-.85,2.69);drain(3.49,-.16,Math.PI/2);drain(3.49,-4.67,Math.PI/2);
+  drain(-9.78,2.69);drain(-6.02,2.69);drain(1.65,2.69);drain(3.49,-2.04,Math.PI/2);drain(3.49,-6.57,Math.PI/2);
   function cover(x,z,r) {
     steel.save(); steel.translate(x,z); steel.scale(r,r);
     oval(steel,0,0,1.055,1.055,'#242c38'); oval(steel,0,0,1,1,'#899598');
@@ -334,6 +422,6 @@ export function buildGround(k) {
     for(const xx of [-.61,.61]) {oval(steel,xx,.22,.050,.041,'#1e2d3b');}
     steel.restore();
   }
-  cover(1.48,4.21,.37); cover(5.51,.26,.285);
-  plate(hardware,roadOutline,.026,mapped(steelImg,true,.18));
+  cover(1.77,4.52,.37);cover(4.97,-3.07,.285);
+  plate(hardware,roadOutline,.026,mapped(steelImg,true,.18)).renderOrder=4;
 }

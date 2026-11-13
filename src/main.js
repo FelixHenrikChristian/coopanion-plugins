@@ -6,13 +6,16 @@ import {buildProps} from './props.js';
 import {makeKit,batchStage} from './kit.js';
 import {makeWeather} from './weather.js';
 import {addFinishing} from './finishing.js';
+import {buildTeahouse} from './teahouse.js';
+import {buildGarden} from './garden.js';
+import {makeNightSky} from './night.js';
 
 const canvas=document.querySelector('canvas');
 const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
 renderer.setClearColor(0x142134,0);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
+renderer.toneMappingExposure=.90;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;
@@ -24,15 +27,18 @@ buildGround(kit);
 buildStore(kit);
 buildProps(kit);
 addFinishing(kit);
+buildTeahouse(kit);
+buildGarden(kit);
+makeNightSky(scene);
 
-const sky=new THREE.HemisphereLight(0xbbd5f4,0x9b7b89,1.10);
-const moon=new THREE.DirectionalLight(0xbacbff,1.41);
-moon.position.set(-5.5,16,-6.5);moon.castShadow=true;
+const sky=new THREE.HemisphereLight(0xa1b7eb,0x483347,.61);
+const moon=new THREE.DirectionalLight(0x97b4ec,1.06);
+moon.position.set(-8,16,3);moon.castShadow=true;
 moon.shadow.mapSize.set(2048,2048);
-Object.assign(moon.shadow.camera,{near:1,far:40,left:-10,right:10,top:10,bottom:-10});
+Object.assign(moon.shadow.camera,{near:1,far:45,left:-13,right:13,top:13,bottom:-13});
 moon.shadow.camera.updateProjectionMatrix();moon.shadow.normalBias=.022;moon.shadow.bias=-.00028;
-const fill=new THREE.DirectionalLight(0xffc6a0,.39);fill.position.set(-7.5,7.2,10);
-const rim=new THREE.DirectionalLight(0x8bd6f2,.62);rim.position.set(9,6,2);
+const fill=new THREE.DirectionalLight(0xc0a9c9,.17);fill.position.set(-7.5,7.2,10);
+const rim=new THREE.DirectionalLight(0x718fc9,.78);rim.position.set(9,7,-7);
 scene.add(sky,moon,fill,rim);
 
 for(const s of stages){
@@ -43,12 +49,10 @@ for(const s of stages){
   s.origin=s.g.position.clone();
   s.duration=s.start===0?1.35:1.18;
 }
-// Transparent road markings must follow the reflective film in the draw order.
-stages[3].g.traverse(o=>{if(o.material?.transparent)o.renderOrder=2;});
-
 const camera=new THREE.PerspectiveCamera(24,1,.10,220);
-const look=new THREE.Vector3(-.18,1.55,-.05);
-const viewDir=new THREE.Vector3(10.9,9.1,19.4).normalize();
+camera.layers.enable(1);
+const look=new THREE.Vector3(-1.58,1.44,.56);
+const viewDir=new THREE.Vector3(7.25,8.85,21.5).normalize();
 camera.position.copy(look).addScaledVector(viewDir,38);
 const controls=new OrbitControls(camera,canvas);
 controls.target.copy(look);controls.enableDamping=true;controls.dampingFactor=.085;
@@ -57,8 +61,8 @@ controls.minPolarAngle=.08;controls.maxPolarAngle=Math.PI/2-.075;
 controls.rotateSpeed=.63;controls.panSpeed=.76;controls.zoomSpeed=.85;
 controls.screenSpacePanning=true;controls.update();
 const boundsPoints=[];
-for(const x of [-7,7])for(const z of [-7,7])for(const y of [-1,0])boundsPoints.push(new THREE.Vector3(x,y,z));
-for(const [x,z,h] of [[-6.53,1.91,6.42],[-6.39,-5.83,6.30],[2.84,-5.83,6.10],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
+for(const x of [-10.8,8])for(const z of [-8.8,10])for(const y of [-1,0])boundsPoints.push(new THREE.Vector3(x,y,z));
+for(const [x,z,h] of [[-10.18,1.47,6.48],[-10.18,-7.59,6.60],[3.0,-7.59,5.98],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
 function fittedDistance(aspect) {
   const horizontal=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),viewDir).normalize();
   const vertical=new THREE.Vector3().crossVectors(viewDir,horizontal);
@@ -90,10 +94,10 @@ const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCan
 const shadowCtx=shadowCanvas.getContext('2d');
 shadowCtx.shadowColor='rgba(0,0,0,1)';shadowCtx.shadowBlur=25;
 shadowCtx.fillStyle='rgba(0,0,0,.95)';shadowCtx.fillRect(93,93,326,326);
-const foot=new THREE.Mesh(new THREE.PlaneGeometry(21.2,21.2),new THREE.MeshBasicMaterial({
-  map:new THREE.CanvasTexture(shadowCanvas),color:0x101824,transparent:true,opacity:.48,depthWrite:false,toneMapped:false
+const foot=new THREE.Mesh(new THREE.PlaneGeometry(28.8,28.8),new THREE.MeshBasicMaterial({
+  map:new THREE.CanvasTexture(shadowCanvas),color:0x02040b,transparent:true,opacity:.5,depthWrite:false,toneMapped:false
 }));
-foot.rotation.x=-Math.PI/2;foot.position.set(.08,-1.03,.13);foot.renderOrder=-4;scene.add(foot);
+foot.rotation.x=-Math.PI/2;foot.position.set(-1.30,-1.03,.73);foot.renderOrder=-4;scene.add(foot);
 const isReduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const maxDuration=7.1;
 let began=0, ready=false, lastShadow=-1, animatingPrev=true;

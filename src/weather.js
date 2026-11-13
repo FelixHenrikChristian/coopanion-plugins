@@ -23,24 +23,24 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
         vec2 p=pavement, q=vUv.xy/vUv.w;
         float row=noise(vec2(p.x*2.2,p.y*51.+.52*clock));
         float water=noise(p*vec2(.73,1.45))+noise(p*vec2(1.35,10.))*.27;
-        q.x+=.0014*sin(p.y*17.+noise(p*3.)*3.+clock*1.2)+.008*(row-.5);
-        q.y+=.004*(noise(p*vec2(4.,20.)+clock*.12)-.5);
+        q.x+=.0009*sin(p.y*15.+noise(p*3.)*3.+clock*1.2)+.0033*(row-.5);
+        q.y+=.0016*(noise(p*vec2(4.,20.)+clock*.12)-.5);
         vec3 rgb=texture2D(tDiffuse,q).rgb*.5;
         rgb+=texture2D(tDiffuse,q+vec2(.002,.0008)).rgb*.25;
         rgb+=texture2D(tDiffuse,q-vec2(.002,.0008)).rgb*.25;
         float luma=dot(rgb,vec3(.23,.61,.16));
-        float coverage=.08+.68*smoothstep(.37,.92,water);
+        float coverage=.19+.72*smoothstep(.23,.94,water);
         float alpha=coverage*smoothstep(.004,.3,luma)*(.66+.23*row);
-        gl_FragColor=vec4(rgb*vec3(.88,.89,1.),alpha*.67);
+        gl_FragColor=vec4(rgb*vec3(.94,.93,1.),alpha*.80);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`
   };
-  const mirror=new Reflector(new THREE.PlaneGeometry(13.95,13.95),{
-    textureWidth:768, textureHeight:640, multisample:0, clipBias:.002, shader
+  const mirror=new Reflector(new THREE.PlaneGeometry(18.72,18.72),{
+    textureWidth:896, textureHeight:640, multisample:0, clipBias:.002, shader
   });
   mirror.material.transparent=true; mirror.material.depthWrite=false;
-  mirror.position.y=.009; mirror.rotation.x=-Math.PI/2;
+  mirror.position.set(-1.4,.009,.6); mirror.rotation.x=-Math.PI/2;
   mirror.renderOrder=1;stageFloor.add(mirror);
   const capture=mirror.onBeforeRender;
   let changing=true, lastCapture=-100, elapsed=0;
@@ -52,38 +52,44 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
 
   let seed=4125;
   const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
-  const drops=310, coords=[], offsets=[], velocities=[], extent=[];
+  const drops=950, coords=[], velocities=[], extent=[];
   for(let i=0;i<drops;i++){
-    const x=random()*13.6-6.8,z=random()*13.6-6.8;
-    const y=random()*7.8, speed=4+random()*2.5, length=.09+random()*.16;
-    for(let n=0;n<2;n++){
-      coords.push(x,y,z); offsets.push(n);velocities.push(speed);extent.push(length);
-    }
+    coords.push(random()*18.2-10.65,random()*9.6,random()*18.25-8.58);
+    velocities.push(4.3+random()*2.7);extent.push(.11+random()*.14);
   }
   const rainGeo=new THREE.BufferGeometry();
   rainGeo.setAttribute('position',new THREE.Float32BufferAttribute(coords,3));
-  for(const [name,data] of [['endPt',offsets],['velocity',velocities],['extent',extent]])rainGeo.setAttribute(name,new THREE.Float32BufferAttribute(data,1));
-  const rainUniforms={clock:{value:0},intensity:{value:0}};
-  const rain=new THREE.LineSegments(rainGeo,new THREE.ShaderMaterial({
+  for(const [name,data] of [['velocity',velocities],['extent',extent]])rainGeo.setAttribute(name,new THREE.Float32BufferAttribute(data,1));
+  const rainUniforms={clock:{value:0},intensity:{value:0},pixelFocal:{value:900}};
+  const rain=new THREE.Points(rainGeo,new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,uniforms:rainUniforms,
     vertexShader:`
-      attribute float endPt,velocity,extent;uniform float clock;varying float a;
-      void main(){vec3 p=position;float y=mod(p.y-clock*velocity,7.8);
-        p.x+=(7.8-y)*.067;p.z-=(7.8-y)*.019;p.y=y;
-        float indoors=step(-4.97,p.x)*step(p.x,2.2)*step(-4.75,p.z)*step(p.z,.8);
-        a=smoothstep(0.,.45,y)*(1.-smoothstep(6.9,7.8,y))*(1.-indoors*(1.-step(4.1,y)));
-        p+=vec3(-.067,1.,.019)*endPt*extent;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}
+      attribute float velocity,extent;
+      uniform float clock,pixelFocal;varying float a,lit,screenSize;
+      void main(){vec3 p=position;float y=mod(p.y-clock*velocity,9.6);
+        p.x+=(9.6-y)*.028;p.z-=(9.6-y)*.012;p.y=y;
+        float shop=step(-5.16,p.x)*step(p.x,2.53)*step(-4.93,p.z)*step(p.z,1.06);
+        float tea=step(-10.5,p.x)*step(p.x,-6.27)*step(-4.4,p.z)*step(p.z,1.17);
+        float roofHeight=max(3.82*shop,tea*(3.83-abs(p.x+8.33)*.52));
+        a=smoothstep(roofHeight,roofHeight+.25,y)*(1.-smoothstep(8.,9.6,y));
+        float lamp=length(p-vec3(-8.35,2.65,1.78)), corner=length(p-vec3(3.87,3.85,1.4));
+        lit=max(1.-smoothstep(.45,3.25,lamp),1.-smoothstep(.4,2.6,corner));
+        vec4 mv=modelViewMatrix*vec4(p,1.);
+        screenSize=clamp(extent*pixelFocal/max(1.,-mv.z),2.0,18.);
+        gl_PointSize=screenSize;gl_Position=projectionMatrix*mv;}
     `,
-    fragmentShader:`varying float a;uniform float intensity;void main(){
-      gl_FragColor=vec4(.55,.76,.92,a*intensity*.27);
+    fragmentShader:`varying float a,lit,screenSize;uniform float intensity;void main(){
+      vec2 uv=gl_PointCoord-.5;
+      float width=max(.075,1.0/screenSize);
+      float streak=exp(-pow((uv.x+uv.y*.11)/width,2.))*(1.-smoothstep(.13,.52,abs(uv.y)));
+      gl_FragColor=vec4(mix(vec3(.48,.62,.84),vec3(1.,.75,.43),lit),a*intensity*(.30+.38*lit)*streak);
       #include <colorspace_fragment>
     }`
   }));
   rain.frustumCulled=false;rain.renderOrder=4;scene.add(rain);
   const rippleVerts=[], delays=[], centers=[];
-  for(let i=0;i<62;i++){
-    let x,z;do{x=random()*13.5-6.75;z=random()*13.5-6.75;}while(x<3.43&&z<2.72);
+  for(let i=0;i<102;i++){
+    let x,z;do{x=random()*18.3-10.55;z=random()*18.25-8.55;}while(x<3.43&&z<2.72);
     const delay=random()*3;
     for(let j=0;j<16;j++) for(const a of [j,j+1]) {
       const theta=a*Math.PI/8; rippleVerts.push(Math.cos(theta),0,Math.sin(theta));delays.push(delay);centers.push(x,z);
@@ -109,5 +115,6 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
     elapsed=time;mirror.material.uniforms.clock.value=time;
     if(animating)changing=true;
     rainUniforms.clock.value=time;rainUniforms.intensity.value=active;
+    rainUniforms.pixelFocal.value=renderer.domElement.height*camera.projectionMatrix.elements[5]*.5;
   }};
 }
