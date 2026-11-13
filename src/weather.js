@@ -61,12 +61,12 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
   const rainGeo=new THREE.BufferGeometry();
   rainGeo.setAttribute('position',new THREE.Float32BufferAttribute(coords,3));
   for(const [name,data] of [['velocity',velocities],['extent',extent]])rainGeo.setAttribute(name,new THREE.Float32BufferAttribute(data,1));
-  const rainUniforms={clock:{value:0},intensity:{value:0},pixelFocal:{value:900}};
+  const rainUniforms={clock:{value:0},intensity:{value:0},pixelFocal:{value:900},homeOpen:{value:0}};
   const rain=new THREE.Points(rainGeo,new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,uniforms:rainUniforms,
     vertexShader:`
       attribute float velocity,extent;
-      uniform float clock,pixelFocal;varying float a,lit,screenSize;
+      uniform float clock,pixelFocal,homeOpen;varying float a,lit,screenSize;
       void main(){vec3 p=position;float y=mod(p.y-clock*velocity,9.6);
         p.x+=(9.6-y)*.028;p.z-=(9.6-y)*.012;p.y=y;
         float shop=step(-5.16,p.x)*step(p.x,2.53)*step(-4.93,p.z)*step(p.z,1.06);
@@ -75,11 +75,17 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
         float records=step(7.06,p.x)*step(p.x,11.69)*step(-3.,p.z)*step(p.z,1.40);
         float wash=step(12.40,p.x)*step(p.x,17.2)*step(-3.03,p.z)*step(p.z,1.13);
         float flats=step(7.57,p.x)*step(p.x,15.2)*step(-9.81,p.z)*step(p.z,-4.35);
-        float cityRoof=max(7.44*flats,max(5.34*records,3.25*wash));
-        float roofHeight=max(cityRoof,max(3.63*home,max(3.82*shop,tea*(3.83-abs(p.x+8.33)*.52))));
-        a=smoothstep(roofHeight,roofHeight+.25,y)*(1.-smoothstep(8.,9.6,y));
+        float houseAwning=step(-8.576,p.x)*step(p.x,-5.344)*step(13.08,p.z)*step(p.z,14.755);
+        float recordAwning=step(7.135,p.x)*step(p.x,11.605)*step(1.18,p.z)*step(p.z,2.02);
+        float laundryAwning=step(12.41,p.x)*step(p.x,17.13)*step(1.07,p.z)*step(p.z,1.74);
+        float cycles=step(13.59,p.x)*step(p.x,16.96)*step(8.25,p.z)*step(p.z,15.16);
+        float awningHeight=max(recordAwning*(2.62-.18*clamp((p.z-1.18)/.84,0.,1.)),laundryAwning*(2.60-.26*clamp((p.z-1.07)/.67,0.,1.)));
+        float cityRoof=max(awningHeight,max(7.44*flats,max(5.34*records,3.25*wash)));
+        float roofHeight=max(cycles*(2.63+(p.x-15.27)*.095),max(4.95*houseAwning,max(cityRoof,max(3.63*home,max(3.82*shop,tea*(3.83-abs(p.x+8.33)*.52))))));
+        a=smoothstep(roofHeight,roofHeight+.25,y)*(1.-smoothstep(8.,9.6,y))*(1.-home*homeOpen);
         float lamp=length(p-vec3(-8.35,2.65,1.78)), corner=length(p-vec3(3.87,3.85,1.4));
-        lit=max(1.-smoothstep(.45,3.25,lamp),1.-smoothstep(.4,2.6,corner));
+        float residential=min(length(p-vec3(-10.42,3.58,6.14)),length(p-vec3(4.24,3.75,5.94)));
+        lit=max(1.-smoothstep(.32,2.5,residential),max(1.-smoothstep(.45,3.25,lamp),1.-smoothstep(.4,2.6,corner)));
         vec4 mv=modelViewMatrix*vec4(p,1.);
         screenSize=clamp(extent*pixelFocal/max(1.,-mv.z),2.0,18.);
         gl_PointSize=screenSize;gl_Position=projectionMatrix*mv;}
@@ -122,7 +128,7 @@ export function makeWeather(scene, renderer, camera, stageFloor) {
     }`
   }));
   ripple.frustumCulled=false;ripple.renderOrder=3;scene.add(ripple);
-  return {invalidate(){changing=true;},update(time,active,animating){
+  return {invalidate(){changing=true;},setHomeOpen(open){rainUniforms.homeOpen.value=Number(open);},update(time,active,animating){
     elapsed=time;mirror.material.uniforms.clock.value=time;
     if(animating)changing=true;
     rainUniforms.clock.value=time;rainUniforms.intensity.value=active;

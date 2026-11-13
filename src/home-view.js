@@ -55,7 +55,7 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
       button.dataset.visibleWalls=shell.walls.filter(w=>w.object.userData.homeVisible).length;
       button.dataset.visibleRoofs=shell.roof.filter(r=>r.userData.homeVisible).length;
     }
-    if(changed)onChange();
+    if(changed)onChange(mode);
   }
   function internalPose(){
     const distance=Math.max(21.5,14.7/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect*.93),12.7/(2*Math.tan(camera.fov*Math.PI/360)*.91));

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {buildAllotmentStreet, growKitchenBed} from './residential-garden.js';
 import { NEIGHBORHOOD, SITE } from './layout.js';
 
 // The original corner keeps its own surfaces. These four panels meet it at
@@ -87,6 +88,12 @@ export function buildHomeGrounds(k, register) {
   fill(3.74,7.49,8.98,9.72,'#666c6b');
   for(let x=3.82;x<12.73;x+=1.33)fill(x,7.51,.017,9.62,'#495250');
   for(let z=7.53;z<17.16;z+=1.32)fill(3.75,z,8.93,.016,'#4e5654');
+  // Brushed concrete runs between the beds, with narrow brick edging and a
+  // flush, weathered tile landing inside the communal entrance.
+  cityTiles(4.49,11.82,7.71,1.02,.52,.31,['#96978a','#a1a08f','#93988d','#9d9d90']);
+  cityTiles(7.96,7.80,1.42,.75,.36,.26,['#a49d8c','#9d998a','#aaa08c']);
+  for(const z of [11.82,12.81]){fill(4.49,z,7.71,.032,'#b2a18a');}
+  for(const z of [8.19,16.16])for(let x=4.73;x<12.17;x+=.38)fill(x,z,.357,.122,'#8d8a76');
   // Parallel drainage channels define the gardens and the rear service corridor.
   for(const x of [3.90,12.64]){fill(x,7.62,.105,9.49,'#485557');fill(x+.015,7.62,.022,9.49,'#989f97');}
   for(const z of [8.65,11.97,15.47]){drainStamp(3.98,z,.26,.48);drainStamp(12.74,z,.28,.50);}
@@ -106,6 +113,8 @@ export function buildHomeGrounds(k, register) {
     [16.65,4.22,1.72,1.54,'251,199,133',.38],[15.03,8.41,2.18,2.25,'150,226,203',.37],
     [15.74,13.10,1.79,2.63,'147,218,198',.36],[13.59,7.02,1.05,1.04,'249,151,127',.33],
     [3.92,8.14,1.38,2.26,'249,191,130',.35],[10.90,17.07,2.17,1.05,'238,168,127',.29],
+    [4.22,6.26,2.18,2.48,'255,193,119',.54],[-10.41,6.0,1.60,1.72,'252,194,132',.47],
+    [8.68,8.09,1.59,1.58,'248,187,126',.43],[5.22,17.25,1.34,.83,'239,197,144',.33],
     [.89,7.81,1.43,.84,'255,207,148',.38],[-8.0,7.48,1.8,.89,'184,198,184',.18]
   ])diffuseLight(x,z,rx,rz,rgb,a);
   for(const [a,b] of [[west,old.left],[old.right,east]]){
@@ -216,21 +225,7 @@ export function buildHomeGrounds(k, register) {
     const lamp=new THREE.PointLight(tint,power,reach,2);lamp.position.set(x,y+.035,z-.09);parent.add(lamp);
   }
   fixture(details,2.62,.77,7.414,'#ffbf80',1.85,3.4);
-  // Water inlet, electric meter and hose adjacent to the shared raised beds.
-  box(details,4.10,.50,16.97,.39,.64,.32,'#87968c');box(details,4.10,.83,16.97,.43,.036,.36,'#adb6a7');
-  box(details,4.10,.64,16.803,.277,.122,.020,'#4d615c');
-  cyl(details,4.107,.62,16.788,.045,.045,.02,'#b4c5ab',{segments:12}).rotation.x=Math.PI/2;
-  rod(details,[4.30,.20,16.91],[4.30,.63,16.91],.024,.024,'#9c9983');
-  rod(details,[4.30,.61,16.91],[4.30,.61,16.76],.031,.025,'#afa387');
-  rod(details,[4.23,.69,16.84],[4.37,.69,16.84],.020,.020,'#ab7466');
-  for(let i=0;i<3;i++){
-    const coil=new THREE.Mesh(new THREE.TorusGeometry(.167-i*.018,.018,5,18),k.mat('#617f75'));
-    coil.position.set(4.54,.40+i*.011,16.96-i*.02);details.add(coil);
-  }
-  box(details,12.02,.53,16.98,.60,.70,.31,'#71827c');box(details,12.02,.90,16.98,.65,.058,.35,'#a9b4a6');
-  box(details,12.02,.69,16.807,.44,.14,.015,'#d1cdc2');
-  k.label(details,'共同菜園',12.02,.69,16.792,.38,.083,{color:'#566763',rotateY:Math.PI});
-  for(const [x,z] of [[12.01,17.42],[4.25,17.50]]){cyl(details,x,.18,z,.20,.20,.021,'#85928b',{segments:16});box(details,x,.194,z,.14,.009,.025,'#4f605c')}
+  buildAllotmentStreet(k);
   // A pair of small, pruned street trees belong to the residential side.
   const urbanCrowns=[];
   function streetTree(x,z,s){
@@ -258,7 +253,6 @@ export function buildHomeGrounds(k, register) {
     });
     im.castShadow=im.receiveShadow=true;im.computeBoundingSphere();parent.add(im);return im;
   }
-  const leafGeo=new THREE.IcosahedronGeometry(1,1);
   const beds=[
     ['tomato','番茄','トマト'],['eggplant','茄子','ナス'],['cucumber','黄瓜','キュウリ'],['pepper','甜椒','ピーマン'],
     ['cabbage','卷心菜','キャベツ'],['daikon','白萝卜','ダイコン'],['carrot','胡萝卜','ニンジン'],['spring-onion','小葱','ネギ']
@@ -270,71 +264,20 @@ export function buildHomeGrounds(k, register) {
     Object.assign(bed.userData,{preserveBatch:true,plotId:index,cropId:id});
     bed.position.set(x,.16,z);
     const bx=1.45,bz=3.13;
-    box(bed,0,.102,0,bx,.20,bz,'#61513d');box(bed,0,.214,0,bx-.12,.030,bz-.12,'#66523d');
+    box(bed,0,.102,0,bx,.20,bz,'#61513d');box(bed,0,.214,0,bx-.12,.030,bz-.12,'#665848');
     for(const sign of [-1,1]){
       box(bed,sign*bx*.5,.125,0,.078,.25,bz+.09,'#818c89');box(bed,0,.125,sign*bz*.5,bx,.25,.081,'#87938d');
       for(const end of [-1,1])box(bed,sign*bx*.5,.148,end*bz*.5,.105,.296,.107,'#657776');
     }
-    for(let j=0;j<7;j++)box(bed,0,.235,-1.31+j*.44,bx-.21,.035,.085,'#594938');
-    const leaves=[],fruit=[],stalks=[];
-    const leafy=['#3d704c','#4f8357','#5a8c60','#668e59'],mint=['#4d8061','#649278','#799e81','#538b6a'];
-    function foliage(cx,cy,cz,n,s,colors=leafy){
-      for(let j=0;j<n;j++){
-        const a=j*2.39996+rand()*.33,len=s*(.78+rand()*.4);
-        leaves.push([cx+Math.sin(a)*len*.42,cy+.04+rand()*s*.19,cz+Math.cos(a)*len*.42,
-          len*.42,len*.16,len*.74,pick(colors),-.25-rand()*.35,a,(rand()-.5)*.15]);
-      }
-    }
-    const tall=index<4;
-    if(tall){
-      for(const side of [-1,1]){
-        rod(bed,[side*.58,.23,-1.38],[side*.46,1.55,-1.38],.036,.026,'#ac9666');
-        rod(bed,[side*.58,.23,1.38],[side*.46,1.55,1.38],.036,.026,'#ac9666');
-        rod(bed,[side*.46,1.51,-1.4],[side*.46,1.51,1.4],.026,.026,'#9c8a62');
-      }
-      if(index===2){
-        for(let j=0;j<7;j++)rod(bed,[-.42,.30,-1.25+j*.405],[.44,1.46,-1.25+j*.405],.012,.012,'#9aab81',5);
-        for(const h of [.57,.89,1.22])rod(bed,[-.29+(h-.57)*.64,h,-1.35],[-.29+(h-.57)*.64,h,1.35],.011,.011,'#8b9a72',5);
-      }
-      for(let j=0;j<6;j++){
-        const cx=(j%2-.5)*.60,cz=-.98+Math.floor(j/2)*.93,h=.78+rand()*.28;
-        stalks.push([cx,.26+h*.42,cz,.028,h*.84,.029,'#547348']);
-        for(let b=0;b<4;b++){
-          const cy=.38+h*b*.20,ox=cx+(b%2?-.10:.08),oz=cz+(rand()-.5)*.12;
-          foliage(ox,cy,oz,4,.19+rand()*.065);
-          if(b===0||b===2){
-            if(index===0) for(let f=0;f<3;f++)fruit.push([ox+.09+f*.047,cy-.034-f*.036,oz+.054,.080,.072,.080,pick(['#c75a45','#b94f3e','#d9734c','#96a05b'])]);
-            if(index===1)fruit.push([ox+.11,cy-.08,oz+.05,.062,.134,.065,'#5d466c',-.15,0,.15]);
-            if(index===2)fruit.push([ox+.11,cy-.10,oz+.05,.041,.153,.046,'#477952',-.13,0,.24]);
-            if(index===3)fruit.push([ox+.11,cy-.06,oz+.05,.078,.107,.066,pick(['#668951','#648349','#b9774b','#b95c43'])]);
-          }
-        }
-      }
-    }else{
-      for(let j=0;j<10;j++){
-        const cx=(j%2-.5)*.64,cz=-1.22+Math.floor(j/2)*.60;
-        if(index===4){
-          foliage(cx,.31,cz,9,.285,mint);fruit.push([cx,.39,cz,.185,.147,.18,pick(['#8fa883','#a0b28e','#8fa984'])]);
-        }else if(index===5){
-          fruit.push([cx,.268,cz,.062,.091,.060,'#d2cead']);foliage(cx,.323,cz,7,.255,leafy);
-        }else if(index===6){
-          fruit.push([cx,.254,cz,.052,.052,.057,'#c68a53']);
-          for(let f=0;f<6;f++){const a=f*2.39,tx=cx+Math.cos(a)*.108,tz=cz+Math.sin(a)*.108;
-            leaves.push([tx,.46,tz,.030,.195,.041,pick(leafy),Math.sin(a)*.43,a,Math.cos(a)*.32]);}
-        }else{
-          for(let f=0;f<6;f++){const a=f*2.4+rand()*.26,d=.062*rand();
-            stalks.push([cx+Math.cos(a)*d,.49,cz+Math.sin(a)*d,.023,.50+rand()*.16,.024,pick(['#688e6a','#759a6e','#94ac83']),Math.sin(a)*.20,a,Math.cos(a)*.15]);}
-        }
-      }
-    }
-    scatter(bed,leafGeo,leaves);scatter(bed,leafGeo,fruit);scatter(bed,new THREE.CylinderGeometry(1,1,1,5),stalks);
+    for(let j=0;j<2;j++)box(bed,(j-.5)*.64,.237,0,.37,.032,bz-.20,'#72624b');
+    growKitchenBed(k,bed,id,index);
     box(bed,.52,.39,-1.415,.038,.35,.036,'#9b8669');
     box(bed,.52,.545,-1.415,.31,.16,.033,'#d6c59d');
     k.label(bed,jp,.52,.545,-1.438,.27,.104,{rotateY:Math.PI,color:'#514e44',font:'bold 92px "Yu Gothic", sans-serif'});
     register({id:'plot-'+(index+1),room:'garden',label:name+'种植床',actions:['查看','浇水','采收'],anchor:[x,.98,z],object:bed,approach:[x,.16,z-1.87]});
   });
   // A cantilevered polycarbonate cycle shelter has a clear loading aisle along its western edge.
-  const steel='#667a7b', edgeSteel='#8c9998', roofShade='#749093';
+  const steel='#687d7c', edgeSteel='#869a96', roofShade='#b0c9c7';
   const postX=16.91;
   for(const z of [9.04,12.14,15.22]){
     box(cycles,postX,.222,z,.23,.12,.23,'#a6a69b');
@@ -345,15 +288,15 @@ export function buildHomeGrounds(k, register) {
   const panelAngle=.095;
   for(let i=0;i<7;i++){
     const z=8.74+i*.99;
-    const panel=box(cycles,15.27,2.605,z,3.38,.054,.968,roofShade,{opacity:.81,metalness:.15,roughness:.28});
+    const panel=box(cycles,15.27,2.605,z,3.38,.044,.968,roofShade,{opacity:.26,metalness:.05,roughness:.35});
     panel.rotation.z=panelAngle;
     const rib=box(cycles,15.27,2.634,z-.488,3.40,.035,.037,edgeSteel);rib.rotation.z=panelAngle;
   }
   for(const x of [13.58,16.96]){
     box(cycles,x,2.613+(x-15.27)*panelAngle,11.72,.076,.083,7.06,edgeSteel);
   }
-  for(let i=0;i<18;i++){
-    const x=13.64+i*.191;box(cycles,x,2.641+(x-15.27)*panelAngle,11.72,.012,.015,6.94,'#a0b4b1',{opacity:.59,roughness:.28});
+  for(let i=0;i<13;i++){
+    const x=13.71+i*.262;box(cycles,x,2.635+(x-15.27)*panelAngle,11.72,.009,.012,6.93,'#829a9c');
   }
   box(cycles,13.55,2.43,11.72,.059,.105,7.07,'#536f72');
   box(cycles,13.529,2.46,11.72,.024,.020,6.98,'#b3d2bc',{emissive:'#83cdba',intensity:.29});
@@ -396,6 +339,14 @@ export function buildHomeGrounds(k, register) {
   bicycle(14.87,9.79,'#8f655e',true);
   bicycle(14.88,11.65,'#627f81',false);
   bicycle(14.88,13.54,'#9c9d8c',true);
+  // A small porcelain station plate at the end nearest the viewer identifies
+  // the airy bike shelter while keeping the bikes visible through the roof.
+  const endZ=15.30;
+  for(const x of [14.78,15.84])box(cycles,x,2.48+(x-15.27)*panelAngle,endZ,.028,.31,.031,'#778483');
+  box(cycles,15.31,2.296,endZ,1.44,.306,.058,'#4c6b68');
+  box(cycles,15.31,2.459,endZ+.006,1.50,.035,.104,'#9aa59c');
+  box(cycles,15.31,2.425,endZ+.042,1.28,.022,.024,'#d3bf96',{emissive:'#ddbc81',intensity:.35});
+  k.label(cycles,'駐輪場   01–07',15.31,2.291,endZ+.033,1.21,.185,{color:'#ede3c6',font:'bold 82px "Yu Gothic",sans-serif'});
   // The small shared service yard is tucked against the rear, away from the plot approaches.
   wall(13.08,17.99,17.74,17.99,.62,true);wall(17.74,17.95,17.74,14.38,.52,true);
   for(const [x,tint] of [[15.34,'#718889'],[16.08,'#6e8176']]){

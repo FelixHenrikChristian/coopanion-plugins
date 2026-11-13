@@ -158,50 +158,114 @@ export function buildHomeFurniture(k, register) {
   function led(g,x,y,z,w,c){
     box(g,x,y,z,w,.012,.009,c,{emissive:c,intensity:1.14});
   }
-  function domeLight(g,x,y,z,s=.75){
-    cyl(g,x,y+.018*s,z,.13*s,.138*s,.036*s,steel,{segments:24});
-    rod(g,[x,y+.033*s,z],[x,y+.238*s,z],.017*s,brass);
-    cyl(g,x,y+.277*s,z,.089*s,.151*s,.078*s,coral,{segments:24});
-    cyl(g,x,y+.231*s,z,.14*s,.141*s,.014*s,cream,{segments:24,emissive:'#ffcc92',intensity:1.05});
-    orb(g,x,y+.304*s,z,.094*s,.036*s,.094*s,coral);
-  }
   const greenCheck=cloth('mustard pinstripe','#d8a651','#e8bf6c','#b99255');
   const redCheck=cloth('coral pinstripe','#e67d70','#f19e83','#d16b66');
   const blueCheck=cloth('midnight windowpane','#465d71','#91a4ad','#738c9c');
+  // A sewn border and large spaced sashiko fans remain legible at dollhouse scale.
+  function quiltPrint(name,base,stitch,edge){
+    return tex(name,512,512,(c,w,h)=>{
+      c.fillStyle=base;c.fillRect(0,0,w,h);
+      c.strokeStyle=stitch;c.lineWidth=2.7;c.setLineDash([6,3]);
+      for(let j=-1;j<9;j++)for(let i=-1;i<9;i++){
+        const x=i*72+(j%2)*36,y=j*54;
+        for(const r of [10,20,30]){c.beginPath();c.arc(x,y,r,Math.PI,2*Math.PI);c.stroke();}
+      }
+      c.setLineDash([]);c.fillStyle=edge;c.fillRect(0,h-76,w,76);
+      for(const y of [h-69,h-57,h-16]){
+        c.strokeStyle=stitch;c.lineWidth=2;c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke();
+      }
+      for(let n=0;n<w;n+=28){
+        c.strokeStyle=stitch;c.setLineDash([4,3]);c.beginPath();c.moveTo(n,h-39);c.lineTo(n+8,h-46);c.lineTo(n+16,h-39);c.lineTo(n+8,h-32);c.closePath();c.stroke();
+      }
+      c.fillStyle='rgba(245,225,196,.07)';for(let n=0;n<w;n+=4)c.fillRect(n,0,1,h);
+    });
+  }
+  function stripedOak(g,x,y,z,w,d,lamp=false){
+    const map=tex(lamp?'chestnut under desk lamp':'chestnut grain',512,288,(c,wi,he)=>{
+      c.fillStyle='#bb916c';c.fillRect(0,0,wi,he);
+      for(let i=0;i<87;i++){
+        c.strokeStyle=i%4?'rgba(93,58,40,.09)':'rgba(250,222,175,.25)';
+        c.lineWidth=i%5===0?2:1;c.beginPath();const yy=i*3.52;
+        c.moveTo(0,yy);c.bezierCurveTo(118,yy+Math.sin(i*.23)*10,324,yy+Math.cos(i*.47)*13,wi,yy+2);c.stroke();
+      }
+      if(lamp){
+        // The small enamel lamp warms the wood just around the print.
+        c.save();c.translate(103,151);c.scale(1.40,1);
+        const wash=c.createRadialGradient(0,0,0,0,0,125);
+        wash.addColorStop(0,'rgba(255,215,139,.63)');wash.addColorStop(.46,'rgba(255,203,135,.38)');wash.addColorStop(1,'rgba(255,186,128,0)');
+        c.fillStyle=wash;c.fillRect(-126,-126,252,252);c.restore();
+      }
+    });
+    return surface(g,map,x,y,z,w,d,0,true);
+  }
+  function kotatsuSkirt(g){
+    const positions=[],uv=[],ix=[],segments=96;
+    const profile=[[.312,.552,.285],[.301,.602,.324],[.244,.635,.37],[.149,.692,.438],[.084,.739,.478],[.049,.765,.50]];
+    for(let j=0;j<profile.length;j++){
+      const [height,hx,hz]=profile[j],drop=j/(profile.length-1);
+      for(let i=0;i<=segments;i++){
+        const a=i/segments*Math.PI*2,cs=Math.cos(a),sn=Math.sin(a);
+        // A superellipse with a gentle radial pleat drapes over all four corners.
+        const fold=(.5+.5*Math.sin(a*18+.35*Math.sin(a*5)))*drop;
+        positions.push(Math.sign(cs)*Math.pow(Math.abs(cs),.42)*(hx+.019*fold),
+          height+.026*fold+drop*.006*Math.sin(a*7),
+          Math.sign(sn)*Math.pow(Math.abs(sn),.42)*(hz+.022*fold));
+        uv.push(i/segments*4,1-drop);
+        if(i<segments&&j<profile.length-1){
+          const p=j*(segments+1)+i,n=p+segments+1;
+          ix.push(p,p+1,n,p+1,n+1,n);
+        }
+      }
+    }
+    const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geom.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geom.setIndex(ix);geom.computeVertexNormals();
+    const print=quiltPrint('kotatsu indigo wave','#40576a','#c5cab9','#a35d43');
+    print.wrapS=THREE.RepeatWrapping;
+    const skirt=add(g,geom,new THREE.MeshStandardMaterial({map:print,roughness:1,side:THREE.DoubleSide}),0,0,0);
+    skirt.name='kotatsu-quilt';
+  }
   const sofa=furniture('living','sofa','布艺沙发',-7.50,10.78,[-6.30,10.30],['sit','nap','tv','phone'],'living/sofa',[.18,.435,-.07]);
   legs(sofa,0,0,1.88,.62,.20,steel,.029);
-  soft(sofa,0,.244,0,2.14,.28,.83,.06,'#4c6970');
-  soft(sofa,0,.585,.315,2.05,.56,.245,.095,'#5d8385');
+  soft(sofa,0,.244,0,2.14,.28,.83,.06,'#627d76');
+  soft(sofa,0,.585,.315,2.05,.56,.245,.095,'#82998a');
   for(const i of [-1,1]){
-    soft(sofa,i*.474,.398,-.068,.927,.162,.61,.07,'#83a6a3');
-    soft(sofa,i*1.02,.493,-.007,.169,.43,.781,.076,'#5d8385');
+    soft(sofa,i*.474,.398,-.068,.927,.162,.61,.07,'#a7b7a1');
+    soft(sofa,i*1.02,.493,-.007,.169,.43,.781,.076,'#809789');
     const p=soft(sofa,i*.641,.632,.105,.38,.36,.16,.072,i>0?redCheck:greenCheck);p.rotation.set(-.21,0,i*.15);
   }
-  soft(sofa,.203,.492,-.146,.42,.023,.48,.009,blueCheck);
-  soft(sofa,.203,.381,-.408,.42,.222,.019,.007,blueCheck);
-  const rug=furniture('living','rug','几何织纹地毯',-7.43,9.80,[-6.30,9.90],['sit','rest'],'living/rug',[.93,.022,.33]);
+  // A loose knitted throw wraps the far arm and falls behind the seat, visible from the garden.
+  soft(sofa,.596,.875,.315,.391,.033,.255,.015,'#c98968');
+  soft(sofa,.596,.696,.449,.391,.339,.032,.014,'#c98968');
+  for(let n=0;n<7;n++)box(sofa,.433+n*.053,.511,.450,.014,.062,.018,'#d9b08a');
+  const rug=furniture('living','rug','棉织暖桌敷垫',-7.43,9.80,[-6.30,9.90],['sit','rest'],'living/rug',[.93,.022,.33]);
   soft(rug,0,.011,0,2.64,.022,1.73,.01,'#596973');
-  const rugArt=tex('woven circles',512,320,(c,w,h)=>{
-    c.fillStyle='#dcd3c1';c.fillRect(0,0,w,h);
-    c.fillStyle='#788b8b';c.fillRect(w*.52,0,w*.48,h*.59);
-    c.fillStyle='#435e70';c.beginPath();c.arc(0,h*.25,150,-Math.PI/2,Math.PI/2);c.fill();
-    c.fillStyle='#cc8c72';c.beginPath();c.arc(w,h*.92,127,Math.PI,2*Math.PI);c.fill();
-    c.strokeStyle='#ac9b85';c.lineWidth=3;
-    for(let n=0;n<9;n++){c.beginPath();c.arc(308,285,48+n*10,Math.PI,1.95*Math.PI);c.stroke();}
-    c.fillStyle='rgba(255,255,255,.13)';for(let y=0;y<h;y+=3)c.fillRect(0,y,w,1);
+  const rugArt=tex('woven cotton runner',512,320,(c,w,h)=>{
+    c.fillStyle='#c8ab8c';c.fillRect(0,0,w,h);
+    for(const edge of [0,w-70]){
+      c.fillStyle='#a38f78';c.fillRect(edge,0,70,h);
+      for(const x of [edge+9,edge+17,edge+55]){c.fillStyle='#e4cfad';c.fillRect(x,0,3,h);}
+    }
+    for(let y=0;y<h;y+=3){c.fillStyle=y%2?'rgba(255,244,216,.25)':'rgba(82,68,59,.15)';c.fillRect(0,y,w,1);}
   });
   surface(rug,rugArt,0,.023,0,2.606,1.70,0,true);
-  const coffee=furniture('living','coffeeTable','钢架边几',-7.51,9.78,[-6.55,9.83],['drink','read'],null,[0,.384,.06]);
-  for(const s of [-1,1]){
-    box(coffee,s*.51,.180,0,.028,.307,.523,steel);
-    box(coffee,s*.48,.029,0,.087,.030,.531,steel);
+  const coffee=furniture('living','coffeeTable','被炉与煎茶',-7.51,9.78,[-6.55,9.83],['drink','read'],null,[0,.384,.06]);
+  legs(coffee,0,0,.89,.445,.320,oak,.029);
+  kotatsuSkirt(coffee);
+  soft(coffee,0,.313,0,1.23,.048,.666,.023,'#b07154');
+  soft(coffee,0,.354,0,1.21,.064,.63,.031,'#ab7853');
+  stripedOak(coffee,0,.387,0,1.167,.587);
+  soft(coffee,-.151,.401,.001,.510,.025,.292,.012,'#785045');
+  const tea='#62887b';
+  orb(coffee,-.223,.474,.002,.086,.066,.076,tea);
+  cyl(coffee,-.223,.533,.002,.055,.072,.017,tea,{segments:18});
+  orb(coffee,-.223,.550,.002,.019,.011,.018,'#526f65');
+  rod(coffee,[-.277,.476,-.003],[-.346,.520,-.014],.021,tea);
+  rod(coffee,[-.218,.498,-.048],[-.179,.531,-.120],.016,'#8f7358');
+  cup(coffee,.011,.418,.045,'#e7d9b8',.69,'#85905c');
+  bowl(coffee,.251,.390,.019,.116,'#92a1a2');
+  for(const [x,y,z] of [[.217,.466,.030],[.282,.468,-.004],[.259,.492,.050]]){
+    orb(coffee,x,y,z,.044,.039,.043,'#dd9850');orb(coffee,x,y+.037,z,.008,.004,.008,'#7e8561');
   }
-  box(coffee,0,.17,-.171,.995,.024,.105,steel);
-  soft(coffee,0,.354,0,1.21,.064,.63,.032,'#b5b2a6');
-  book(coffee,-.263,.389,-.018,.27,.03,.222,'#d27060');
-  surface(coffee,recordCover(),-.263,.420,-.018,.25,.199,0,true);
-  cup(coffee,.22,.389,.032,'#d7dbbf',.83);
-  soft(coffee,.031,.403,-.152,.145,.025,.043,.01,charcoal);
   const media=furniture('living','console','影音矮柜',-7.49,8.63,[-6.39,9.17],['inspect'],null,[0,.48,0]);
   for(const x of [-.991,-.195,.991])for(const z of [-.171,.171])box(media,x,.232,z,.035,.414,.035,steel);
   box(media,0,.111,0,2.08,.035,.409,steel);box(media,0,.441,0,2.18,.038,.436,maple);
@@ -242,34 +306,97 @@ export function buildHomeFurniture(k, register) {
   globe.scale.set(1,1.16,1);
   k.glow(sofa,lightX,1.286,lightZ,'#ffc586',.46,.16);
 
-  const bed=furniture('bedroom','bed','软包平台床',-7.93,14.54,[-6.76,14.27],['sleep','nap'],'her_room/bed',[0,.488,.17]);
-  legs(bed,0,0,1.43,1.97,.223,walnut,.063);
-  soft(bed,0,.223,0,1.71,.181,2.16,.037,oak);soft(bed,0,.387,0,1.62,.224,2.067,.075,cream);
-  soft(bed,0,.532,.269,1.66,.15,1.56,.064,'#c8bac0');
-  soft(bed,0,.625,-.391,1.64,.043,.21,.018,'#e5d9d4');
-  soft(bed,0,.622,.743,1.665,.051,.37,.021,blueCheck);
-  for(const s of [-1,1])soft(bed,s*.397,.536,-.743,.682,.17,.389,.064,'#eee6cc').rotation.y=s*.04;
-  soft(bed,0,.602,-1.055,1.72,.64,.092,.040,'#68737e');
-  for(let i=0;i<4;i++)soft(bed,-.628+i*.418,.637,-.998,.400,.461,.074,.034,'#8b949c');
-  const bedside=furniture('bedroom','bedside','床头柜与圆帽灯',-6.76,13.45,[-6.62,13.93],['read','toggle'],'her_room/bedside',[0,.54,0]);
+  const bed=furniture('bedroom','bed','桦木床与棉绗被',-7.93,14.54,[-6.76,14.27],['sleep','nap'],'her_room/bed',[0,.488,.17]);
+  legs(bed,0,0,1.43,1.97,.223,'#816b57',.053);
+  soft(bed,0,.215,0,1.72,.165,2.18,.037,'#b39170');
+  soft(bed,0,.375,0,1.61,.238,2.049,.083,'#eee4d2');
+  // Eight softly pinched tufts interrupt the high loft of the kakebuton.
+  // The continuously curved surface carries its printed border over the foot.
+  const duvetGeo=new THREE.PlaneGeometry(1,1,36,40);
+  const vertices=duvetGeo.attributes.position;
+  for(let i=0;i<vertices.count;i++){
+    const x=vertices.getX(i)*1.69,z=.246-vertices.getY(i)*1.55;
+    const side=Math.pow(Math.abs(x)/.845,4),foot=Math.max(0,(z-.744)/.277);
+    let y=.645-.099*side-.085*foot*foot+.012*Math.cos(x*11+z*1.7);
+    for(const col of [-.56,-.19,.19,.56])for(const row of [.012,.546])
+      y-=.050*Math.exp(-((x-col)**2/.0042+(z-row)**2/.012));
+    vertices.setXYZ(i,x,y,z);
+  }
+  vertices.needsUpdate=true;duvetGeo.computeVertexNormals();
+  const duvetMap=tex('apricot hinoki quilt',512,640,(c,w,h)=>{
+    c.fillStyle='#c99c86';c.fillRect(0,0,w,h);
+    c.strokeStyle='#d8b4a0';c.lineWidth=3;c.setLineDash([7,4]);
+    for(let n=-5;n<11;n++){
+      c.beginPath();c.moveTo(n*76,0);c.lineTo(n*76+h*.65,h);c.stroke();
+      c.beginPath();c.moveTo(n*76,0);c.lineTo(n*76-h*.65,h);c.stroke();
+    }
+    c.setLineDash([]);c.fillStyle='#915e51';c.fillRect(0,h*.78,w,h*.22);
+    c.fillStyle='#f0d8b9';c.fillRect(0,h*.801,w,7);c.fillRect(0,h*.952,w,5);
+    for(let i=-1;i<12;i++){
+      c.fillStyle='#d6ac8c';c.beginPath();c.moveTo(i*49,h*.88);c.lineTo(i*49+16,h*.836);c.lineTo(i*49+32,h*.88);c.lineTo(i*49+16,h*.924);c.closePath();c.fill();
+    }
+  });
+  const duvet=add(bed,duvetGeo,new THREE.MeshStandardMaterial({map:duvetMap,roughness:1,side:THREE.DoubleSide}),0,0,0);
+  duvet.name='kakebuton';
+  for(const side of [-1,1])soft(bed,side*.814,.499,.253,.078,.135,1.41,.038,'#c49a85');
+  soft(bed,0,.643,-.415,1.645,.046,.203,.022,'#f0e6d2').rotation.z=.006;
+  for(const s of [-1,1]){
+    const pillow=soft(bed,s*.397,.542,-.747,.687,.175,.392,.081,'#f0e8d5');
+    pillow.rotation.y=s*.041;
+    soft(bed,s*.397+s*.235,.599,-.752,.057,.045,.314,.018,'#bdc5b1').rotation.y=s*.041;
+  }
+  soft(bed,0,.581,-1.055,1.73,.548,.090,.040,'#ad8d70');
+  for(let i=0;i<10;i++)box(bed,-.715+i*.159,.60,-1.002,.040,.410,.014,'#bfa180');
+  const bedside=furniture('bedroom','bedside','床头文库与纸灯',-6.76,13.45,[-6.62,13.93],['read','toggle'],'her_room/bedside',[0,.54,0]);
   legs(bedside,0,0,.345,.315,.13,walnut,.029);box(bedside,0,.286,0,.454,.329,.374,oak);
   box(bedside,0,.314,.194,.394,.189,.015,maple);box(bedside,0,.33,.212,.098,.015,.027,brass);
-  domeLight(bedside,-.07,.455,-.017,.88);book(bedside,.127,.454,.080,.11,.027,.16,'#9ca78d');
-  const ward=furniture('bedroom','wardrobe','组合衣柜',-5.31,14.80,[-5.98,14.66],['dress','open'],'her_room/wardrobe',[0,1.04,.287],-Math.PI/2);
-  soft(ward,0,.93,0,1.23,1.85,.447,.029,'#8b9b9d');box(ward,0,1.868,0,1.269,.043,.486,'#c6d1cc');
+  const lampX=-.082,lampZ=-.044;
+  cyl(bedside,lampX,.472,lampZ,.087,.109,.034,'#594d44',{segments:15});
+  rod(bedside,[lampX,.483,lampZ],[lampX,.558,lampZ],.016,'#736b56');
+  const shadeProfile=[[.047,.536],[.094,.548],[.125,.585],[.144,.65],[.143,.729],[.118,.80],[.078,.832],[.049,.838]];
+  const shadeShape=new THREE.LatheGeometry(shadeProfile.map(([r,y])=>new THREE.Vector2(r,y)),24);
+  add(bedside,shadeShape,k.mat('#ffe8bf',{emissive:'#ffd296',intensity:.70}),lampX,0,lampZ);
+  for(const [r,y] of shadeProfile.slice(1,-1))cyl(bedside,lampX,y,lampZ,r+.001,r+.001,.0032,'#b09a7b',{segments:24});
+  cyl(bedside,lampX,.839,lampZ,.048,.05,.009,'#7e6856',{segments:16});
+  k.glow(bedside,lampX,.69,lampZ,'#ffd4a2',.47,.13);
+  book(bedside,.127,.454,.080,.108,.026,.16,'#758c91');book(bedside,.124,.482,.072,.105,.022,.15,'#c59776');
+  box(bedside,.135,.503,.15,.021,.002,.037,'#aa725c');
+  const ward=furniture('bedroom','wardrobe','杉木推拉衣柜',-5.31,14.80,[-5.98,14.66],['dress','open'],'her_room/wardrobe',[0,1.04,.287],-Math.PI/2);
+  const cabinetCedar=tex('quarter sawn cedar',288,576,(c,w,h)=>{
+    c.fillStyle='#c29b72';c.fillRect(0,0,w,h);
+    for(let i=0;i<77;i++){
+      const x=i*3.92-5, bow=8*Math.sin(i*.21);
+      c.strokeStyle=i%3?'rgba(112,74,49,.15)':'rgba(244,214,166,.40)';
+      c.lineWidth=i%5===0?2.7:1.2;c.beginPath();c.moveTo(x,-1);
+      c.bezierCurveTo(x+bow,h*.42,x-bow*.5,h*.73,x+2*Math.sin(i*.41),h+1);c.stroke();
+    }
+  });
+  const walnutEdge='#90694d',cedarFrame='#b38b64';
+  soft(ward,0,.943,0,1.226,1.806,.442,.012,'#aa805e');
+  box(ward,0,.052,0,1.166,.104,.392,'#725441');
+  box(ward,0,1.867,0,1.269,.044,.486,'#c7a47b');
+  stripedOak(ward,0,1.890,0,1.239,.455);
   for(const s of [-1,1]){
-    box(ward,s*.298,.976,.231,.58,1.67,.030,'#d3d8cd');
-    box(ward,s*.298,1.63,.251,.433,.092,.013,'#b9c4bd');
-    for(let j=0;j<4;j++)box(ward,s*.298,1.601+j*.022,.260,.380,.005,.007,'#879a96');
-    rod(ward,[s*.065,.927,.277],[s*.065,1.054,.277],.013,brass);
+    const x=s*.299;
+    // Lower bypass doors and paper-faced overhead storage share a slim stile.
+    box(ward,x,.723,.226,.585,1.229,.037,cedarFrame);
+    surface(ward,cabinetCedar,x,.723,.246,.541,1.183);
+    soft(ward,s*.077,.753,.248,.040,.143,.010,.005,'#a68260');
+    soft(ward,s*.077,.753,.254,.023,.116,.002,.001,'#6c5142');
+    box(ward,x,1.57,.223,.585,.442,.038,cedarFrame);
+    box(ward,x,1.57,.246,.530,.386,.008,'#e2d2ae');
+    box(ward,x,1.564,.254,.534,.012,.009,'#c4a783');
+    // The exposed narrow end is a single veneered panel framed in hardwood.
+    box(ward,s*.612,.962,0,.018,1.729,.416,walnutEdge);
+    surface(ward,cabinetCedar,s*.624,.962,0,.379,1.680,s*Math.PI/2);
   }
-  // Exposed ends have shallow folded-metal panel seams.
-  for(const s of [-1,1]){
-    box(ward,s*.30,.944,-.228,.552,1.65,.012,'#adb8b5');
-    box(ward,s*.618,.94,0,.013,1.65,.346,'#b2bdb7');
-    box(ward,s*.618,.455,0,.018,.022,.362,'#8a9c98');
+  // Eleven full-height oak battens articulate the reverse seen in cutaway.
+  box(ward,0,.962,-.222,1.196,1.746,.018,'#88674f');
+  const battenTones=['#b8926a','#c5a179','#b68c65','#bb9770'];
+  for(let i=0;i<11;i++){
+    box(ward,(i-5)*.105,.964,-.234,.082,1.665,.016,battenTones[i%battenTones.length]);
   }
-  for(const h of [.107,1.768])box(ward,0,h,-.235,1.207,.050,.018,ash);
+  for(const y of [.105,1.823])box(ward,0,y,-.233,1.211,.050,.020,'#ac845f');
   const window=furniture('bedroom','window','窗边一枝花',-8.51,15.76,[-8.14,15.80],['look','rest'],'her_room/window',[0,.657,0]);
   legs(window,0,0,.327,.275,.421,ash,.025);box(window,0,.43,0,.439,.035,.351,maple);plant(window,0,.45,0,.56,true);
 
@@ -283,27 +410,49 @@ export function buildHomeFurniture(k, register) {
   const dining=furniture('dining','dining','四人橡木餐桌',-3.24,9.77,[-2.28,10.65],['sit','eat','drink'],'kitchen/dining',[.387,.512,.69]);
   legs(dining,0,0,1.18,.65,.699,oak,.050);
   soft(dining,0,.733,0,1.61,.084,.905,.041,maple);
-  soft(dining,0,.784,0,.246,.014,.903,.006,'#516e74');
+  stripedOak(dining,0,.777,0,1.542,.836);
+  soft(dining,0,.784,0,.258,.014,.903,.006,'#576e75');
+  for(const s of [-1,1])box(dining,s*.106,.793,0,.008,.003,.861,'#d6c2a4');
   for(const x of [-.402,.402])for(const s of [-1,1]){
     stool(dining,x,s*.678,s===1?0:Math.PI);
-    cyl(dining,x,.785,s*.201,.134,.122,.018,ceramic,{segments:22});
-    bowl(dining,x+.075,.796,s*.213,.077,s===1?'#77949a':'#a5ad8a');
-    for(const d of [-.013,.013]) rod(dining,[x-.15,.795,s*.272+d],[x+.027,.795,s*.272+d],.005,walnut);
+    soft(dining,x,.790,s*.232,.547,.026,.337,.012,'#7f5c49');
+    soft(dining,x,.807,s*.232,.512,.010,.307,.005,'#996e54');
+    const riceX=x-.116, soupX=x+.114;
+    bowl(dining,riceX,.817,s*.215,.075,s===1?'#7c9890':'#94a4a8');
+    orb(dining,riceX,.853,s*.215,.060,.024,.060,'#f7ecd5');
+    bowl(dining,soupX,.817,s*.169,.063,'#704438','#a97842');
+    for(const d of [-.015,.016])orb(dining,soupX+d,.848,s*.160,.010,.003,.008,'#809264');
+    soft(dining,x+.014,.829,s*.290,.131,.019,.074,.009,'#d4d9c5');
+    orb(dining,x+.010,.849,s*.289,.052,.016,.024,'#c78568');
+    for(const d of [-.009,.009])rod(dining,[x-.110,.820,s*.362+d],[x+.079,.821,s*.362+d],.004,'#423c39');
   }
-  plant(dining,0,.793,.014,.36,true);
-  const sideboard=furniture('dining','teaCabinet','咖啡与煮饭吧台',-3.26,8.59,[-2.13,9.01],['tea','inspect'],null,[0,.827,.15]);
+  cyl(dining,0,.855,-.006,.061,.077,.124,'#7d9590',{segments:18});
+  cyl(dining,0,.930,-.006,.034,.051,.035,'#9ab0a4',{segments:18});
+  for(const s of [-1,1]){
+    const branch=[[0,.94,-.006],[s*.022,1.04,s*.005],[s*.055,1.128,s*.013],[s*.096,1.181,s*.020]];
+    for(let i=1;i<branch.length;i++)rod(dining,branch[i-1],branch[i],.0045,'#766454');
+    for(let i=1;i<4;i++){const [x,y,z]=branch[i];orb(dining,x,y+.008,z,.019,.015,.018,i%2?'#ead0b8':'#dcad9e');}
+  }
+  const sideboard=furniture('dining','teaCabinet','茶罐与珐琅水壶',-3.26,8.59,[-2.13,9.01],['tea','inspect'],null,[0,.827,.15]);
   box(sideboard,0,.38,0,1.34,.71,.357,'#638787');box(sideboard,0,.75,0,1.38,.042,.396,'#d2c7ad');
   for(const x of [-.32,.32]){
     box(sideboard,x,.379,.186,.603,.59,.022,'#779b95');
     box(sideboard,x,.414,.202,.056,.017,.019,brass);
   }
   bowl(sideboard,-.32,.772,.00,.116,'#79969a');cup(sideboard,-.07,.773,.024,cream,.76);
-  soft(sideboard,.421,.906,-.004,.324,.263,.312,.072,'#c6524d');
-  soft(sideboard,.421,1.031,-.004,.320,.059,.305,.028,'#eb7b66');
-  soft(sideboard,.421,1.066,-.027,.151,.021,.111,.010,'#6f5153');
-  box(sideboard,.421,.955,.144,.193,.068,.016,'#443f46');
-  led(sideboard,.408,.960,.156,.067,'#9de1bd');
-  for(const x of [.475,.501])box(sideboard,x,.953,.156,.015,.012,.007,cream);
+  for(let i=0;i<3;i++)cyl(sideboard,-.435,.786+i*.014,-.037,.109,.101,.014,'#dbe1ce',{segments:18});
+  cyl(sideboard,.096,.845,-.073,.048,.046,.140,'#869b8b',{segments:14});
+  cyl(sideboard,.096,.922,-.073,.050,.050,.020,'#b39764',{segments:14});
+  soft(sideboard,.410,.789,-.008,.245,.035,.241,.017,'#59585a');
+  const kettleProfile=[[.062,.810],[.096,.821],[.114,.853],[.115,.932],[.097,.976],[.073,.996]];
+  add(sideboard,new THREE.LatheGeometry(kettleProfile.map(([r,y])=>new THREE.Vector2(r,y)),20),k.mat('#b65343',{roughness:.30}),.410,0,-.008);
+  cyl(sideboard,.41,1.0,-.008,.064,.082,.022,'#c9785b',{segments:20});
+  cyl(sideboard,.41,1.023,-.008,.020,.026,.022,walnut,{segments:12});
+  rod(sideboard,[.321,.882,-.008],[.262,.915,-.013],.023,'#b85b47');
+  rod(sideboard,[.262,.915,-.013],[.231,.966,-.022],.016,'#c67659');
+  rod(sideboard,[.426,.974,-.096],[.469,1.078,-.045],.012,charcoal);
+  rod(sideboard,[.469,1.078,-.045],[.469,1.078,.049],.017,'#ae8e69');
+  rod(sideboard,[.469,1.078,.049],[.427,.974,.085],.012,charcoal);
 
   function pull(g,x,y,z,w){box(g,x,y,z,w,.015,.027,brass);}
   function cupboard(g,w,d,c='#527578'){
@@ -390,9 +539,58 @@ export function buildHomeFurniture(k, register) {
     box(pantry,x,.76,.077,.083,.076,.010,cream);
     bowl(pantry,x,.112,.005,.089,i%2?'#879e95':'#c8bb9d');
   }
-  plant(pantry,.24,1.276,.011,.42);cup(pantry,-.28,1.276,0,ceramic,.74);
+  // A small appliance pull-out keeps the rice cooker over the existing shelf
+  // footprint. The vermilion lacquer soup bowl sits beside it.
+  soft(pantry,-.045,1.287,.022,1.032,.033,.416,.013,'#b88e65');
+  soft(pantry,-.196,1.426,.025,.348,.246,.301,.066,'#dfd5bc');
+  soft(pantry,-.196,1.554,.025,.356,.071,.307,.033,'#c9c4ae');
+  soft(pantry,-.196,1.529,.168,.319,.025,.024,.008,'#8c8e80');
+  soft(pantry,-.196,1.572,.075,.164,.028,.112,.012,'#7f8980');
+  box(pantry,-.213,1.588,.066,.081,.004,.039,'#b1c3a3');
+  cyl(pantry,-.126,1.587,.088,.014,.014,.005,'#bf8a67',{segments:10});
+  for(let i=0;i<4;i++)box(pantry,-.285+i*.022,1.592,-.070,.012,.004,.037,'#96988d');
+  const lidHandle=add(pantry,geo('rice-cooker handle',()=>new THREE.TorusGeometry(.13,.012,6,18,Math.PI)),k.mat('#8a8978'),-.196,1.421,.028);
+  lidHandle.rotation.x=-.18;
+  bowl(pantry,.272,1.307,.010,.112,'#9c4d3a','#59443a');
+  bowl(pantry,.272,1.346,.010,.114,'#9a4938','#745142');
+  rod(pantry,[.194,1.424,.080],[.374,1.426,-.064],.008,'#645443');
+  rod(pantry,[.208,1.424,.093],[.389,1.426,-.051],.008,'#645443');
+
+  // A narrow wheeled work table leaves both routes between the hob and sink open.
+  const prep=furniture('kitchen','prepCart','木质备菜推车',-3.49,14.40,[-3.41,13.80],['inspect','cook'],null,[0,.77,.11],-.08);
+  for(const x of [-.40,.40])for(const z of [-.21,.21]){
+    const wheel=cyl(prep,x,.058,z,.056,.056,.039,'#4c4e4a',{segments:12});
+    wheel.rotation.z=Math.PI/2;
+    box(prep,x,.414,z,.060,.673,.060,'#a87955');
+  }
+  box(prep,0,.771,0,1.00,.086,.57,'#bf916a');
+  box(prep,0,.722,0,.92,.045,.486,'#8e6047');
+  for(let i=0;i<5;i++)box(prep,0,.219,-.192+i*.096,.86,.033,.077,'#ab845e');
+  soft(prep,-.18,.329,.024,.334,.196,.297,.027,'#bc9870');
+  for(const y of [.263,.301,.341,.380,.418])box(prep,-.18,y,.177,.340,.016,.012,'#d1ac7d');
+  for(const x of [-.28,-.175,-.07])box(prep,x,.336,.180,.011,.174,.009,'#aa805a');
+  bowl(prep,.226,.239,-.01,.131,'#c4d0bb');bowl(prep,.226,.276,-.01,.131,'#7b9390');
+  box(prep,.292,.821,0,.27,.012,.55,'#ad6d58');
+  box(prep,.292,.736,.289,.27,.18,.013,'#ad6d58');
+  for(const x of [.19,.206,.379,.394])box(prep,x,.741,.297,.006,.16,.004,'#e1c6a3');
+  soft(prep,-.135,.834,-.008,.53,.037,.342,.016,'#d5ac79');
+  const root=orb(prep,-.16,.898,-.012,.122,.056,.054,'#e4e1bd');root.rotation.z=.12;
+  for(const [x,z] of [[.070,.043],[.086,-.030],[.045,-.081]]){
+    rod(prep,[-.057,.914,-.012],[x,.956,z],.009,'#749561');
+    const leaf=orb(prep,x,.958,z,.042,.013,.030,'#5a805b');leaf.rotation.y=-z*4;
+  }
+  for(const z of [.064,.13])cyl(prep,-.29,.860,z,.043,.042,.015,'#e9e1c2',{segments:14});
 
   const shoes=furniture('genkan','shoe','玄关鞋柜',2.54,9.48,[1.94,9.95,.327],['dress','open'],'foyer/shoe',[0,.71,.17],-Math.PI/2,.327);
+  // A flip day-calendar and lacquer key tray are fixed to the
+  // shoe cabinet itself, so the entry remains furnished in the wall-free view.
+  const calendarPrint=tex('genkan day calendar',192,238,(c,w,h)=>{
+    c.fillStyle='#f3e9ce';c.fillRect(0,0,w,h);c.fillStyle='#4f696b';c.fillRect(0,0,w,45);
+    c.fillStyle='#e8dfc3';c.textAlign='center';c.font='bold 20px "Yu Gothic",sans-serif';c.fillText('霜　月',w/2,31);
+    c.fillStyle='#594c49';c.font='bold 106px Georgia,serif';c.fillText('14',w/2,151);
+    c.strokeStyle='#a77c62';c.lineWidth=2;c.beginPath();c.moveTo(28,169);c.lineTo(164,169);c.stroke();
+    c.fillStyle='#966d55';c.font='bold 18px "Yu Gothic",sans-serif';c.fillText('土 曜 日',w/2,201);
+  });
   for(const x of [-.6,.60])box(shoes,x,.397,0,.048,.79,.41,oak);
   for(const h of [.083,.352,.739])box(shoes,0,h,0,1.25,.049,.423,maple);
   for(let row=0;row<2;row++)for(let pair=0;pair<2;pair++)for(const foot of [-1,1]){
@@ -403,6 +601,39 @@ export function buildHomeFurniture(k, register) {
   }
   plant(shoes,-.31,.769,0,.45,true);
   bowl(shoes,.302,.766,.013,.125,'#88a09a');
+  // The mirror and canvas market bag sit on a rack fixed to the shoe cabinet.
+  for(const x of [-.552,.552])box(shoes,x,1.126,-.176,.05,.89,.052,'#ad8058');
+  box(shoes,0,1.539,-.175,1.154,.088,.054,'#ae815f');
+  const rim=cyl(shoes,-.247,1.322,-.128,.238,.238,.043,'#9c7655',{segments:32});
+  rim.rotation.x=Math.PI/2;
+  const mirror=cyl(shoes,-.247,1.322,-.100,.215,.215,.019,'#a7b8b5',{segments:32,metalness:.35,roughness:.30});
+  mirror.rotation.x=Math.PI/2;
+  box(shoes,.310,1.503,-.118,.032,.044,.088,'#a58b63');
+  k.line(shoes,[[.210,1.296,-.090],[.282,1.473,-.091],[.311,1.49,-.088],[.402,1.296,-.088]],'#a38a6b',.014);
+  soft(shoes,.302,1.128,-.082,.310,.368,.088,.033,'#d7c4a2');
+  for(const x of [.198,.216,.393])box(shoes,x,1.117,-.033,.012,.326,.005,'#7e8882');
+  box(shoes,-.035,.789,.003,.191,.028,.161,'#745447');
+  rod(shoes,[-.035,.811,-.032],[-.035,1.030,-.059],.008,brass);
+  box(shoes,-.035,.956,-.044,.143,.168,.022,'#866d56');
+  surface(shoes,calendarPrint,-.035,.956,-.031,.133,.158);
+  soft(shoes,.123,.781,.088,.168,.030,.105,.014,'#915e4e');
+  const keyLoop=add(shoes,geo('entry key ring',()=>new THREE.TorusGeometry(.020,.003,5,12)),k.mat(brass),.094,.798,.088);
+  keyLoop.rotation.x=-Math.PI/2;box(shoes,.130,.799,.090,.052,.006,.010,chrome);
+  // A flat indigo runner across the lower genkan follows the timber step.
+  // It belongs to the shoe station's geometry and leaves the walking height intact.
+  const genkanRug=tex('genkan indigo sashiko runner',480,172,(c,w,h)=>{
+    c.fillStyle='#536c74';c.fillRect(0,0,w,h);
+    c.fillStyle='#829694';c.fillRect(6,5,w-12,h-10);
+    c.fillStyle='#526a70';c.fillRect(12,12,w-24,h-24);
+    c.strokeStyle='#dacb9f';c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();
+    for(let x=-38;x<w+40;x+=46)for(let y=-8;y<h+20;y+=44){
+      c.moveTo(x,y+22);c.lineTo(x+23,y);c.lineTo(x+46,y+22);c.lineTo(x+23,y+44);c.closePath();
+    }
+    c.stroke();c.setLineDash([]);
+    for(let y=2;y<h;y+=4){c.fillStyle='rgba(245,234,208,.06)';c.fillRect(0,y,w,1);}
+  });
+  const runner=surface(shoes,genkanRug,.21,.006,1.55,1.19,.432,0,true);
+  runner.rotateZ(Math.PI/2);
   const slips=furniture('genkan','slippers','待客布拖鞋',.015,9.53,[.62,9.60,.327],['wear'],null,[0,.047,.03],.08,.327);
   for(const x of [-.084,.084]){
     soft(slips,x,.021,0,.142,.042,.286,.020,'#816e61');
@@ -430,28 +661,87 @@ export function buildHomeFurniture(k, register) {
     const disk=cyl(washer,0,.415,z,r,r,.029,col,{segments:28});disk.rotation.x=Math.PI/2;
   }
   for(let i=0;i<3;i++)soft(washer,-.02,.973+i*.042,-.02,.359-i*.02,.046,.225,.02,i===1?'#92afa6':'#d2c2a4');
-  const gallery=furniture('corridor','gallery','城市音乐海报与杂志架',-7.48,12.40,[-7.48,11.91],['look'],'corridor/gallery',[0,.88,-.06]);
-  for(const s of [-1,1]){
-    box(gallery,s*.215,.023,0,.071,.046,.215,walnut);
-    box(gallery,s*.215,.347,0,.040,.626,.047,maple);
+  const gallery=furniture('corridor','gallery','走廊边柜与南天插花',-7.48,12.40,[-7.48,11.91],['look'],'corridor/gallery',[0,.88,-.06]);
+  box(gallery,0,.072,-.045,1.24,.144,.28,'#655045');
+  box(gallery,0,.34,-.045,1.37,.42,.32,'#986c4e');
+  box(gallery,0,.577,-.045,1.45,.055,.37,'#c99d73');
+  for(const y of [.247,.447]){
+    box(gallery,0,y,-.216,1.29,.178,.030,'#b28664');
+    for(const x of [-.35,.35])box(gallery,x,y,-.237,.125,.022,.017,'#605044');
   }
-  box(gallery,0,.145,0,.485,.044,.18,oak);
-  books(gallery,0,.169,-.001,6,.373);
-  box(gallery,0,.24,.091,.474,.024,.018,brass);
-  box(gallery,0,.887,0,.51,.574,.057,walnut);
-  for(const s of [-1,1])box(gallery,0,.887,s*.030,.464,.527,.011,cream);
-  surface(gallery,recordCover(true),0,.898,-.038,.390,.435,Math.PI);
-  surface(gallery,recordCover(),0,.898,.038,.390,.435);
+  soft(gallery,-.35,.614,-.047,.44,.016,.36,.006,'#934f45');
+  box(gallery,-.35,.544,-.230,.44,.124,.012,'#934f45');
+  book(gallery,-.34,.623,-.05,.31,.040,.23,'#566b68');
+  book(gallery,-.32,.663,-.05,.25,.026,.20,'#e8c58f');
+  const vaseProfile=[[0,0],[.082,0],[.120,.036],[.155,.19],[.118,.258],[.063,.30],[.064,.321],[.047,.321],[.045,.295]];
+  add(gallery,new THREE.LatheGeometry(vaseProfile.map(([r,y])=>new THREE.Vector2(r,y)),22),
+    k.mat('#578886',{roughness:.30}),.25,.606,-.055);
+  // One tall, one leaning and one short branch make an asymmetric arrangement.
+  const stem=[.25,.91,-.055];
+  for(const [x,y,z] of [[.43,1.46,-.025],[.02,1.28,-.095],[.51,1.17,-.096]]){
+    const joint=[(stem[0]+x)/2,(stem[1]+y)/2,(stem[2]+z)/2];
+    rod(gallery,stem,joint,.010,'#66533c');rod(gallery,joint,[x,y,z],.006,'#66533c');
+    for(const s of [-1,1]){
+      const end=[x+s*.070,y-.088,z+s*.036];
+      rod(gallery,joint,end,.005,'#775b41');
+      const leaf=orb(gallery,...end,.035,.080,.016,s<0?'#78895b':'#566f52');leaf.rotation.z=-s*.70;
+      for(const [ox,oy] of [[0,0],[.027,.018],[-.018,.030]])
+        orb(gallery,x+ox+s*.035,y+oy,z+s*.014,.022,.024,.022,'#ba5041');
+    }
+  }
 
-  const desk=furniture('study','desk','工作书桌',.016,15.54,[-.10,14.43],['desk','read','draw'],'her_room/desk',[0,.51,.595],Math.PI);
-  legs(desk,0,0,1.49,.51,.729,steel,.025);
-  soft(desk,0,.748,0,1.686,.073,.652,.03,maple);
+  const fig=furniture('corridor','ficus','窗边的伞叶榕',-8.57,12.08,[-8.15,11.79],['water','look'],null,[0,.63,.09]);
+  cyl(fig,0,.023,0,.247,.221,.045,'#9e7358',{segments:20});
+  cyl(fig,0,.223,0,.235,.170,.386,'#bd805e',{segments:20});
+  cyl(fig,0,.409,0,.244,.241,.061,'#c68f6c',{segments:20});
+  cyl(fig,0,.439,0,.218,.218,.015,'#534d3d',{segments:20});
+  const trunk=[[0,.44,0],[-.052,.81,.021],[.056,1.12,.018],[-.018,1.37,-.04]];
+  k.line(fig,trunk,'#776348',.023);
+  // Facets meet along a raised midrib. The taper at the tip reads in silhouette.
+  const leafShape=new THREE.BufferGeometry();
+  leafShape.setAttribute('position',new THREE.Float32BufferAttribute([
+    0,0,0, -.12,.03,.14, 0,.065,.15, .12,.03,.14, 0,-.035,.35,
+  ],3));
+  leafShape.setIndex([0,1,2,0,2,3,1,4,2,2,4,3]);leafShape.computeVertexNormals();
+  for(let i=0;i<12;i++){
+    const a=i*2.40,h=.80+i*.048,reach=.19+.11*(.5+.5*Math.cos(i*1.8));
+    const start=[Math.sin(a)*reach,h+.08,Math.cos(a)*reach];
+    rod(fig,[.018,h,0],start,.008,'#807754');
+    const leaf=add(fig,leafShape,k.mat(['#506e58','#6d875e','#859666'][i%3]),...start);
+    leaf.rotation.set(.04+.18*Math.cos(i),a,.19*Math.sin(i));leaf.scale.setScalar(.65+.22*(i%3));
+  }
+
+  const desk=furniture('study','desk','窗边的绘图与刻印书桌',.016,15.54,[-.10,14.43],['desk','read','draw'],'her_room/desk',[0,.51,.595],Math.PI);
+  for(const x of [-.731,.731]){
+    box(desk,x,.388,0,.067,.684,.475,'#9f785a');
+    box(desk,x,.058,0,.099,.072,.545,'#926e52');
+  }
+  box(desk,0,.23,-.168,1.47,.078,.057,'#916d50');
+  soft(desk,0,.748,0,1.686,.073,.652,.03,'#bd966f');
+  stripedOak(desk,0,.786,0,1.626,.604,true);
   box(desk,.461,.596,0,.531,.225,.481,oak);box(desk,.461,.600,.251,.49,.171,.024,maple);
   pull(desk,.461,.625,.279,.138);stool(desk,0,.595,0);
   soft(desk,.012,.791,-.008,.58,.015,.352,.006,'#6e8983');
-  box(desk,-.48,.792,.095,.249,.012,.177,cream);
-  for(let i=0;i<4;i++)box(desk,-.483,.803,.044+i*.025,.170-i*.019,.002,.005,'#95988a');
-  rod(desk,[-.559,.815,.022],[-.399,.813,.139],.006,'#966d50');
+  box(desk,-.466,.796,.095,.335,.017,.243,'#eadbb6');
+  const proof=tex('two-colour rain print',256,180,(c,w,h)=>{
+    c.fillStyle='#eee2c2';c.fillRect(0,0,w,h);c.fillStyle='#598183';c.fillRect(16,18,220,124);
+    c.fillStyle='#e7bf86';c.beginPath();c.arc(176,52,19,0,Math.PI*2);c.fill();
+    c.fillStyle='#304f62';c.beginPath();c.moveTo(16,111);c.lineTo(69,89);c.lineTo(107,108);c.lineTo(150,84);c.lineTo(236,99);c.lineTo(236,142);c.lineTo(16,142);c.fill();
+    c.strokeStyle='#d9e2d2';c.lineWidth=1.5;
+    for(let i=0;i<19;i++){const px=22+i*11,py=29+(i*29)%70;c.beginPath();c.moveTo(px,py);c.lineTo(px-4,py+9);c.stroke();}
+    c.fillStyle='#a65847';c.fillRect(218,148,12,12);
+  });
+  surface(desk,proof,-.466,.805,.095,.318,.226,0,true,.12);
+  // The baren's knotted bamboo sheath is used to rub a sheet against its block.
+  cyl(desk,-.709,.806,.127,.064,.070,.026,'#a4784e',{segments:20});
+  cyl(desk,-.709,.824,.127,.062,.065,.013,'#c5ad75',{segments:20});
+  k.line(desk,[[-.751,.831,.127],[-.737,.851,.127],[-.710,.864,.127],[-.682,.855,.127],[-.669,.831,.127]],'#957348',.010);
+  const inkStone=soft(desk,-.338,.815,-.116,.113,.032,.118,.018,'#434b4a');
+  inkStone.rotation.y=.09;
+  for(const x of [-.56,-.51]){
+    rod(desk,[x,.817,-.027],[x+.077,.816,.112],.007,'#a87755');
+    rod(desk,[x+.077,.816,.112],[x+.089,.816,.136],.006,'#344b4d');
+  }
   books(desk,.546,.788,-.116,5,.36);
   // Counterbalanced lamp: weighted base, parallel lower arm and an enamel
   // shade angled down onto the open notebook.
@@ -475,7 +765,12 @@ export function buildHomeFurniture(k, register) {
   for(const h of [.08,.445,.83,1.249])box(studyShelf,0,h,0,.996,.039,.309,maple);
   books(studyShelf,0,.100,.025,12,.883);books(studyShelf,-.165,.466,.005,7,.527);
   book(studyShelf,.28,.467,.007,.24,.046,.21,bindings[2]);book(studyShelf,.27,.514,.007,.22,.045,.19,bindings[0]);
-  books(studyShelf,.13,.851,.025,8,.573);plant(studyShelf,-.289,1.269,.015,.40);
+  books(studyShelf,.13,.851,.025,8,.573);plant(studyShelf,-.296,1.269,.015,.48);
+  // A framed first proof and an open box of small seal blocks rest on the top shelf.
+  box(studyShelf,.14,1.448,-.055,.324,.315,.030,'#976f4e');
+  surface(studyShelf,proof,.14,1.449,-.037,.284,.249);
+  soft(studyShelf,.350,1.293,.046,.161,.059,.126,.012,'#b98e63');
+  for(let i=0;i<3;i++){box(studyShelf,.300+i*.048,1.345,.042,.034,.087,.040,'#8b6150');}
 
   const bath=furniture('bathroom','shower','嵌入式浴缸与花洒',1.99,15.42,[2.04,14.66],['shower','bath'],'bathroom/shower',[0,.348,0]);
   // Continuous enamel inner lining and handmade glazed tiles on the apron.
@@ -489,6 +784,11 @@ export function buildHomeFurniture(k, register) {
     tiledFace(bath,s*.872,.310,0,.986,.527,9,6,s*Math.PI/2);
   }
   soft(bath,0,.464,0,1.525,.019,.793,.009,'#87afab',{roughness:.22});
+  // Partially retracted slatted tub cover, leaving the bathing point open.
+  for(let i=0;i<6;i++)
+    soft(bath,-.754+i*.072,.637,.003,.070,.034,.912,.011,i%2?'#c1b190':'#caB997');
+  rod(bath,[-.754,.657,-.349],[-.388,.657,-.349],.007,'#a49b86');
+  rod(bath,[-.754,.657,.349],[-.388,.657,.349],.007,'#a49b86');
   for(const s of [-1,1])box(bath,0,.062,s*.514,1.719,.042,.023,'#63777b');
   rod(bath,[.679,.44,.447],[.679,1.69,.447],.016,chrome);
   rod(bath,[.679,1.67,.447],[.679,1.67,.254],.018,chrome);
@@ -511,6 +811,13 @@ export function buildHomeFurniture(k, register) {
   }),0,1.383,-.173,.486,.514);
   cup(vanity,.236,.824,.033,'#bdcac0',.52);
   for(const s of [-1,1])rod(vanity,[.236,.873,.033],[.236+s*.009,.982,.032],.005,s===1?'#7496a2':'#b99c85');
+  // A folded cotton hand towel hangs from the end of the washstand.
+  rod(vanity,[-.354,.685,-.151],[-.408,.685,-.151],.012,chrome);
+  rod(vanity,[-.354,.685,.133],[-.408,.685,.133],.012,chrome);
+  rod(vanity,[-.410,.685,-.158],[-.410,.685,.141],.014,chrome);
+  soft(vanity,-.422,.534,-.006,.027,.316,.227,.012,'#eee1c8');
+  soft(vanity,-.397,.586,-.006,.021,.208,.222,.010,'#cfc7af');
+  for(const y of [.402,.422])box(vanity,-.438,y,-.006,.007,.008,.226,'#9ba494');
   const toilet=furniture('bathroom','toilet','坐便器',1.39,13.57,[1.90,14.17],['toilet'],'bathroom/toilet',[0,.47,.07],Math.PI/2);
   orb(toilet,0,.292,.014,.202,.192,.289,ceramic);
   soft(toilet,0,.166,.031,.224,.287,.33,.072,'#d6d9c7');
@@ -520,8 +827,15 @@ export function buildHomeFurniture(k, register) {
   soft(toilet,0,.773,-.250,.448,.045,.172,.020,ceramic);
   box(toilet,.193,.672,-.183,.044,.021,.036,chrome);
   const veranda=furniture('engawa','chair','缘侧坐垫',-7.73,16.54,[-7.00,16.54,.437],['sit','rest'],'balcony/chair',[0,.208,.012],0,.437);
-  soft(veranda,0,.075,0,.72,.135,.59,.047,'#9a8066');
-  soft(veranda,0,.159,0,.667,.109,.553,.042,greenCheck);book(veranda,.481,.005,0,.194,.028,.24,'#936955');
+  for(const x of [-.267,.267])box(veranda,x,.036,0,.053,.072,.494,'#836447');
+  soft(veranda,0,.085,0,.742,.066,.606,.022,'#b08b65');
+  soft(veranda,0,.161,0,.669,.109,.546,.046,'#597377');
+  // Padded zaisu with an open-centred bentwood back, seated anchor unchanged.
+  for(const x of [-.259,.259])rod(veranda,[x,.097,-.229],[x,.463,-.292],.024,'#a5805e');
+  soft(veranda,0,.420,-.286,.580,.149,.055,.024,'#a57e57').rotation.x=-.16;
+  soft(veranda,-.105,.36,-.228,.286,.251,.081,.039,redCheck).rotation.x=-.14;
+  book(veranda,.468,.010,.019,.183,.025,.208,'#936955');
+  book(veranda,.464,.036,.024,.157,.019,.172,'#bfbb96');
   const pot=furniture('engawa','plant','廊下的山茶',-2.62,16.63,[-3.28,16.53,.437],['water','look'],'balcony/plant',[0,.599,0],0,.437);
   plant(pot,0,0,0,1.04,true);bowl(pot,-.279,.007,.08,.113,'#7c9897');
 }

@@ -41,9 +41,15 @@ buildStationRow(kit);
 const shell=buildHomeShell(kit);
 buildHomeFurniture(kit,registry.register);
 const roomLights=kit.group('雨庭 · 室内灯',1.9);
-for(const [x,z,power,color] of [[-6.65,10.15,10.5,0xffcb91],[-6.75,14.65,9.4,0xffd6a5],[-2.52,13.8,12,0xffddb0],[1.25,11.86,8.6,0xffe4bb]]){
-  const light=new THREE.PointLight(color,power,7.1,2);
-  light.position.set(x,2.82,z);roomLights.add(light);
+// Local pools from the reading lamp, bedside paper lamp, dining pendant and service area.
+for(const [x,y,z,power,reach,color] of [
+  [-8.68,1.75,10.69,4.6,4.9,0xffc894],
+  [-6.83,1.26,13.45,3.5,4.0,0xffc88e],
+  [-3.24,2.27,9.52,6.8,5.7,0xffdaa1],
+  [-.39,2.35,14.73,6.8,5.7,0xffdfb0]
+]){
+  const light=new THREE.PointLight(color,power,reach,2);
+  light.position.set(x,y,z);roomLights.add(light);
 }
 makeNightSky(scene);
 
@@ -66,6 +72,30 @@ for(const s of stages){
   s.origin=s.g.position.clone();
   s.duration=s.start===0?1.35:1.18;
 }
+// The number of point lights is a compile-time constant in Three's standard
+// material. Keep the emitters registered and follow a socket on each fixture;
+// taking off a roof or assembling a new layer only changes light uniforms.
+const fixtureLights=[];
+for(const {g} of stages){
+  const fixtures=[];g.traverse(o=>{if(o.isPointLight)fixtures.push(o);});
+  for(const light of fixtures){
+    const socket=new THREE.Object3D(),owner=light.parent;
+    socket.position.copy(light.position);owner.add(socket);
+    fixtureLights.push({light,socket,power:light.intensity});
+    scene.add(light);
+  }
+}
+let lightsDirty=true;
+function syncFixtureLights(){
+  for(const {light,socket,power} of fixtureLights){
+    socket.getWorldPosition(light.position);
+    let holder=socket;
+    while(holder&&holder.visible)holder=holder.parent;
+    light.intensity=holder?0:power;
+  }
+  lightsDirty=false;
+}
+syncFixtureLights();
 const camera=new THREE.PerspectiveCamera(24,1,.10,220);
 camera.layers.enable(1);
 const look=new THREE.Vector3(VILLAGE.centerX,2.35,VILLAGE.centerZ);
@@ -79,7 +109,7 @@ controls.rotateSpeed=.63;controls.panSpeed=.76;controls.zoomSpeed=.85;
 controls.screenSpacePanning=true;controls.update();
 const boundsPoints=[];
 for(const x of [VILLAGE.left,VILLAGE.right])for(const z of [VILLAGE.back,VILLAGE.front])for(const y of [-1,.20])boundsPoints.push(new THREE.Vector3(x,y,z));
-for(const [x,z,h] of [[-10.18,1.47,6.48],[-10.18,-7.59,6.60],[.80,-9.40,5.98],[2.51,1.02,3.90]])boundsPoints.push(new THREE.Vector3(x,h,z));
+for(const [x,z,h] of [[-10.18,1.47,6.48],[-10.18,-7.59,6.60],[.80,-9.40,5.98],[2.51,1.02,3.90],[-10.42,6.81,6.21],[4.24,6.80,5.61]])boundsPoints.push(new THREE.Vector3(x,h,z));
 for(const [x,z] of [[7.61,-9.78],[15.13,-9.78],[7.61,-4.54],[15.13,-4.54]])boundsPoints.push(new THREE.Vector3(x,7.48,z));
 function fittedDistance(aspect) {
   const horizontal=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),viewDir).normalize();
@@ -92,8 +122,8 @@ function fittedDistance(aspect) {
 }
 const weather=makeWeather(scene,renderer,camera,roadStage);
 let finishOnRequest=false;
-const homeView=createHomeView({camera,controls,shell,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(){
-  renderer.shadowMap.needsUpdate=true;weather.invalidate();
+const homeView=createHomeView({camera,controls,shell,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(mode){
+  lightsDirty=true;renderer.shadowMap.needsUpdate=true;weather.setHomeOpen(mode!=='exterior');weather.invalidate();
 }});
 registry.connect(canvas,camera,scene,homeView);
 controls.addEventListener('change',()=>weather.invalidate());
@@ -127,6 +157,7 @@ const maxDuration=Math.max(...stages.map(s=>s.start*1.43+s.duration))+.1;
 let began=0, ready=false, lastShadow=-1, animatingPrev=true;
 let weatherTime=0, frameCount=0, lastFrame=0;
 function assembly(time){
+  lightsDirty=true;
   for(const s of stages){
     const t=THREE.MathUtils.clamp((time-s.start*1.43)/s.duration,0,1);
     const ease=1-Math.pow(1-t,3.15);
@@ -156,7 +187,9 @@ function frame(stamp){
   animatingPrev=animating;
   const dt=lastFrame?Math.min((stamp-lastFrame)/1000,.05):0;
   lastFrame=stamp;weatherTime+=dt;
-  controls.update();homeView.update();weather.update(weatherTime,isReduced?.55:THREE.MathUtils.smoothstep(t,1.4,5.4),animating);
+  controls.update();homeView.update();
+  if(lightsDirty)syncFixtureLights();
+  weather.update(weatherTime,isReduced?.55:THREE.MathUtils.smoothstep(t,1.4,5.4),animating);
   renderer.render(scene,camera);
   frameCount++;
   if(!animating)canvas.dataset.assembled='true';
