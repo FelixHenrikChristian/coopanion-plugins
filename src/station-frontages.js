@@ -340,6 +340,11 @@ export function buildStationFrontages(k,art){
   box(shells,(bodyLeft+bodyRight)/2,3.64,back,aw,6.92,.142,'#b3a99a');
   const windowPaint=['#ebb77e','#9eb5ae','#e2c49b','#b48376','#6a8491','#f0bc85','#b6b59e','#edc997','#91a8ac'];
   const windowGlow=[.78,.35,.56,.32,.15,.85,.32,.68,.34];
+  // Measure the rear row from the actual wall edges so both end frames
+  // stay inside the masonry, with the same corner clearance on each side.
+  const rearWindowCount=6,rearWindowWidth=.837,rearWindowInset=.38;
+  const rearWindowFirst=bodyLeft+rearWindowInset+rearWindowWidth/2;
+  const rearWindowStep=(aw-2*rearWindowInset-rearWindowWidth)/(rearWindowCount-1);
   // The sash is the outermost skin of the dwelling. Two separate glazed
   // leaves sit in different tracks, with the curtains and room behind both.
   const sashInk='#485557',sashLip='#9a9a88';
@@ -508,8 +513,9 @@ export function buildStationFrontages(k,art){
     line(well,[[(row%2?-1:1)*-.884,.635,-.164],[(row%2?-1:1)*.84,2.075,-.164]],'#7e918d',.021);
     for(const x of [-1.07,0,1.07])box(well,x,1.029,.007,.055,1.981,.071,'#6e817e');
     for(const y of [.134,1.11,2.01])box(well,0,y,.009,2.169,.047,.079,'#85958e');pane(well,0,1.066,-.01,2.09,1.88);
-    for(const x of [7.87,9.18,10.50,11.81,13.12,14.44]){
-      box(glass,x,by+1.09,back-.084,.837,.91,.049,iron);box(glass,x,by+1.09,back-.118,.769,.839,.031,windowPaint[(Math.round(x)+row*3)%6],softLight);
+    for(let column=0;column<rearWindowCount;column++){
+      const x=rearWindowFirst+column*rearWindowStep;
+      box(glass,x,by+1.09,back-.084,rearWindowWidth,.91,.049,iron);box(glass,x,by+1.09,back-.118,.769,.839,.031,windowPaint[(column+row*3)%6],softLight);
       box(glass,x,by+1.07,back-.146,.033,.843,.033,rail);
     }
   }

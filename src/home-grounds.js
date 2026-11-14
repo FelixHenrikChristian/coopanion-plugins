@@ -12,6 +12,9 @@ export function buildHomeGrounds(k, register) {
   const entries={
     house:{left:-.04,right:1.94}, garden:{left:8.08,right:9.27}, cycle:{left:12.92,right:14.72}
   };
+  // Share the cycle gate jamb and a rear T-junction with the perimeter.
+  // The flush drain stays entirely on the allotment side of the coping.
+  const divider={x:entries.cycle.left,thickness:.15,copingWidth:.19,drainX:12.64};
   const foundation=k.group('街区の土台',0);
   const ground=k.group('街路と宅地',.22);
   const details=k.group('街路の設備と町内の囲い',.69);
@@ -99,8 +102,8 @@ export function buildHomeGrounds(k, register) {
   for(const z of [11.82,12.81]){fill(4.49,z,7.71,.032,'#b2a18a');}
   for(const z of [8.19,16.16])for(let x=4.73;x<12.17;x+=.38)fill(x,z,.357,.122,'#8d8a76');
   // Parallel drainage channels define the gardens and the rear service corridor.
-  for(const x of [3.90,12.64]){fill(x,7.62,.105,9.49,'#485557');fill(x+.015,7.62,.022,9.49,'#989f97');}
-  for(const z of [8.65,11.97,15.47]){drainStamp(3.98,z,.26,.48);drainStamp(12.74,z,.28,.50);}
+  for(const x of [3.90,divider.drainX-.0525]){fill(x,7.62,.105,9.49,'#485557');fill(x+.015,7.62,.022,9.49,'#989f97');}
+  for(const z of [8.65,11.97,15.47]){drainStamp(3.98,z,.26,.48);drainStamp(divider.drainX,z,.28,.50);}
   cityTiles(-1.25,7.24,3.62,1.07,.38,.32,['#92968c','#8a918b','#92958b','#8a8e87']);
   fill(12.97,7.39,4.89,10.53,'#545e64');
   // Light stone sill markers line up with the jambs. The openings remain
@@ -210,24 +213,28 @@ export function buildHomeGrounds(k, register) {
   // stop at the square corner caps, leaving no stacked or coplanar corner faces.
   const boundary=new THREE.Group();boundary.name='Residential perimeter fence';details.add(boundary);
   const grade=.16,wallTop=.615,copingTop=.665,lowRail=.760,highRail=1.040,postTop=1.086;
+  const dividerTop=postTop+.024,dividerBodyTop=dividerTop-.055;
   const vertexMap=new Map(),gateMarks=new Map();
   Object.entries(entries).forEach(([name,e])=>{
     gateMarks.set(e.left+','+property.street,name);gateMarks.set(e.right+','+property.street,name);
   });
   function pierAt(x,z) {
     const key=x+','+z;if(vertexMap.has(key))return vertexMap.get(key);
-    const entry=gateMarks.get(key),w=entry ? .186 : .170,capW=w+.036;
-    const pier=new THREE.Group();pier.position.set(x,0,z);pier.name=entry?'Gate jamb · '+entry:'Corner pier';
+    const entry=gateMarks.get(key),solid=x===divider.x&&(z===property.street||z===property.rear);
+    const w=entry||solid ? .186 : .170,capW=w+.036;
+    const pier=new THREE.Group();pier.position.set(x,0,z);
+    pier.name=solid?(entry?'Divider gate jamb · '+entry:'Divider rear junction'):entry?'Gate jamb · '+entry:'Corner pier';
     boundary.add(pier);
-    box(pier,0,(grade+wallTop)/2,0,w,wallTop-grade,w,'#92958f');
-    box(pier,0,(wallTop+copingTop)/2,0,capW,copingTop-wallTop,capW,'#b5b6aa');
+    const shaftTop=solid?dividerBodyTop:wallTop,capTop=solid?dividerTop:copingTop;
+    box(pier,0,(grade+shaftTop)/2,0,w,shaftTop-grade,w,solid?'#a2a59b':'#92958f');
+    box(pier,0,(shaftTop+capTop)/2,0,capW,capTop-shaftTop,capW,'#b5b6aa');
     // At the garden the full-height entrance arch supplies both steel uprights.
-    if(entry!=='garden'){
+    if(entry!=='garden'&&!solid){
       const pw=entry ? .095 : .070;
       box(pier,0,(postTop+copingTop)/2,0,pw,postTop-copingTop,pw,'#536866');
       box(pier,0,postTop+.012,0,pw+.024,.024,pw+.024,'#89948b');
     }
-    const record={x,z,w,capW};vertexMap.set(key,record);return record;
+    const record={x,z,w,capW,solid};vertexMap.set(key,record);return record;
   }
   function fenceRun(name,x0,z0,x1,z1){
     const a=pierAt(x0,z0),b=pierAt(x1,z1),length=Math.hypot(x1-x0,z1-z0);
@@ -236,7 +243,10 @@ export function buildHomeGrounds(k, register) {
     function span(lo,hi,y,h,d,color,part){
       const mesh=box(g,(lo+hi)*.5,y,0,hi-lo,h,d,color);mesh.name=part;return mesh;
     }
-    const wallA=a.w*.5,wallB=length-b.w*.5,capA=a.capW*.5,capB=length-b.capW*.5;
+    const wallA=a.w*.5,wallB=length-b.w*.5;
+    // A tall divider pier has its cap above the perimeter rails: the low
+    // coping must meet its shaft, rather than stop short at the upper cap.
+    const capA=(a.solid?a.w:a.capW)*.5,capB=length-(b.solid?b.w:b.capW)*.5;
     span(wallA,wallB,(grade+wallTop)/2,wallTop-grade,.126,'#959891','Concrete plinth');
     span(capA,capB,(wallTop+copingTop)/2,copingTop-wallTop,.151,'#b1b4a9','Coping');
     span(wallA,wallB,.388,.011,.130,'#848a83','Block bed joint');
@@ -246,7 +256,7 @@ export function buildHomeGrounds(k, register) {
       span(u-.006,u+.006,.385,.431,.130,'#808780','Block joint');
     }
     const bays=Math.max(1,Math.ceil(length/1.42)),bay=length/bays;
-    for(const h of [lowRail,highRail])span(0,length,h,.039,.041,'#637674','Continuous steel rail');
+    for(const h of [lowRail,highRail])span(a.solid?wallA:0,b.solid?wallB:length,h,.039,.041,'#637674','Continuous steel rail');
     for(let j=1;j<bays;j++){
       const x=bay*j;
       box(g,x,(postTop+copingTop)*.5,0,.050,postTop-copingTop,.053,'#526763');
@@ -261,7 +271,27 @@ export function buildHomeGrounds(k, register) {
   let cursor=wx;
   Object.entries(entries).forEach(([name,e])=>{fenceRun('street to '+name,cursor,sz,e.left,sz);cursor=e.right;});
   fenceRun('street east',cursor,sz,ex,sz);
-  fenceRun('east',ex,sz,ex,rz);fenceRun('rear',ex,rz,wx,rz);fenceRun('west',wx,rz,wx,sz);
+  fenceRun('east',ex,sz,ex,rz);
+  fenceRun('rear cycle yard',ex,rz,divider.x,rz);fenceRun('rear garden',divider.x,rz,wx,rz);
+  fenceRun('west',wx,rz,wx,sz);
+  // One continuous cast-concrete partition closes the garden/service boundary.
+  // The two end piers belong to the perimeter, so there are no overlapping
+  // posts or low coping pieces buried inside this higher wall.
+  const partition=new THREE.Group();partition.name='Garden and cycle yard divider';boundary.add(partition);
+  const frontPier=pierAt(divider.x,sz),rearPier=pierAt(divider.x,rz);
+  const wallStart=sz+frontPier.w*.5,wallEnd=rz-rearPier.w*.5;
+  const capStart=sz+frontPier.capW*.5,capEnd=rz-rearPier.capW*.5;
+  box(partition,divider.x,(grade+dividerBodyTop)*.5,(wallStart+wallEnd)*.5,
+    divider.thickness,dividerBodyTop-grade,wallEnd-wallStart,'#a2a59b').name='Continuous concrete divider';
+  box(partition,divider.x,(dividerBodyTop+dividerTop)*.5,(capStart+capEnd)*.5,
+    divider.copingWidth,dividerTop-dividerBodyTop,capEnd-capStart,'#b5b6aa').name='Divider coping';
+  // Shallow shutter joints are painted on the solid face, never open gaps.
+  const pours=Math.ceil((wallEnd-wallStart)/1.47);
+  for(let i=1;i<pours;i++){
+    const z=wallStart+(wallEnd-wallStart)*i/pours;
+    for(const side of [-1,1])box(partition,divider.x+side*(divider.thickness*.5+.0006),
+      (grade+dividerBodyTop)*.5,z,.0012,dividerBodyTop-grade-.018,.006,'#8f968d').name='Concrete shutter joint';
+  }
   // Entrance plinth, post boxes, door buzzer and the very low step from the paving.
   box(details,.95,.191,8.11,1.18,.062,.29,'#aca89d');
   box(details,.95,.275,8.24,1.18,.17,.15,'#a6a59c');
