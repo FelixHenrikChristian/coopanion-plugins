@@ -332,7 +332,7 @@ export function buildHomeGrounds(k, register) {
     growKitchenBed(k,bed,id,index);
     box(bed,.52,.39,-1.415,.038,.35,.036,'#9b8669');
     box(bed,.52,.545,-1.415,.31,.16,.033,'#d6c59d');
-    k.label(bed,jp,.52,.545,-1.438,.27,.104,{rotateY:Math.PI,color:'#514e44',font:'bold 92px "Yu Gothic", sans-serif'});
+    k.label(bed,jp,.52,.545,-1.438,.27,.104,{rotateY:Math.PI,color:'#514e44',font:'bold 92px "Yu Gothic", sans-serif'}).userData.cropRole='label';
     register({id:'plot-'+(index+1),room:'garden',label:name+'种植床',actions:['查看','浇水','采收','播种'],anchor:[x,.98,z],object:bed,approach:[x,.16,z-1.87]});
   });
   // A cantilevered polycarbonate cycle shelter has a clear loading aisle along its western edge.

@@ -19,6 +19,7 @@ import {createHomeView,makeHomeRegistry} from './home-view.js';
 import {mountSceneUI} from './scene-ui.js';
 import {disposeSceneResources} from './scene-resources.js';
 import {createActorMask} from './actor-mask.js';
+import {projectWorldPoint,projectActorBillboard} from './actor-projection.js';
 import {getNavigationData,getActionSlots} from './navigation-data.js';
 import {createNavigationQuery} from './navigation-query.js';
 import {createPlotVisuals} from './plot-visuals.js';
@@ -250,11 +251,9 @@ canvas.addEventListener('keydown',e=>{
 const mask=createActorMask({scene,camera,renderer,getViewport:()=>viewport,isDisposed:()=>disposed});
 function project(worldPoint){
   if(disposed)return null;
-  camera.updateMatrixWorld(true);
-  const p=new THREE.Vector3(...worldPoint).project(camera);
-  return {x:(p.x+1)*viewport.width/2,y:(1-p.y)*viewport.height/2,depth:p.z,ndcDepth:p.z,
-    visible:p.z>=-1&&p.z<=1&&Math.abs(p.x)<=1&&Math.abs(p.y)<=1,viewport:{...viewport}};
+  return projectWorldPoint(camera,viewport,worldPoint);
 }
+function projectBillboard(worldPoint,worldHeight){return disposed?null:projectActorBillboard(camera,viewport,worldPoint,worldHeight);}
 function getCameraPose(){return {eye:camera.position.toArray(),target:controls.target.toArray(),fov:camera.fov};}
 function setCameraPose(pose){
   if(disposed)return;
@@ -315,7 +314,7 @@ function dispose(){
 if(autoStart)start();
 return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
-  project,getCameraPose,setCameraPose,getRendererInfo,pickSurface,pickWalkable,
+  project,projectBillboard,getCameraPose,setCameraPose,getRendererInfo,pickSurface,pickWalkable,
   getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
   setPlotVisuals,getPlotVisuals:plotVisuals.getPlotVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,

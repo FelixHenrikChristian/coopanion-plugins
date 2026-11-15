@@ -1,4 +1,19 @@
 import assert from 'node:assert/strict';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {HomeLife} from '../../src/life.js';
+
+// Only the isolated report fixture gets one crop that was actually sown,
+// watered and aged by the real engine. Normal first-launch tests stay empty.
+export async function prepareHostGardenReport(deployment){
+  const layout=JSON.parse(await readFile(new URL('../../data/home-layout.json',import.meta.url),'utf8'));
+  let now=Date.now()-35*60_000;const life=new HomeLife({layout,clock:()=>now});life.settings({autonomy:false});
+  for(const actionId of ['sow','water']){
+    life.command({itemId:'plot-8',actionId,...(actionId==='sow'?{cropId:'spring-onion'}:{})});now=life.state.current.endsAt+1;life.advance();
+  }
+  now=Date.now();life.advance(now,{offline:true});assert.equal(life.snapshot().garden.plots[7].stage,'ripe');
+  const directory=join(deployment,'data','coo-home');await mkdir(directory,{recursive:true});await writeFile(join(directory,'state.json'),JSON.stringify(life.export()));
+}
 
 // A real completion, official event store and main Core model turn. The only
 // synthetic component is the registered no-network model provider.

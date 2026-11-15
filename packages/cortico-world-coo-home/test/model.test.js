@@ -54,6 +54,19 @@ test('provider errors are masked; incomplete function outputs do not cause actio
   await g.model.run({tools:[{name:'coo_home',handler:async()=>{actions++;return'ok';}}]});assert.equal(actions,0);await g.model.close();
 });
 
+test('provider HTTP failures expose only safe categories without upstream private data',async()=>{
+  const expected=new Map([[400,'REQUEST'],[422,'REQUEST'],[401,'AUTH'],[403,'ACCESS'],[404,'NOT_FOUND'],[429,'RATE_LIMIT'],[503,'UNAVAILABLE']]);
+  for(const [status,category] of expected){
+    const f=adapter(async()=>{throw Object.assign(Error('PRIVATE-request-content'),{status,body:'PRIVATE-provider-body',requestId:'PRIVATE-request-id',cause:Error('PRIVATE-key')});});
+    await assert.rejects(f.model.run(),error=>{
+      assert.equal(error.code,`HOME_MODEL_${category}`);assert.match(error.message,new RegExp(`HTTP ${status}`));
+      assert.ok(!error.message.includes('PRIVATE'));assert.equal(error.cause,undefined);assert.equal(error.body,undefined);return true;
+    });await f.model.close();
+  }
+  const f=adapter(async()=>{throw Object.assign(Error('PRIVATE'),{status:'400 PRIVATE'});});
+  await assert.rejects(f.model.run(),error=>error.code==='HOME_MODEL_FAILED'&&!error.message.includes('PRIVATE'));await f.model.close();
+});
+
 test('selected endpoint and model are read each job, only Constitution is used',async t=>{
   const dir=await mkdtemp(join(tmpdir(),'home-model-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));
   await mkdir(join(dir,'workspace'));await mkdir(join(dir,'providers','fixture-a'),{recursive:true});await mkdir(join(dir,'providers','fixture-b'),{recursive:true});

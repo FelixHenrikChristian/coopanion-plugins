@@ -1,6 +1,6 @@
 import {HomeNavigation,timedRoute,routePosition} from './navigation.js';
 import {createNavigationQuery} from '../data/navigation-query.js';
-import {createGarden,normalizeGarden,gardenSnapshot,advanceGarden,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
+import {CROP_CATALOG,createGarden,normalizeGarden,gardenSnapshot,advanceGarden,validateCrop,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
 
 const clone=structuredClone,clamp=value=>Math.max(0,Math.min(100,value));
 const NEEDS=['energy','hunger','hygiene','comfort'];
@@ -16,7 +16,7 @@ const RULES={
   shower:[45_000,'water',{hygiene:40}],bath:[60_000,'steam',{hygiene:40,comfort:20}],brush:[18_000,'water',{hygiene:14}],toilet:[25_000,'privacy',{hygiene:8,comfort:6}],walk:[0,null,{}],sow:[15_000,'garden',{comfort:4}],harvest:[18_000,'garden',{comfort:8}]
 };
 const NOTES={dress:'整理衣物，保留当前角色外观。',wear:'在玄关准备出门，使用现有动作表示。',cook:'模拟简单备餐，以现有动作和独立生活状态表示。',laundry:'模拟整理洗衣；未模拟衣物库存。',sleep:'使用角色已有休息动作；缺少睡姿时停在床边休息。',water:'照看室内植物。'};
-const GARDEN_NOTES={sow:'采收后的空畦可以播种；第一次浇水后开始生长。',water:'第一次浇水启动生长，后续浇水只更新湿润状态；不需要反复看管。',harvest:'成熟后采收并记录次数，菜畦变空；没有金币或买卖。',inspect:'查看作物、湿润状态和距离成熟的时间。',look:'查看菜畦的种植进度。'};
+const GARDEN_NOTES={sow:'在空畦中选择任意一种作物播种，必须提供 cropId；第一次浇水后开始生长。',water:'第一次浇水启动生长，后续浇水只更新湿润状态；不需要反复看管。',harvest:'成熟后采收并记录次数，菜畦变空；没有金币或买卖。',inspect:'查看作物、湿润状态和距离成熟的时间。',look:'查看菜畦的种植进度。'};
 const validPosition=p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite);
 const scalar=(value,fallback)=>Number.isFinite(value)?value:fallback;
 const plain=value=>value&&typeof value==='object'&&!Array.isArray(value);
@@ -32,16 +32,16 @@ export function buildCatalog(layout){
         description:plot?GARDEN_NOTES[canonical]??'走到菜畦旁。':NOTES[canonical]??'使用角色已有动作和独立家园状态表示活动；部分电器另有开关效果。',
         stance:clone(value.stance??{position:item.position,facing:[0,1]}),pose:clone(value.pose??{kind:'stand'})};
     }).filter(Boolean);
-    return{id:item.id,label:item.label,room:item.room,position:clone(item.position),actions,kind:plot?'plot':'furniture'};
+    return{id:item.id,label:plot?`菜畦 ${item.id.slice(5)}`:item.label,room:item.room,position:clone(item.position),actions,kind:plot?'plot':'furniture'};
   });
 }
 
 /** Only public household state is retained; appearance and chat never enter a save. */
 export function normalizeLifeState(raw,layout,now){
-  if(plain(raw)&&Number.isInteger(raw.version)&&raw.version>2){
+  if(plain(raw)&&Number.isInteger(raw.version)&&raw.version>3){
     const error=Error('家园存档来自较新的插件版本。请恢复使用新版插件；现有进度文件已保留。');error.code='HOME_SAVE_UNSUPPORTED';throw error;
   }
-  if(!plain(raw)||![0,1,2].includes(raw.version))throw Error('Invalid home save version.');
+  if(!plain(raw)||![0,1,2,3].includes(raw.version))throw Error('Invalid home save version.');
   const migrated=raw.version===0?{...raw,version:1,updatedAt:raw.updatedAt??raw.lastUpdatedAt,current:null,queue:[],recent:[]}:raw;
   if(!validPosition(migrated.position)||!Number.isFinite(migrated.updatedAt)||!plain(migrated.needs))throw Error('Invalid home save.');
   const catalog=buildCatalog(layout),itemIds=new Set(layout.items.map(item=>item.id)),items={},query=createNavigationQuery(layout);
@@ -59,7 +59,10 @@ export function normalizeLifeState(raw,layout,now){
     if(typeof value.actionId!=='string'||value.actionId.length>50||!validPosition(value.destination)||!query.locate(value.destination))throw Error('Invalid saved task destination.');
     if(value.itemId===null?value.actionId!=='walk':!catalog.find(i=>i.id===value.itemId).actions.some(a=>a.id===value.actionId))throw Error('Invalid saved furniture action.');
     const gardenCycle=value.gardenCycle??null;if(gardenCycle!==null&&(!Number.isSafeInteger(gardenCycle)||gardenCycle<0))throw Error('Invalid garden task cycle.');
-    return{id:value.id,itemId:value.itemId,actionId:value.actionId,source:value.source,destination:clone(value.destination),requestedAt:stamp(value.requestedAt),gardenCycle};
+    const sow=value.itemId?.startsWith('plot-')&&catalog.find(item=>item.id===value.itemId).actions.find(action=>action.id===value.actionId)?.canonical==='sow';
+    const cropId=sow?validateCrop(value.cropId??(migrated.version<3?layout.items.find(item=>item.id===value.itemId).cropId:undefined)):undefined;
+    if(!sow&&value.cropId!==undefined)throw Error('Unexpected crop selection in saved task.');
+    return{id:value.id,itemId:value.itemId,actionId:value.actionId,source:value.source,destination:clone(value.destination),requestedAt:stamp(value.requestedAt),gardenCycle,...(sow?{cropId}:{})};
   };
   let current=null;
   if(migrated.current){
@@ -72,9 +75,9 @@ export function normalizeLifeState(raw,layout,now){
     Object.assign(current,{startedAt:stamp(value.startedAt),arrivalAt:stamp(value.arrivalAt),endsAt:stamp(value.endsAt),route:value.route.map(point=>({position:clone(point.position),at:stamp(point.at)}))});
   }
   if(migrated.queue!==undefined&&!Array.isArray(migrated.queue))throw Error('Invalid saved queue.');
-  return{version:2,layoutVersion:layout.layoutVersion??1,revision:Math.max(0,Math.floor(scalar(migrated.revision,0))),counter:Math.max(0,Math.floor(scalar(migrated.counter,0))),updatedAt:Math.min(now,migrated.updatedAt),
+  return{version:3,layoutVersion:layout.layoutVersion??1,revision:Math.max(0,Math.floor(scalar(migrated.revision,0))),counter:Math.max(0,Math.floor(scalar(migrated.counter,0))),updatedAt:Math.min(now,migrated.updatedAt),
     position:clone(migrated.position),needs:Object.fromEntries(NEEDS.map(key=>[key,clamp(scalar(migrated.needs[key],75))])),paused:migrated.paused===true,pausedAt:stamp(migrated.pausedAt),autonomy:migrated.autonomy!==false,
-    manualUntil:stamp(migrated.manualUntil),nextAutoAt:stamp(migrated.nextAutoAt),autoIndex:Math.max(0,Math.floor(scalar(migrated.autoIndex,0))),items,current,queue:(migrated.queue??[]).slice(0,MAX_QUEUE).map(task),garden:migrated.version<2?createGarden(layout):normalizeGarden(migrated.garden,layout,offset),
+    manualUntil:stamp(migrated.manualUntil),nextAutoAt:stamp(migrated.nextAutoAt),autoIndex:Math.max(0,Math.floor(scalar(migrated.autoIndex,0))),items,current,queue:(migrated.queue??[]).slice(0,MAX_QUEUE).map(task),garden:migrated.version<2?createGarden(layout):normalizeGarden(migrated.garden,layout,offset,{legacy:migrated.version===2}),
     receipts:(Array.isArray(migrated.receipts)?migrated.receipts:[]).slice(-128).map(value=>{
       if(!plain(value)||typeof value.key!=='string'||value.key.length>96||typeof value.fingerprint!=='string'||value.fingerprint.length>1024||!plain(value.result)||!['accepted','queued','cancelled','paused','resumed'].includes(value.result.outcome)||value.result.taskId!==undefined&&!/^task-\d+$/.test(value.result.taskId))throw Error('Invalid home command receipt');
       return{key:value.key,fingerprint:value.fingerprint,result:{ok:true,outcome:value.result.outcome,...(value.result.taskId?{accepted:true,taskId:value.result.taskId}:{})}};
@@ -86,7 +89,7 @@ export class HomeLife{
   constructor({layout,state=null,clock=()=>Date.now()}={}){
     this.layout=layout;this.clock=clock;this.navigation=new HomeNavigation(layout);this.catalog=buildCatalog(layout);
     this.itemMap=new Map(this.catalog.map(item=>[item.id,item]));const now=clock();
-    this.state=state?normalizeLifeState(state,layout,now):{version:2,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],receipts:[],garden:createGarden(layout)};
+    this.state=state?normalizeLifeState(state,layout,now):{version:3,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],receipts:[],garden:createGarden(layout)};
     const grounded=this.navigation.ground(this.state.position);if(!grounded)throw Error('Saved home position is no longer walkable.');this.state.position=grounded;
     this.navigation.prepare(grounded);
     for(const id of Object.keys(layout.defaultFurnitureState??{}))this.itemState(id);
@@ -103,10 +106,12 @@ export class HomeLife{
     const action=this.definition(task),item=this.itemMap.get(task.itemId);
     const word=action.pose.kind==='lying'?'sleep':action.pose.kind==='seated'?'sit':['nap','sleep'].includes(action.canonical)?'sleep':'stand';
     Object.assign(task,{label:item?`${item.label} · ${action.label}`:action.label,word,pose:clone(action.pose),effect:action.effect,stance:clone(action.stance),approach:clone(action.stance.position),fallback:clone(action.fallback??{kind:'standing',position:action.stance.position,facing:action.stance.facing??[0,1]}),target:clone(action.target??item?.position??task.destination),facing:clone(action.stance.facing??[0,1]),durationMs:action.durationMs});
+    const cropId=task.cropId??this.state.garden.plots.find(plot=>plot.id===task.itemId)?.cropId;
+    if(cropId)task.label+=` · ${CROP_CATALOG.find(crop=>crop.id===cropId).label}`;
     return task;
   }
   export(){
-    const task=value=>value?Object.fromEntries(['id','itemId','actionId','source','destination','requestedAt','startedAt','arrivalAt','endsAt','route','gardenCycle'].filter(key=>value[key]!==undefined).map(key=>[key,clone(value[key])])):null;
+    const task=value=>value?Object.fromEntries(['id','itemId','actionId','source','destination','requestedAt','startedAt','arrivalAt','endsAt','route','gardenCycle','cropId'].filter(key=>value[key]!==undefined).map(key=>[key,clone(value[key])])):null;
     return{...clone(this.state),current:task(this.state.current),queue:this.state.queue.map(task)};
   }
   snapshot(){
@@ -119,13 +124,14 @@ export class HomeLife{
   decay(duration){if(duration<=0)return;for(const key of NEEDS)this.state.needs[key]=clamp(this.state.needs[key]-RATES[key]*duration/60_000);}
   record(task,outcome,time,reason=null){this.state.recent.push({id:task.id,itemId:task.itemId,actionId:task.actionId,outcome,at:time,...(reason?{reason:String(reason).slice(0,160)}:{})});this.state.recent=this.state.recent.slice(-MAX_EVENTS);}
   itemState(id){return this.state.items[id]??=( {uses:0,lastAction:null,effect:null,active:false,on:this.layout.defaultFurnitureState?.[id]?.on===true});}
-  makeTask(itemId,actionId,source,time,destination){
+  makeTask(itemId,actionId,source,time,destination,cropId){
     const task={id:`task-${++this.state.counter}`,itemId,actionId,source,requestedAt:time,destination:destination??[0,0,0]};
-    const action=this.definition(task);task.actionId=action.id;task.destination=clone(destination??action.stance.position);return task;
+    const action=this.definition(task);if(itemId?.startsWith('plot-')&&action.canonical==='sow')task.cropId=validateCrop(cropId);else if(cropId!==undefined)throw Error('只有播种动作可以选择作物。');
+    task.actionId=action.id;task.destination=clone(destination??action.stance.position);return task;
   }
   begin(task,time){
     advanceGarden(this.state.garden,time);
-    if(task.itemId?.startsWith('plot-')){const plot=validateGardenAction(this.state.garden,task.itemId,this.definition(task).canonical);task.gardenCycle=plot.cycle;}
+    if(task.itemId?.startsWith('plot-')){const plot=validateGardenAction(this.state.garden,task.itemId,this.definition(task).canonical,null,task.cropId);task.gardenCycle=plot.cycle;}
     const route=this.navigation.preparedRoute(this.state.position,task.destination),points=timedRoute(route,time);
     task.route=points;task.startedAt=time;task.arrivalAt=points.at(-1).at;task.endsAt=task.arrivalAt+this.definition(task).durationMs;
     this.decorate(task);this.state.current=task;this.touch();
@@ -134,7 +140,7 @@ export class HomeLife{
     const task=this.state.current;if(!task)return;
     const action=this.definition(task);
     if(task.itemId?.startsWith('plot-')){
-      try{applyGardenAction(this.state.garden,task.itemId,action.canonical,time,task.gardenCycle);}
+      try{applyGardenAction(this.state.garden,task.itemId,action.canonical,time,task.gardenCycle,task.cropId);}
       catch(error){if(error.code!=='GARDEN_STAGE')throw error;this.itemState(task.itemId).active=false;this.state.position=clone(task.route.at(-1).position);this.record(task,'cancelled',time,error.message);this.state.current=null;this.state.nextAutoAt=time+12_000;this.touch();return false;}
     }
     for(const [key,gain] of Object.entries(action.gains))this.state.needs[key]=clamp(this.state.needs[key]+gain);
@@ -198,10 +204,10 @@ export class HomeLife{
     if(offline)this.offline={elapsedMs:elapsed,simulatedMs:time-start,approximate,completed};
     return this.snapshot();
   }
-  command({itemId,actionId,enqueue=false}={}){
+  command({itemId,actionId,enqueue=false,cropId}={}){
     if(typeof itemId!=='string'||typeof actionId!=='string'||typeof enqueue!=='boolean')throw Error('请选择物件和动作。');
-    this.advance();const now=this.state.updatedAt,task=this.makeTask(itemId,actionId,'manual',now);
-    if(itemId.startsWith('plot-')&&!(enqueue&&this.state.current?.source==='manual'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical);
+    this.advance();const now=this.state.updatedAt,task=this.makeTask(itemId,actionId,'manual',now,undefined,cropId);
+    if(itemId.startsWith('plot-')&&!(enqueue&&this.state.current?.source==='manual'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical,null,task.cropId);
     // Validate reachability before superseding a working manual task.
     this.navigation.route(this.state.position,task.destination);
     if(enqueue&&this.state.current?.source==='manual'){
@@ -209,7 +215,7 @@ export class HomeLife{
     }else{this.abandon('superseded',now);this.rebasePause(now);this.begin(task,now);}
     this.state.manualUntil=(this.state.paused?this.state.pausedAt:now)+15_000;this.touch();return this.snapshot();
   }
-  autonomous({operation='command',itemId,actionId,position}={}){
+  autonomous({operation='command',itemId,actionId,position,cropId}={}){
     this.advance();const now=this.state.updatedAt;
     if(this.state.paused||!this.state.autonomy||now<this.state.manualUntil||this.state.current?.source==='manual'||this.state.queue.some(task=>task.source==='manual'))throw Error('手动任务优先，AI 计划已过期。');
     let task;
@@ -217,8 +223,8 @@ export class HomeLife{
       const grounded=this.navigation.ground(position);if(!grounded)throw Error('请选择可以行走的地面。');
       task=this.makeTask(null,'walk','autonomous',now,grounded);
     }else if(operation==='command'&&typeof itemId==='string'&&typeof actionId==='string'){
-      task=this.makeTask(itemId,actionId,'autonomous',now);
-      if(itemId.startsWith('plot-'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical);
+      task=this.makeTask(itemId,actionId,'autonomous',now,undefined,cropId);
+      if(itemId.startsWith('plot-'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical,null,task.cropId);
     }else throw Error('AI 只能安排当前家园支持的动作。');
     this.navigation.route(this.state.position,task.destination);
     this.abandon('superseded',now);this.begin(task,now);this.touch();return this.snapshot();

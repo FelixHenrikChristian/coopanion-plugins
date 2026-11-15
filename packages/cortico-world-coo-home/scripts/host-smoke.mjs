@@ -12,7 +12,7 @@ import {installFixtureProvider,fixtureConstitution} from '../test/fixtures/provi
 import {verifyHostChat} from '../test/fixtures/host-chat.mjs';
 import {verifyHostBrowserChat} from '../test/fixtures/host-browser-chat.mjs';
 import {neutralWave} from '../test/fixtures/audio.mjs';
-import {verifyHostChatReport} from '../test/fixtures/host-chat-report.mjs';
+import {verifyHostChatReport,prepareHostGardenReport} from '../test/fixtures/host-chat-report.mjs';
 
 const app=process.env.COOPANION_APP_ROOT;
 if(!app)throw Error('Set COOPANION_APP_ROOT to an installed Coopanion resources/app directory.');
@@ -63,6 +63,7 @@ try{
   }
   const port=await freePort(),petOrigin=`http://127.0.0.1:${port}`;
   await writeFile(join(deployment,'config.json'),JSON.stringify({activeProvider:'fixture-model',language:'zh',web:{host:'127.0.0.1',port:0},companion:{telemetry:false,autoUpdate:false},worlds:{'coo-home':{enabled:true},'desktop-pet':{enabled:true,port,sound:true,sounds:{volume:25},speech:{enabled:false},window:{enabled:false},skin:{figure:'fixture-round',scheme:'plain'}}}}));
+  if(process.argv.includes('--report-only'))await prepareHostGardenReport(deployment);
   const version=JSON.parse(await readFile(join(app,'package.json'),'utf8')).version;
   const bootstrap=join(temporary,'bootstrap.mjs');
   await writeFile(bootstrap,`const originalFetch=globalThis.fetch;globalThis.fetch=(input,init)=>{const u=new URL(typeof input==='string'||input instanceof URL?input:input.url);if(!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('External network blocked by integration fixture');return originalFetch(input,init);};await import(${JSON.stringify(pathToFileURL(join(app,'core','boot.ts')).href)});`);
@@ -79,9 +80,10 @@ try{
   assert.ok(declaration,'Home page appears in official WebUI manifest');
   const initial=await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected&&value;},'initial appearance');
   assert.equal(initial.phase,'life');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
-  assert.equal(initial.life.version,2);
+  assert.equal(initial.life.version,3);
   assert.equal(initial.life.garden.plots.length,8);
-  assert.ok(initial.life.garden.plots.every(plot=>plot.stage==='ripe'));
+  assert.ok(initial.life.garden.plots.filter(plot=>!process.argv.includes('--report-only')||plot.id!=='plot-8').every(plot=>plot.stage==='empty'&&plot.cropId===null));
+  if(process.argv.includes('--report-only'))assert.equal(initial.life.garden.plots[7].stage,'ripe','Report fixture crop was sown and watered by the real engine');
   assert.equal(initial.appearance.descriptor.scheme,'plain');assert.ok(initial.appearance.descriptor.frameUrl.startsWith(petOrigin));
   report.checks.discovery='Official fixed-port desktop-pet service and real catalog';
   const feed=stream(origin.replace('http:','ws:')+'/ws/providers/world%3Acoo-home/panels/home');
@@ -193,9 +195,9 @@ try{
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:true});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===true,'automatic reconnect');
   report.checks.reconnect='Desktop-pet stop/start recovers automatically';
-  const pending=await invoke('command',[{itemId:'plot-1',actionId:'harvest'}]);
+  const pending=await invoke('command',[{itemId:'plot-1',actionId:'sow',cropId:'carrot'}]);
   assert.equal(pending.life.current.source,'manual');
-  assert.equal(pending.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe','Receiving a harvest command must not immediately empty the plot');
+  assert.equal(pending.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'empty','Accepting a sowing task must not immediately plant the crop');
   await provider.plan({id:'world-stop',steps:[{text:'This stopped World reply must not be saved.',delayMs:10000}]});
   await invoke('chatSend',[{text:'NEUTRAL_WORLD_STOP',clientId:'neutral-world-stop'}]);
   await until(async()=>(await provider.audit()).some(row=>row.kind==='request'&&row.plan==='world-stop'),'in-flight chat before World stop');
@@ -207,15 +209,16 @@ try{
   const restored=await json(origin,statusPath);
   assert.equal(restored.life.current.id,pending.life.current.id,'Home did not restore the persisted in-progress activity');
   assert.equal(restored.life.autonomy,false);
-  assert.equal(restored.life.version,2);
-  assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe');
+  assert.equal(restored.life.version,3);
+  assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'empty');
+  assert.equal(restored.life.current.cropId,'carrot');
   assert.ok(!restored.chat.messages.some(message=>message.text.includes('must not be saved')));
   if(report.checks.desktopReport){
     const events=await json(origin,'/api/events?source=coo-home&limit=1000&archive=1');
     assert.equal(events.events.filter(event=>event.senderKey===report.checks.desktopReport.senderKey).length,1,'Restart redelivered an official garden report');
     report.checks.desktopReport.restartDidNotDuplicate=true;
   }
-  report.checks.garden='Eight plots loaded; an accepted schema-2 harvest task remains pending through a real World stop/start';
+  report.checks.garden='Eight empty plots loaded; a schema-3 sowing task and selected crop remain pending through a real World stop/start';
   report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){

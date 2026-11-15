@@ -3,21 +3,23 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {HomeLife,normalizeLifeState} from './life.js';
 import {HomeStore} from './storage.js';
+import {CROP_CATALOG,validateCrop} from './garden.js';
 import {HomeModel,safeError,checkAbort} from './model.js';
 import {HomeChat} from './chat.js';
 import {HomeBrain} from './brain.js';
 
 const OPERATIONS=['status','catalog','command','walk','cancel','pause','resume'];
-const TOOL={name:'coo_home',description:'查询和控制独立的 coo 家园。先用 catalog 找到物件和动作，command/walk 返回接受或排队回执，只有 recent 的 completed 表示已完成。本工具不会操作桌面角色或衣装。',tags:['read','act','write'],parameters:{type:'object',additionalProperties:false,required:['operation'],properties:{operation:{type:'string',enum:OPERATIONS},itemId:{type:'string'},actionId:{type:'string'},position:{type:'array',items:{type:'number'},minItems:3,maxItems:3},enqueue:{type:'boolean'}}}};
+const TOOL={name:'coo_home',description:'查询和控制独立的 coo 家园。先用 catalog 找到物件、动作与作物。每块空畦都能播种任意目录作物，播种须给 cropId，首次浇水后开始计时。command/walk 返回接受或排队回执，只有 recent 的 completed 表示已完成。本工具不会操作桌面角色或衣装。',tags:['read','act','write'],parameters:{type:'object',additionalProperties:false,required:['operation'],properties:{operation:{type:'string',enum:OPERATIONS},itemId:{type:'string'},actionId:{type:'string'},cropId:{type:'string',enum:CROP_CATALOG.map(crop=>crop.id)},position:{type:'array',items:{type:'number'},minItems:3,maxItems:3},enqueue:{type:'boolean'}}}};
 export const DESCRIBE=Object.freeze({tools:[TOOL],events:[{type:'coo-home.garden',description:'独立家园的作物成熟与采收近况；不会包含家园聊天记录。',trigger:'piggyback'}]});
 const plain=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 function toolArgs(value){
   if(!plain(value)||!OPERATIONS.includes(value.operation))throw safeError('HOME_COMMAND','请选择有效的家园操作。');
-  const allowed=value.operation==='command'?['operation','itemId','actionId','enqueue']:value.operation==='walk'?['operation','position','enqueue']:['operation'];
+  const allowed=value.operation==='command'?['operation','itemId','actionId','cropId','enqueue']:value.operation==='walk'?['operation','position','enqueue']:['operation'];
   if(Object.keys(value).some(key=>!allowed.includes(key)))throw safeError('HOME_COMMAND','家园操作包含不支持的参数。');
   const args={operation:value.operation};
   if(value.operation==='command'){
     if(!['itemId','actionId'].every(key=>typeof value[key]==='string'&&value[key].length>0&&value[key].length<=96))throw safeError('HOME_COMMAND','请选择目录中的物件与动作。');args.itemId=value.itemId;args.actionId=value.actionId;
+    if(value.cropId!==undefined)args.cropId=validateCrop(value.cropId);
   }
   if(value.operation==='walk'){
     if(!Array.isArray(value.position)||value.position.length!==3||!value.position.every(Number.isFinite))throw safeError('HOME_COMMAND','请选择有效的家园位置。');args.position=[...value.position];
@@ -100,10 +102,11 @@ export class CooHomeWorld{
   }
   homeView(withEvents=false){
     if(!this.life)return null;
-    const state=this.life.snapshot(),brief=task=>task?Object.fromEntries(['id','itemId','actionId','label','source','phase','arrivalAt','endsAt'].filter(key=>task[key]!==undefined).map(key=>[key,task[key]])):null;
-    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),recent:state.recent,items:state.items,garden:{plots:state.garden.plots,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
+    const state=this.life.snapshot(),brief=task=>task?Object.fromEntries(['id','itemId','actionId','cropId','label','source','phase','arrivalAt','endsAt'].filter(key=>task[key]!==undefined).map(key=>[key,task[key]])):null;
+    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),recent:state.recent,items:state.items,garden:{plots:state.garden.plots,crops:state.garden.crops,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
   }
-  toolCatalog(){return{items:(this.life?.catalog??[]).map(item=>({id:item.id,label:item.label,room:item.room,kind:item.kind,actions:item.actions.map(action=>({id:action.id,canonicalId:action.canonical,label:action.label,description:action.description}))}))};}
+  catalogItems(){return(this.life?.catalog??[]).map(item=>{const plot=this.life.state.garden.plots.find(plot=>plot.id===item.id);return{...structuredClone(item),...(plot?{cropId:plot.cropId,cropLabel:CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??null}:{})};});}
+  toolCatalog(){return{crops:structuredClone(CROP_CATALOG),items:this.catalogItems().map(item=>({id:item.id,label:item.label,room:item.room,kind:item.kind,...(item.kind==='plot'?{cropId:item.cropId,cropLabel:item.cropLabel}:{}),actions:item.actions.map(action=>({id:action.id,canonicalId:action.canonical,label:action.label,description:action.description}))}))};}
   chatSystem(){return'你是独立的 coo 家园中的陪伴角色。自然聊天，也可以通过 coo_home 工具安排走动、家具活动或种菜。你只知道家园历史，不具有桌面主会话历史。禁止声称正在控制桌面原角色、修改外观或读写文件。先查 catalog 获取合法动作，不猜物件 ID。工具返回 accepted/queued 仅表示任务已安排，只有当前状态 recent 中 completed 才能说已完成。模型出错或停止回复不会自动撤销已接受的家园任务。\n当前家园：'+JSON.stringify(this.homeView());}
   localTools(source,active){return[{...TOOL,handler:(args,context)=>this.runTool(args,context,{source,active})}];}
   tools(){return[{...TOOL,handler:(args,context={})=>this.runTool(args,context,{source:'desktop'})}];}
@@ -147,7 +150,7 @@ export class CooHomeWorld{
     return{label:zh?'coo家园':'Coo Home',panels:[{id:'home',title:zh?'家园':'Home'}],invoke:async(panel,method,args=[])=>{
       if(panel!=='home'||!Array.isArray(args))throw Error('Unsupported home request.');
       if(method==='status'&&!args.length){await this.tick();return this.status();}
-      if(method==='catalog'&&!args.length)return{items:structuredClone(this.life?.catalog??[])};
+      if(method==='catalog'&&!args.length)return{items:this.catalogItems(),crops:structuredClone(CROP_CATALOG)};
       if(['command','walk','settings'].includes(method)&&args.length===1)return this.control(method,args);
       if(['cancel','pause','resume'].includes(method)&&!args.length)return this.control(method,args);
       if(!this.started)throw safeError('HOME_DISABLED','请先启用家园。');

@@ -29,9 +29,9 @@ for(const mesh of roles('plants')){
 const visuals=createPlotVisuals(beds),initial=visuals.getPlotVisuals();
 const originalResources=resources(),soilOriginal=roles('soil').map(g=>g.children.map(m=>m.material.color.toArray()));
 function snapshot(stage,growth=0,wetness=0){return {plots:plots.map(p=>({id:p.id,cropId:p.cropId,stage,growth,wetness}))};}
-function fixedUnchanged(){for(const [mesh,matrices] of fixed){assert(mesh.visible);assert.deepEqual(mesh.instanceMatrix.array,matrices);}}
+function fixedUnchanged(visible=true){for(const [mesh,matrices] of fixed){assert.equal(mesh.visible,visible);assert.deepEqual(mesh.instanceMatrix.array,matrices);}}
 for(let cycle=0;cycle<40;cycle++){
-  visuals.setPlotVisuals(snapshot('empty'));assert(roles('plants').every(m=>!m.visible));assert(roles('seed').every(m=>!m.visible));fixedUnchanged();
+  visuals.setPlotVisuals(snapshot('empty'));assert(roles('plants').every(m=>!m.visible));assert(roles('seed').every(m=>!m.visible));fixedUnchanged(false);
   visuals.setPlotVisuals(snapshot('seeded'));assert(roles('plants').every(m=>!m.visible));assert(roles('seed').every(m=>m.visible));fixedUnchanged();
   visuals.setPlotVisuals(snapshot('seedling',.15,1));assert(roles('plants').some(m=>m.visible));assert(roles('plants').filter(m=>m.userData.cropFruit).every(m=>!m.visible));
   for(const mesh of roles('plants').filter(m=>m.visible))assert(mesh.instanceMatrix.array.every(Number.isFinite));
@@ -49,5 +49,21 @@ for(const invalid of [
   {plots:[before.plots[0],before.plots[0]]}
 ]){assert.throws(()=>visuals.setPlotVisuals(invalid));assert.deepEqual(visuals.getPlotVisuals(),before);}
 const detached=visuals.getPlotVisuals();detached.plots[0].stage='empty';assert.equal(visuals.getPlotVisuals().plots[0].stage,'ripe');
+// All 64 bed/crop combinations reuse the original geometry and materials.
+for(const crop of plots){
+  visuals.setPlotVisuals({plots:plots.map(plot=>({id:plot.id,cropId:crop.cropId,stage:'ripe',growth:1,wetness:0}))});
+  assert(visuals.getPlotVisuals().plots.every(plot=>plot.cropId===crop.cropId));
+  for(const bed of beds){
+    const shown=[];bed.object.traverse(part=>{if(part.userData.cropRole==='plants'&&part.visible)shown.push(part);});
+    assert(shown.length);assert(shown.every(mesh=>mesh.name.startsWith(crop.cropId+' ')));
+    assert(shown.every(mesh=>mesh.instanceMatrix.array.every(Number.isFinite)));
+  }
+}
+const cached=resources();assert.equal(cached.geometries,originalResources.geometries);assert.equal(cached.materials,originalResources.materials);
+for(let repeat=0;repeat<8;repeat++)for(const crop of plots)visuals.setPlotVisuals({plots:plots.map(plot=>({id:plot.id,cropId:crop.cropId,stage:'growing',growth:.6,wetness:.5}))});
+assert.deepEqual(resources(),cached,'Crop switches must reuse bounded cached instances');
+visuals.setPlotVisuals({plots:plots.map(plot=>({id:plot.id,cropId:null,stage:'empty',growth:0,wetness:0}))});
+assert(roles('plants').every(mesh=>!mesh.visible));assert(roles('supports').every(mesh=>!mesh.visible));
+assert(beds.every(bed=>bed.object.parent===scene),'Empty beds retain their registered scene objects');
 for(const plot of plots)assert.equal(plot.actions.find(a=>a.id==='播种')?.canonicalId,'sow');
 console.log(JSON.stringify({plots:plots.length,plantMeshes:mature.size,supportMeshes:fixed.size,cycles:40,...originalResources}));

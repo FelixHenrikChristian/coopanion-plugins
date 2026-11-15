@@ -78,10 +78,14 @@ try {
   await fixture.invoke('cancel');
   const requestCount = (await provider.audit()).filter(r => r.kind === 'request').length;
 
-  async function finish(itemId, actionId) {
-    const started = await fixture.invoke('command', [{ itemId, actionId }]);
+  async function finish(itemId, actionId, cropId = 'spring-onion') {
+    const started = await fixture.invoke('command', [{ itemId, actionId, ...(actionId === 'sow' ? { cropId } : {}) }]);
     await fixture.advanceTo(started.life.current.endsAt + 10);
   }
+  await fixture.invoke('brainSettings', [{ desktopReports: false }]);
+  for (const id of ['plot-1', 'plot-2', 'plot-3', 'plot-4']) { await finish(id, 'sow'); await finish(id, 'water'); }
+  await fixture.advanceTo(Math.max(...fixture.snapshot().life.garden.plots.map(plot => plot.readyAt ?? 0)) + 10);
+  await fixture.invoke('brainSettings', [{ desktopReports: true }]);
   await finish('plot-1', 'harvest');
   await until(() => events.length === 1, 'hidden harvest report');
   assert.equal(events[0].delivery.trigger, 'piggyback');

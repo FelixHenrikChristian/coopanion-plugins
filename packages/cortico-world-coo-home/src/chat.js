@@ -5,7 +5,10 @@ const plain=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const copy=structuredClone;
 const STATUSES=['running','done','cancelled','error'];
 const initial=()=>({version:1,revision:0,counter:0,turns:[],clients:[]});
-const userRecord=turn=>({version:2,item:{type:'message',id:`home-user-${turn.id}`,role:'user',status:'completed',content:[{type:'input_text',text:turn.userText}]},context:{ts:new Date(turn.at).toISOString()}});
+// The local chat receipt is not a provider resource ID. Responses user input
+// accepts an omitted ID; sending "home-user-*" fails OpenAI's msg_* validation.
+// History is reconstructed here too, so existing saves need no destructive reset.
+const userRecord=turn=>({version:2,item:{type:'message',role:'user',status:'completed',content:[{type:'input_text',text:turn.userText}]},context:{ts:new Date(turn.at).toISOString()}});
 const boundedText=(value,max)=>typeof value==='string'&&value.length<=max;
 export function normalizeChat(raw){
   if(plain(raw)&&Number.isInteger(raw.version)&&raw.version>1)throw safeError('HOME_SAVE_UNSUPPORTED','家园聊天来自较新的插件版本，原文件已保留，请使用新版插件。');

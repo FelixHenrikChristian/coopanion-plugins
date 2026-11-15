@@ -2,7 +2,7 @@
   "tools": [
     {
       "name": "coo_home",
-      "description": "查询和控制独立的 coo 家园。先用 catalog 找到物件和动作，command/walk 返回接受或排队回执，只有 recent 的 completed 表示已完成。本工具不会操作桌面角色或衣装。",
+      "description": "查询和控制独立的 coo 家园。先用 catalog 找到物件、动作与作物。每块空畦都能播种任意目录作物，播种须给 cropId，首次浇水后开始计时。command/walk 返回接受或排队回执，只有 recent 的 completed 表示已完成。本工具不会操作桌面角色或衣装。",
       "tags": [
         "read",
         "act",
@@ -32,6 +32,19 @@
           },
           "actionId": {
             "type": "string"
+          },
+          "cropId": {
+            "type": "string",
+            "enum": [
+              "spring-onion",
+              "daikon",
+              "carrot",
+              "cabbage",
+              "cucumber",
+              "tomato",
+              "eggplant",
+              "pepper"
+            ]
           },
           "position": {
             "type": "array",

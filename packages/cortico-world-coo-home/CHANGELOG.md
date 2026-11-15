@@ -1,5 +1,14 @@
 # Changes
 
+## 0.4.0-alpha.5 — object actions and selectable crops
+
+- Keep the figure's projected size stable across viewing angles while preserving zoom and furniture occlusion.
+- Place separate action bubbles beside the selected object, following the camera and avoiding viewport edges.
+- Start new gardens with eight empty beds; choose any existing crop with its growth time, then change crops after harvest. Preserve real planting progress when migrating old saves.
+- Reuse the existing crop models, trellises and labels in each bed without changing the neighborhood's design.
+- Fix immediate rejection by OpenAI Responses-compatible services: local chat receipt IDs are no longer sent as provider message IDs. Existing conversations continue without clearing history.
+- Classify provider HTTP failures safely and verify requests through the official Responses adapter against an isolated strict endpoint.
+
 ## 0.4.0-alpha.4 — conversation, voice and desktop bridge
 
 - Add independent, persistent home conversation using the host's selected provider, model specification, read-only personality and native SDK authentication.

@@ -103,6 +103,9 @@ try {
   }
 
   await ready();
+  if(process.argv.includes('--garden-only')){
+    report.checks.garden=await verifyBrowserGarden({fixture,page,root,canvas,view,painted,shot});
+  }else{
   const initial = await page.evaluate(() => ({
     count: window.__homeHarness.panel.scene.listItems().length,
     ids: window.__homeHarness.panel.scene.listItems().map((item) => item.id),
@@ -222,7 +225,11 @@ try {
   }
   report.checks.lifecycle = 'Three mounts/unmounts; frame and stream resources stopped';
   report.checks.lifeContract = await verifyLifeContract(fixture);
-  report.checks.gardenContract = await verifyGardenContract(fixture);
+  // The UI has already planted and harvested. Initial-state assertions need a
+  // separate new household, not the mutated save from the browser exercise.
+  const freshGarden=await startFixtureServer({bundlePath:join(packageRoot,'web/panel.js'),stylePath:join(packageRoot,'src/panel.css')});
+  try{report.checks.gardenContract=await verifyGardenContract(freshGarden);}finally{await freshGarden.dispose();}
+  }
   assert.deepEqual(fixture.mutations, []);
   assert.ok(fixture.requests.every((request) => !/\/api\/(?:skin|prefs)$/.test(request.path) && !request.query.includes('role=pet')));
   assert.deepEqual(rejected, []);

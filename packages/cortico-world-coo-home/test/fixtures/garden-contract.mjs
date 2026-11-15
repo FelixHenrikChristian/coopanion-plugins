@@ -9,16 +9,17 @@ export async function verifyGardenContract(fixture) {
   await fixture.invoke('settings', [{ autonomy: false }]);
   await fixture.invoke('cancel');
   const initial = fixture.snapshot();
-  assert.equal(initial.life.version, 2);
+  assert.equal(initial.life.version, 3);
   assert.equal(initial.life.garden.plots.length, 8);
-  assert.ok(initial.life.garden.plots.every(plot => plot.stage === 'ripe'), 'The existing mature allotment must be preserved on first launch');
+  assert.ok(initial.life.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null), 'New homes must offer eight empty plots');
+  assert.equal(initial.life.garden.crops.length, 8);
 
   async function after(time) {
     return time > fixture.snapshot().life.now + 100 ? fixture.advanceTo(time + 10) : fixture.advance(110);
   }
-  async function act(id, actionId) {
+  async function act(id, actionId, cropId) {
     const previous = plotOf(fixture.snapshot(), id);
-    const accepted = await fixture.invoke('command', [{ itemId: id, actionId }]);
+    const accepted = await fixture.invoke('command', [{ itemId: id, actionId, ...(cropId ? { cropId } : {}) }]);
     const task = accepted.life.current;
     assert.equal(plotOf(accepted, id).stage, previous.stage, 'Accepting a gardening task changed the plot immediately');
     assert.ok(!accepted.life.recent.some(event => event.id === task.id && event.outcome === 'completed'));
@@ -32,15 +33,15 @@ export async function verifyGardenContract(fixture) {
   }
 
   const timings = [];
-  for (const original of initial.life.garden.plots) {
+  for (const [index, original] of initial.life.garden.plots.entries()) {
     const id = original.id;
-    const harvested = await act(id, 'harvest');
-    assert.equal(plotOf(harvested, id).stage, 'empty');
-    assert.equal(plotOf(harvested, id).harvests, original.harvests + 1);
     await assert.rejects(fixture.invoke('command', [{ itemId: id, actionId: 'water' }]));
     await assert.rejects(fixture.invoke('command', [{ itemId: id, actionId: 'harvest' }]));
-    const seeded = await act(id, 'sow');
+    const cropId = initial.life.garden.crops[index].id;
+    await assert.rejects(fixture.invoke('command', [{ itemId: id, actionId: 'sow' }]));
+    const seeded = await act(id, 'sow', cropId);
     assert.equal(plotOf(seeded, id).stage, 'seeded');
+    assert.equal(plotOf(seeded, id).cropId, cropId);
     assert.equal(plotOf(seeded, id).needsFirstWater, true);
     await fixture.advance(95 * 60_000);
     assert.equal(plotOf(fixture.snapshot(), id).stage, 'seeded', 'Seeds grew before their first watering');
@@ -63,7 +64,7 @@ export async function verifyGardenContract(fixture) {
   const harvest = await fixture.invoke('command', [{ itemId: id, actionId: 'harvest' }]);
   const duplicate = await fixture.invoke('command', [{ itemId: id, actionId: 'harvest', enqueue: true }]);
   const duplicateId = duplicate.life.queue.at(-1).id;
-  const sow = await fixture.invoke('command', [{ itemId: id, actionId: 'sow', enqueue: true }]);
+  const sow = await fixture.invoke('command', [{ itemId: id, actionId: 'sow', cropId: 'pepper', enqueue: true }]);
   const sowId = sow.life.queue.at(-1).id;
   const water = await fixture.invoke('command', [{ itemId: id, actionId: 'water', enqueue: true }]);
   const waterId = water.life.queue.at(-1).id;
@@ -77,6 +78,7 @@ export async function verifyGardenContract(fixture) {
   assert.equal(sowDone.life.current.id, waterId);
   const waterDone = await after(sowDone.life.current.endsAt);
   assert.ok(['seedling', 'growing'].includes(plotOf(waterDone, id).stage));
+  assert.equal(plotOf(waterDone, id).cropId, 'pepper');
 
   await fixture.invoke('pause');
   const frozen = plotOf(fixture.snapshot(), id);
@@ -107,16 +109,16 @@ export async function verifyGardenContract(fixture) {
   });
   try {
     const state = migrated.snapshot().life;
-    assert.equal(state.version, 2);
+    assert.equal(state.version, 3);
     assert.equal(state.storage.recovery, 'migrated');
     assert.equal(state.current.id, source.current.id);
     assert.deepEqual(state.queue.map(task => task.id), source.queue.map(task => task.id));
     assert.deepEqual(state.items, source.items);
     assert.equal(state.paused, true);
-    assert.ok(state.garden.plots.every(plot => plot.stage === 'ripe'));
-    assert.equal((await migrated.readSave()).version, 2);
+    assert.ok(state.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null));
+    assert.equal((await migrated.readSave()).version, 3);
   } finally { await migrated.dispose(); }
   await fixture.invoke('cancel');
   await fixture.invoke('resume');
-  return { plots: 8, timings, cycle: 'Harvest, sow, first watering, growth and ripening; changes occur only when tasks finish', queue: 'Stale duplicate harvest cancelled with a reason; harvest/sow/water chain completed', persistence: 'Version-1 furniture task and queue preserved, paused growth frozen across restart, offline ripening idempotent' };
+  return { plots: 8, timings, cycle: 'Empty plots, selected crops, first watering and ripening; changes occur only when tasks finish', queue: 'Stale duplicate harvest cancelled; harvest/replant-different-crop/water chain completed', persistence: 'Version-1 furniture task and queue preserved with empty plots, paused growth frozen across restart, offline ripening idempotent' };
 }

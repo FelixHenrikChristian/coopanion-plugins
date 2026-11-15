@@ -7,6 +7,18 @@ export async function settleWithin(promises,ms=5000){let timer;try{return await 
 const plain=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const noop=()=>{};
 const quietLog={trace:noop,debug:noop,info:noop,warn:noop,error:noop,emit:noop,child:()=>quietLog};
+function providerFailure(error){
+  // Only expose a numeric HTTP category, never the provider body, request,
+  // URL, headers, request ID or raw exception (which can contain private text).
+  const status=Number.isInteger(error?.status)?error.status:0;
+  if(status===400||status===422)return safeError('HOME_MODEL_REQUEST',`模型服务拒绝了请求格式（HTTP ${status}），请更新家园插件后重试；已接受的任务仍可在活动列表查看。`);
+  if(status===401)return safeError('HOME_MODEL_AUTH','模型服务认证失败（HTTP 401），请在 Coopanion 模型供应商设置中检查登录或 API Key。');
+  if(status===403)return safeError('HOME_MODEL_ACCESS','模型服务拒绝访问（HTTP 403），请检查当前模型的使用权限。');
+  if(status===404)return safeError('HOME_MODEL_NOT_FOUND','模型服务或模型不存在（HTTP 404），请检查 Coopanion 当前供应商和模型设置。');
+  if(status===429)return safeError('HOME_MODEL_RATE_LIMIT','模型服务达到额度或频率限制（HTTP 429），请检查额度或稍后重试。');
+  if(status>=500&&status<=599)return safeError('HOME_MODEL_UNAVAILABLE',`模型服务暂时不可用（HTTP ${status}），请稍后重试；已接受的任务仍可在活动列表查看。`);
+  return safeError('HOME_MODEL_FAILED','模型服务暂时无法完成回复，请稍后重试；已接受的家园任务仍可在活动列表查看。');
+}
 async function textFile(file,limit,optional=false){
   try{
     if((await stat(file)).size>limit)throw safeError('HOME_MODEL_CONFIG','模型或人格配置过大，暂时无法读取。');
@@ -107,7 +119,7 @@ export class HomeModel{
       if(signal?.aborted||this.closed)throw safeError('HOME_CANCELLED','本次请求已停止。');
       if(timeout.aborted)throw safeError('HOME_MODEL_TIMEOUT','模型回复超时，请稍后重试。');
       if(error.code?.startsWith('HOME_'))throw error;
-      throw safeError('HOME_MODEL_FAILED','模型服务暂时无法完成回复，请稍后重试；已接受的家园任务仍可在活动列表查看。');
+      throw providerFailure(error);
     }
   }
   async close(){this.closed=true;this.controller.abort();this.ended=await settleWithin([...this.inflight]);let stopping;try{stopping=this.registry?.stopAll();}catch{}if(stopping)this.ended=(await settleWithin([stopping]))&&this.ended;return this.ended;}

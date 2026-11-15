@@ -120,13 +120,14 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=
   function update(stamp){
     if(disposed||signal?.aborted)return;
     const i=active;if(!i)return;
-    const foot=scene.project(placement.position);
-    const top=scene.project([placement.position[0],placement.position[1]+placement.height,placement.position[2]]);
+    const projected=scene.projectBillboard(placement.position,placement.height);
+    if(!projected)return;
+    const {foot,pixelHeight}=projected;
     if(placement.worldFacing){
       const toward=scene.project(placement.position.map((value,index)=>value+placement.worldFacing[index]));
       if(Math.abs(toward.x-foot.x)>.05)placement.facing=toward.x>=foot.x?1:-1;
     }
-    const scale=Math.max(.025,Math.min(3,Math.hypot(foot.x-top.x,foot.y-top.y)/UNIT));
+    const scale=Math.max(.025,Math.min(3,pixelHeight/UNIT));
     const mirrored=(i.layout?.facing??placement.facing)!==placement.facing;
     const anchorX=mirrored?W-(i.layout?.x??W/2):(i.layout?.x??W/2),anchorY=i.layout?.y??FLOOR;
     const x=foot.x-anchorX*scale,y=foot.y-anchorY*scale,width=W*scale,height=H*scale;
@@ -140,7 +141,7 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=
     }
     if(foot.visible&&!maskBusy&&stamp-lastMask>=80){
       lastMask=stamp;maskBusy=true;const serial=maskSerial;
-      Promise.resolve(scene.renderActorMask({rect:{x,y,width,height},worldPoint:placement.position,worldHeight:placement.height})).then(mask=>{
+      Promise.resolve(scene.renderActorMask({rect:{x,y,width,height},worldPoint:placement.position,worldHeight:placement.height,facing:'camera'})).then(mask=>{
         if(!mask||disposed||serial!==maskSerial||i!==active)return;
         i.host.style.maskImage=`url("${mask.url}")`;i.host.style.webkitMaskImage=`url("${mask.url}")`;
         i.maskReady=true;

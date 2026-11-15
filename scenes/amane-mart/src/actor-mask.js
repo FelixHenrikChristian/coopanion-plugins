@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {projectActorBillboard} from './actor-projection.js';
 
 // The actor remains inside an independent, sandboxed DOM renderer. This pass
 // supplies only the scene's occlusion; it never reads or stores actor pixels.
@@ -38,11 +39,12 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
     return materials.some(m=>m&&(m.depthTest===false||m.blending===THREE.AdditiveBlending||
       m.transparent&&(m.opacity<.95||m.depthWrite===false)));
   }
-  async function capture({rect,worldPoint,worldHeight}){
+  async function capture({rect,worldPoint,worldHeight,facing='world'}){
     const viewport=getViewport();
     if(!rect||![rect.x,rect.y,rect.width,rect.height,...(worldPoint??[])].every(Number.isFinite)||worldPoint?.length!==3)
       throw new TypeError('An actor mask requires a finite local CSS rectangle and world point');
     if(worldHeight!==undefined&&(!Number.isFinite(worldHeight)||worldHeight<0))throw new TypeError('Actor height must be finite and nonnegative');
+    if(facing!=='world'&&facing!=='camera')throw new TypeError('Actor facing must be world or camera');
     if(rect.width<=0||rect.height<=0||viewport.width<=0||viewport.height<=0||
       rect.x+rect.width<=0||rect.y+rect.height<=0||rect.x>=viewport.width||rect.y>=viewport.height)return null;
     camera.updateMatrixWorld(true);
@@ -55,9 +57,15 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
     const footY=toLocalY(projected);
     material.uniforms.actorFootY.value=footY;
     material.uniforms.actorDepthSlope.value=0;
+    // The image always faces the camera, but its body still occupies vertical
+    // space above the feet. Map that depth range over the billboard's stable
+    // screen height, so a top view neither flattens it under tables nor divides
+    // by the vanishing projection of the world's vertical axis.
     if(worldHeight>0){
       const top=new THREE.Vector3(worldPoint[0],worldPoint[1]+worldHeight,worldPoint[2]).project(camera);
-      const deltaY=toLocalY(top)-footY;
+      const deltaY=facing==='camera'
+        ?projectActorBillboard(camera,viewport,worldPoint,worldHeight).pixelHeight*height/rect.height
+        :toLocalY(top)-footY;
       if(Math.abs(deltaY)>1e-5)material.uniforms.actorDepthSlope.value=(top.z-projected.z)*.5/deltaY;
     }
     target.setSize(width,height);
