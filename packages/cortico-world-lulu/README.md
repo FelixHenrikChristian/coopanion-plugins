@@ -10,7 +10,7 @@
 
 ## 安装与使用
 
-1. 在 Coopanion 的 World 扩展手动安装器填写 **`cortico-world-lulu@0.1.4`**，按宿主提示重启 Core 并启用。也可下载 [GitHub 插件安装包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.4)，解压后选择含 `package.json` 的目录。
+1. 在 Coopanion 的 World 扩展手动安装器填写 **`cortico-world-lulu@0.1.5`**，按宿主提示重启 Core 并启用。也可下载 [GitHub 插件安装包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.5)，解压后选择含 `package.json` 的目录。
 2. 保持桌宠 World 运行，打开 **噜噜 → 噜噜的衣橱**，点击 **安装噜噜角色包**。这一步下载约 147 MB 的角色资源并校验固定 SHA-256；需要网络。
 3. 点击对应照片切换外观。已安装角色时不会自动覆盖；从旧版角色包升级，请将 [0.1.2 角色 ZIP](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2) 导入桌宠原生装扮页，选择替换 `lulu-capybara`。
 
@@ -24,6 +24,8 @@
 
 ## 更新、停用与排查
 
+- **0.1.5** 修复宿主无法读取相对路径照片的问题：四张预览图内嵌在面板脚本中，安装插件即可显示，不依赖额外图片服务。
+
 - **0.1.4** 更新真实素材头像、四张外观卡片及图文说明。完整角色包仍为 **0.1.2**，无需因本次图标更新重新下载动作资源。
 - 0.1.3 修复衣橱被宿主布局压窄；0.1.2 修复思考时持续朝上看的眼神。详见 [更新记录](CHANGELOG.md)。
 - 插件停用时结束安装任务，已安装角色及所选服装保留。删除角色请使用桌宠原生装扮页。
@@ -31,9 +33,9 @@
 
 ## English
 
-Lulu is an independent Coopanion World API 6 extension. Install `cortico-world-lulu@0.1.4`, enable it and open Lulu's wardrobe. Install the separate figure pack, then choose one of the four pictured looks. The orange outfit supports a removable bird bag; pajamas and cardboard dinosaur use their own complete animations. Export a profile to use the same wardrobe in Wardrobe Studio; neither extension depends on the other.
+Lulu is an independent Coopanion World API 6 extension. Install `cortico-world-lulu@0.1.5`, enable it and open Lulu's wardrobe. Install the separate figure pack, then choose one of the four pictured looks. The orange outfit supports a removable bird bag; pajamas and cardboard dinosaur use their own complete animations. Export a profile to use the same wardrobe in Wardrobe Studio; neither extension depends on the other.
 
-Version 0.1.4 replaces the illustrated icon with an aspect-preserving crop from the released figure and bundles outfit photos for the panel and documentation. The animated figure remains version 0.1.2. The figure download is approximately 147 MB and is pinned to a SHA-256 checksum. Existing figures are never silently overwritten; import the figure ZIP in the desktop pet's appearance page to replace an older copy.
+Version 0.1.5 embeds all four previews in the standalone panel script to support the host’s JS/CSS-only asset routes. Version 0.1.4 replaces the illustrated icon with an aspect-preserving crop from the released figure and bundles outfit photos for the panel and documentation. The animated figure remains version 0.1.2. The figure download is approximately 147 MB and is pinned to a SHA-256 checksum. Existing figures are never silently overwritten; import the figure ZIP in the desktop pet's appearance page to replace an older copy.
 
 ## Development and rights
 

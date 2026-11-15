@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Bundle the four outfit photos inside the WebUI entrypoint. Coopanion serves only declared client.js/style.css files; package-relative image URLs are unavailable in the host.
+- Verify the panel against a harness exposing the same flattened entrypoint routes, without a general package asset server. Icon, wardrobe choices and figure resources are unchanged.
+
 ## 0.1.4
 
 - Replace the simplified SVG icon with a square, aspect-preserving crop of the released Lulu figure.

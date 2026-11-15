@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-lulu",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "Lulu capybara companion and removable outfit controls for Coopanion.",
   "license": "MIT",
@@ -34,13 +34,15 @@
     "assets/icon.png",
     "assets/looks.jpg",
     "assets/wardrobe.jpg",
-    "assets/lulu/*.png"
+    "assets/lulu/*.png",
+    "assets/lulu/*.webp"
   ],
   "scripts": {
     "describe": "node scripts/describe.mjs",
     "check": "node scripts/check.mjs",
     "test": "node --test test/*.test.js",
-    "pack:check": "node scripts/pack-check.mjs"
+    "pack:check": "node scripts/pack-check.mjs",
+    "bundle:previews": "node scripts/bundle-previews.mjs"
   },
   "cortico": {
     "kind": "world",

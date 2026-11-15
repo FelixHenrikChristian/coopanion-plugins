@@ -8,4 +8,9 @@ for(const folder of ['src','web','figure','scripts','test'])for(const entry of a
 assert.equal(definition.id,'lulu');assert.deepEqual(JSON.parse(await readFile(new URL('../describe.json',import.meta.url),'utf8')),DESCRIBE);
 const pkg=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));assert(pkg.keywords?.includes('cortico-world'));
 assert.deepEqual(new Set(PROFILE.outfits.flatMap(o=>o.variants.map(v=>v.scheme))),new Set(Object.keys(SCHEMES)));
+// The host only serves the declared JS/CSS entrypoints, not package-relative assets.
+const client=await readFile(new URL('../web/client.js',import.meta.url),'utf8');
+const embedded=client.match(/^const previews=Object\.freeze\((.*)\);$/m);assert(embedded,'Preview photos must be bundled into the standalone entrypoint');
+const previews=JSON.parse(embedded[1]);
+for(const id of Object.keys(SCHEMES))assert.equal(previews[id],'data:image/webp;base64,'+(await readFile(new URL('../assets/lulu/'+id+'.webp',import.meta.url))).toString('base64'));
 console.log('Lulu syntax, declarations and wardrobe mapping passed');
