@@ -1,5 +1,7 @@
 # 截图隐身
 
+**仅供个人本地自用，停止公开发布。** 1.1.1 已因运行时接管桌宠宿主和替换窗口方法而被市场拉黑，见 [维护者通知](https://github.com/FelixHenrikChristian/coopanion-plugins/issues/2)。源码保留用于本地维护，包已设为 `private: true`，不再发布新版、同步市场或申请解封。官方原生功能或正式接口请求见 [Coopanion #723](https://github.com/Pal-AI-Lab/Coopanion/issues/723)。
+
 Coopanion 独立 World 插件，API 6，版本 1.1.1。所有设置只放在本插件的「配置」中。
 
 默认使用 NVIDIA 即时重放兼容模式：平时照常显示桌宠，按截图快捷键时暂时隐藏，避免出现在截图里。要截桌宠时，打开：
@@ -9,6 +11,8 @@ Coopanion 独立 World 插件，API 6，版本 1.1.1。所有设置只放在本�
 完成后关闭该选项即可。保存配置后自动生效。
 
 ## NVIDIA 即时重放兼容
+
+已知限制：微信 Alt+A 有时会先抓取画面，临时隐藏无法保证每次都成功排除。隔离试验中的 DDA-only 排除仍被微信截到，并与本机 NVIDIA 即时重放冲突；该试验没有接入本插件。
 
 旧版使用 Windows 常驻捕获排除标志。NVIDIA 桌面录制会把这种窗口视为受保护内容，从而停止录制；直接改用另一种排除调用也不能保证避开此限制。
 
@@ -40,7 +44,7 @@ Coopanion 独立 World 插件，API 6，版本 1.1.1。所有设置只放在本�
 
 ## 安装
 
-在 Coopanion 的 World 扩展市场搜索 `cortico-world-capture-guard` 安装，按提示重启 Core 并启用。也可下载 [GitHub Release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/capture-guard-v1.1.1) 中的独立安装包。
+以下仅保留个人本地安装说明；当前实现不是市场兼容版本，历史公开版本仅作存档。
 
 包内附有 `install-local.cjs` 和 `install-local.cmd`。解压后双击 CMD，输入包含 Coopanion.exe 的安装目录；完成后重启 Core 进程。安装器会备份扩展清单和部署配置，并只添加本插件的条目。
 
@@ -50,11 +54,11 @@ Coopanion 独立 World 插件，API 6，版本 1.1.1。所有设置只放在本�
 
 支持 Windows 10 2004 及以后版本，目前验证于本机 Coopanion 0.2.18。
 
-通过桌宠 World 已有的 `CORTICO_DESKTOP_PET_HOST` 宿主入口启动独立窗口，复用原版 `runPetHost`、渲染页和预加载脚本。兼容模式在原有截图快捷键投递前隐藏窗口；只有明确关闭兼容模式时才设置捕获保护。原程序的主入口、托盘、原生设置页和桌宠源码均不修改。
+通过改写 Core 进程中的 `CORTICO_DESKTOP_PET_HOST` 接管桌宠宿主命令，复用原版 `runPetHost`、渲染页和预加载脚本，并替换窗口的 `hide`、`show`、`showInactive` 方法。兼容模式尝试在截图快捷键投递前隐藏窗口；只有明确关闭兼容模式时才设置捕获保护。它没有改写安装目录中的程序源码，但改变了宿主的运行行为，属于市场规则中的宿主修改。
 
 独立宿主的运行库复用 Coopanion 已有文件：同一磁盘使用硬链接，跨磁盘时复制。生成文件存放在本插件的数据目录。链接后的运行库不会被插件写入；停用时释放捕获排除及宿主命令接管。原桌宠关闭时，独立宿主也随之关闭。
 
-状态灯只有在窗口确认了 Windows 原生状态后才显示已生效。初次在运行中激活而窗口尚未连接时，会提示重新启动；不会冒充已经排除。
+状态灯确认宿主连接、配置应答及 Windows 原生属性回读，不代表每次截图均已成功排除，也不能证明所有截图工具兼容。初次在运行中激活而窗口尚未连接时，会提示重新启动。
 
 原生窗口验证范围见本节。已验证内容不等于逐一验证微信、QQ、Snipaste、PixPin 和 NVIDIA 的所有具体版本；NVIDIA 即时重放本身需要在你的运行环境中重新开启后复测。被旧保护模式关闭的即时重放不会由插件自动开启。
 

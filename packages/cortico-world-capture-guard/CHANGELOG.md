@@ -1,5 +1,11 @@
 # Changelog
 
+## Local maintenance only
+
+- Discontinue public releases, market synchronization and a block appeal; retain the source for personal local use.
+- Mark the package private and exclude it from shared release artifacts.
+- Document host takeover, WeChat timing limitations and the unsuccessful isolated DDA experiment. Track the native capability request in [Coopanion #723](https://github.com/Pal-AI-Lab/Coopanion/issues/723).
+
 ## 1.1.1
 
 - Retry brief Windows sharing failures when atomically replacing control and status files, without deleting the last valid destination.

@@ -7,11 +7,13 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 | 插件 | 包名 | 源码版本 | 用途 |
 | --- | --- | --- | --- |
 | [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.0 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
-| [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
+| [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 仅本地自用，停止公开发布 |
 | [噜噜](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.3 | 独立的水豚噜噜桌宠衣橱，可摘下包包，并可导入装扮工作室 |
 | [coo家园](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.4.0-alpha.1 | 开发中：已批准雨夜街区与独立角色的基础接入；尚未发布 |
 
 源码版本不等于 npm 或市场已发布版本。只有实际发布的版本才会出现在对应分发渠道。
+
+截图隐身因运行时接管桌宠宿主而被市场拉黑，现仅保留个人本地维护，不再公开发布或申请解封。其 `private: true` 禁止 npm 发布，共享发布打包也会跳过它。原生截图排除功能或正式接口已提交至 [Coopanion #723](https://github.com/Pal-AI-Lab/Coopanion/issues/723)。
 
 ## 安装
 
@@ -51,7 +53,7 @@ npm run pack:all
 
 也可分别运行，例如 `npm test --workspace=cortico-world-wardrobe-studio`。
 
-产物在 `dist/`，不进入 Git。打包不会发布到 npm，也不会修改正在运行的 Coopanion。
+产物在 `dist/`，不进入 Git。共享打包会跳过标记为 private 的包。打包不会发布到 npm，也不会修改正在运行的 Coopanion。
 
 ## 迁移与发布
 

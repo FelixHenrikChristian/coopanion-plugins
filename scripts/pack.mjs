@@ -8,6 +8,7 @@ const npm=process.env.npm_execpath??join(dirname(process.execPath),'node_modules
 for(const entry of await readdir(join(root,'packages'),{withFileTypes:true})){
  if(!entry.isDirectory())continue;
  const dir=join(root,'packages',entry.name),pkg=JSON.parse(await readFile(join(dir,'package.json'),'utf8'));
+ if(pkg.private){console.log(JSON.stringify({name:pkg.name,skipped:'private package; local packaging only'}));continue;}
  const result=spawnSync(process.execPath,[npm,'pack','--ignore-scripts','--json','--pack-destination',dist,'--cache',join(root,'scratch','npm-cache')],{cwd:dir,encoding:'utf8'});
  if(result.status!==0)throw Error(result.stderr||'npm pack failed');
  const packed=JSON.parse(result.stdout)[0];
