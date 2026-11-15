@@ -8,6 +8,11 @@ import {join,resolve,basename,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
+import {installFixtureProvider,fixtureConstitution} from '../test/fixtures/provider-control.mjs';
+import {verifyHostChat} from '../test/fixtures/host-chat.mjs';
+import {verifyHostBrowserChat} from '../test/fixtures/host-browser-chat.mjs';
+import {neutralWave} from '../test/fixtures/audio.mjs';
+import {verifyHostChatReport} from '../test/fixtures/host-chat-report.mjs';
 
 const app=process.env.COOPANION_APP_ROOT;
 if(!app)throw Error('Set COOPANION_APP_ROOT to an installed Coopanion resources/app directory.');
@@ -45,15 +50,19 @@ const kitFigureCode=`export function createFixture(base,{host,scheme,kit}){
 
 try{
   await mkdir(deployment,{recursive:true});await mkdir(join(extensions,'node_modules'),{recursive:true});
+  const provider=await installFixtureProvider({extensions,home:join(temporary,'home')});
   await symlink(root,join(extensions,'node_modules','cortico-world-coo-home'),process.platform==='win32'?'junction':'dir');
-  await writeFile(join(extensions,'package.json'),JSON.stringify({private:true,dependencies:{'cortico-world-coo-home':`file:${root}`}}));
+  await writeFile(join(extensions,'package.json'),JSON.stringify({private:true,dependencies:{'cortico-world-coo-home':`file:${root}`,[provider.moduleName]:'0.0.0'}}));
+  await mkdir(join(deployment,'workspace'),{recursive:true});
+  await writeFile(join(deployment,'workspace','CONSTITUTION.md'),fixtureConstitution+'\n');
   for(const id of ['fixture-round','fixture-kite']){
     const directory=join(figures,id);await mkdir(directory,{recursive:true});
-    await writeFile(join(directory,'figure.json'),JSON.stringify({manifest:2,api:2,id,name:{en:'Neutral test figure',zh:'中性测试图形'},about:{en:'Generated geometric integration fixture',zh:'程序生成的几何测试素材'},entry:'fixture.js',export:'createFixture',axes:[{id:'style',name:{en:'Style'},options:[{id:'plain',name:{en:'Plain'}},{id:'stripe',name:{en:'Stripe'}}]}],presets:[{id:'plain',pick:{style:'plain'}},{id:'stripe',pick:{style:'stripe'}}],vocab:[{id:'stand',kind:'motion',names:{en:[]},about:{en:'Rest'},seconds:1},{id:'walk',kind:'motion',names:{en:[]},about:{en:'Move'},seconds:1}],sounds:{},can:{walk:true}}));
+    await writeFile(join(directory,'figure.json'),JSON.stringify({manifest:2,api:2,id,name:{en:'Neutral test figure',zh:'中性测试图形'},about:{en:'Generated geometric integration fixture',zh:'程序生成的几何测试素材'},entry:'fixture.js',export:'createFixture',axes:[{id:'style',name:{en:'Style'},options:[{id:'plain',name:{en:'Plain'}},{id:'stripe',name:{en:'Stripe'}}]}],presets:[{id:'plain',pick:{style:'plain'}},{id:'stripe',pick:{style:'stripe'}}],vocab:[{id:'stand',kind:'motion',names:{en:[]},about:{en:'Rest'},seconds:1},{id:'walk',kind:'motion',names:{en:[]},about:{en:'Move'},seconds:1}],sounds:{'neutral-tone':{kind:'talk',file:'neutral-tone.wav',volume:.1,repeat:'restart'}},voice:{pitch:1},can:{walk:true}}));
     await writeFile(join(directory,'fixture.js'),id==='fixture-kite'?kitFigureCode:figureCode);
+    await writeFile(join(directory,'neutral-tone.wav'),neutralWave());
   }
   const port=await freePort(),petOrigin=`http://127.0.0.1:${port}`;
-  await writeFile(join(deployment,'config.json'),JSON.stringify({activeProvider:'',language:'zh',web:{host:'127.0.0.1',port:0},companion:{telemetry:false,autoUpdate:false},worlds:{'coo-home':{enabled:true},'desktop-pet':{enabled:true,port,window:{enabled:false},skin:{figure:'fixture-round',scheme:'plain'}}}}));
+  await writeFile(join(deployment,'config.json'),JSON.stringify({activeProvider:'fixture-model',language:'zh',web:{host:'127.0.0.1',port:0},companion:{telemetry:false,autoUpdate:false},worlds:{'coo-home':{enabled:true},'desktop-pet':{enabled:true,port,sound:true,sounds:{volume:25},speech:{enabled:false},window:{enabled:false},skin:{figure:'fixture-round',scheme:'plain'}}}}));
   const version=JSON.parse(await readFile(join(app,'package.json'),'utf8')).version;
   const bootstrap=join(temporary,'bootstrap.mjs');
   await writeFile(bootstrap,`const originalFetch=globalThis.fetch;globalThis.fetch=(input,init)=>{const u=new URL(typeof input==='string'||input instanceof URL?input:input.url);if(!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('External network blocked by integration fixture');return originalFetch(input,init);};await import(${JSON.stringify(pathToFileURL(join(app,'core','boot.ts')).href)});`);
@@ -97,7 +106,9 @@ try{
   const invoke=(method,args=[])=>json(origin,statusPath.replace(/status$/,method),{args});
   await invoke('settings',[{autonomy:false}]);
   await invoke('cancel');
-  if(process.env.COO_HOME_PLAYWRIGHT_MODULE&&process.env.COO_HOME_BROWSER){
+  if(process.argv.includes('--report-only'))report.checks.desktopReport=await verifyHostChatReport({provider,invoke,json,origin,feed,original,until});
+  else report.checks.chat=await verifyHostChat({provider,invoke,json,origin,stream,until,pause,original,configFile:join(deployment,'config.json')});
+  if(!process.argv.includes('--report-only')&&process.env.COO_HOME_PLAYWRIGHT_MODULE&&process.env.COO_HOME_BROWSER){
     const require=createRequire(import.meta.url),{chromium}=require(process.env.COO_HOME_PLAYWRIGHT_MODULE);
     browser=await chromium.launch({executablePath:process.env.COO_HOME_BROWSER,headless:true,args:process.argv.includes('--software')?['--enable-unsafe-swiftshader','--use-angle=swiftshader']:[]});
     const context=await browser.newContext({viewport:{width:1280,height:900}});
@@ -106,6 +117,17 @@ try{
     page.on('pageerror',error=>errors.push(error.message));
     page.on('console',message=>{if(message.type()==='error')logs+='\nBrowser: '+message.text();});
     await page.addInitScript(()=>{
+      const NativeAudioContext=globalThis.AudioContext;
+      window.__neutralAudio={contexts:[],started:0,active:new Set()};
+      if(NativeAudioContext)globalThis.AudioContext=class extends NativeAudioContext{
+        constructor(...args){super(...args);window.__neutralAudio.contexts.push(this);}
+        createBufferSource(){
+          const source=super.createBufferSource(),start=source.start.bind(source),stop=source.stop.bind(source);
+          source.start=(...args)=>{const value=start(...args);window.__neutralAudio.started++;window.__neutralAudio.active.add(source);return value;};
+          source.stop=(...args)=>{try{return stop(...args);}finally{window.__neutralAudio.active.delete(source);}};
+          source.addEventListener('ended',()=>window.__neutralAudio.active.delete(source));return source;
+        }
+      };
       window.__neutralFrames=[];
       addEventListener('message',event=>{
         if(event.data?.t==='error')console.error('Figure fixture:',event.data.message);
@@ -164,6 +186,7 @@ try{
     assert.deepEqual(errors,[],'Official host browser has no page errors');
     report.checks.browser='Official console and Figure frame: continuous kit walking, animated legs, compensated household anchor, pause/resume';
     report.checks.anchor={samples:anchorErrors.length,maxErrorPixels:Math.max(...anchorErrors)};
+    report.checks.chatBrowser=await verifyHostBrowserChat({page,provider,invoke,until});
   }
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:false});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===false,'disconnect event');
@@ -173,7 +196,11 @@ try{
   const pending=await invoke('command',[{itemId:'plot-1',actionId:'harvest'}]);
   assert.equal(pending.life.current.source,'manual');
   assert.equal(pending.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe','Receiving a harvest command must not immediately empty the plot');
+  await provider.plan({id:'world-stop',steps:[{text:'This stopped World reply must not be saved.',delayMs:10000}]});
+  await invoke('chatSend',[{text:'NEUTRAL_WORLD_STOP',clientId:'neutral-world-stop'}]);
+  await until(async()=>(await provider.audit()).some(row=>row.kind==='request'&&row.plan==='world-stop'),'in-flight chat before World stop');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:false});
+  await until(async()=>(await provider.audit()).some(row=>row.kind==='cancelled'&&row.requestId.startsWith('world-stop')),'World stop cancels its model request');
   await until(()=>feed.readyState===WebSocket.CLOSED,'home stream disposal');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:true});
   await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected;},'home reenable');
@@ -182,7 +209,13 @@ try{
   assert.equal(restored.life.autonomy,false);
   assert.equal(restored.life.version,2);
   assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe');
-  report.checks.garden='Eight mature plots preserved; schema-2 harvest task remains pending through a real World stop/start';
+  assert.ok(!restored.chat.messages.some(message=>message.text.includes('must not be saved')));
+  if(report.checks.desktopReport){
+    const events=await json(origin,'/api/events?source=coo-home&limit=1000&archive=1');
+    assert.equal(events.events.filter(event=>event.senderKey===report.checks.desktopReport.senderKey).length,1,'Restart redelivered an official garden report');
+    report.checks.desktopReport.restartDidNotDuplicate=true;
+  }
+  report.checks.garden='Eight plots loaded; an accepted schema-2 harvest task remains pending through a real World stop/start';
   report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){

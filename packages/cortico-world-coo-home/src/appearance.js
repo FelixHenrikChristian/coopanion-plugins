@@ -1,6 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {audioProfile,HostAudioBridge} from './audio-bridge.js';
 
 // These are the desktop-pet server's bounded listen policy, not a general
 // network scan. A random (zero) port needs a future host discovery API.
@@ -90,9 +91,11 @@ export class AppearanceBridge{
   constructor({botDir,readConfig=()=>readPetConfig(botDir),fetcher=fetch,createSocket=url=>new WebSocket(url),retryMs=3000,timeoutMs=1000,onChange=()=>{}}={}){
     Object.assign(this,{readConfig,fetcher,createSocket,retryMs,timeoutMs,onChange});
     this.value=disconnected('家园尚未连接桌宠服务。');this.active=false;this.generation=0;
+    this.audio=new HostAudioBridge({fetcher,timeoutMs:Math.max(timeoutMs,2500)});this.watchVersion=0;this.validatedWatchVersion=0;this.watchSnapshot={};
   }
   snapshot(){return structuredClone(this.value);}
   publish(value){
+    if(!value.connected)this.audio.reset();
     if(JSON.stringify(value)===JSON.stringify(this.value))return;
     this.value=value;this.onChange(this.snapshot());
   }
@@ -116,8 +119,13 @@ export class AppearanceBridge{
     const descriptor={frameUrl:`${origin}/figure-frame?pack=${encodeURIComponent(pack.id)}`,entry,exportName:pack.export,baseUrl,model,
       scheme:schemeOf(pack,skin),skin:skinOf(skin,pack.axes),words:pack.vocab.filter(v=>plain(v)&&text(v.id)&&ID.test(v.id)).map(v=>v.id),can:{walk:pack.can.walk===true}};
     descriptor.key=fingerprint(descriptor);
-    return {connected:true,descriptor};
+    const profile=audioProfile(state,pack,origin,baseUrl,packAsset);
+    return {appearance:{connected:true,descriptor,audio:profile.publicValue},profile,
+      watched:Object.fromEntries(['skin','sound','sounds','speech'].filter(key=>Object.hasOwn(state,key)).map(key=>[key,state[key]]))};
   }
+  speechUnits(args){return this.audio.speechUnits(args);}
+  speechBank(args){return this.audio.speechBank(args);}
+  soundAsset(args){return this.audio.soundAsset(args);}
   async start(){
     if(this.active)return;
     this.active=true;this.generation++;this.controller=new AbortController();
@@ -131,7 +139,7 @@ export class AppearanceBridge{
   }
   async stop(){
     this.active=false;this.generation++;clearInterval(this.timer);this.timer=null;
-    this.controller?.abort();this.closeSocket();this.base=null;this.watchSkin=null;this.refreshAgain=false;
+    this.controller?.abort();this.audio.reset();this.closeSocket();this.base=null;this.watchSnapshot={};this.refreshAgain=false;
     await this.inflight?.catch(()=>{});this.inflight=null;
     this.publish(disconnected('家园已停用。'));
   }
@@ -145,8 +153,10 @@ export class AppearanceBridge{
       if(!this.active||generation!==this.generation||socket!==this.socket)return;
       if(typeof event.data!=='string'||event.data.length>MAX_JSON)return;
       try{
-        const data=JSON.parse(event.data);if(!['init','prefs'].includes(data.t)||!plain(data.skin))return;
-        const key=fingerprint(data.skin);if(key!==this.watchSkin){this.watchSkin=key;void this.refresh();}
+        const data=JSON.parse(event.data);if(!['init','prefs'].includes(data.t))return;
+        const next={...this.watchSnapshot};
+        for(const key of ['skin','sound','sounds','speech'])if(Object.hasOwn(data,key))next[key]=data[key];
+        if(fingerprint(next)!==fingerprint(this.watchSnapshot)){this.watchSnapshot=next;this.watchVersion++;void this.refresh();}
       }catch{}
     };
     const lost=()=>{
@@ -171,17 +181,19 @@ export class AppearanceBridge{
           if(this.base&&origins.includes(this.base)&&this.socket?.readyState===1&&configKey===this.configKey){
             // Still verify live appearance after watcher messages; ordinary
             // periodic retries only read the small host configuration.
-            if(!this.watchSkin||this.watchSkin===this.validatedSkin)return;
+            if(this.watchVersion===this.validatedWatchVersion)return;
           }
           const order=this.base&&origins.includes(this.base)?[this.base,...origins.filter(x=>x!==this.base)]:origins;
           let found=false;
           for(const base of order){
             if(signal.aborted)return;
             try{
-              const watchSkin=this.watchSkin;
-              const appearance=await this.readAppearance(base,config,signal);
+              const watchVersion=this.watchVersion;
+              const {appearance,profile,watched}=await this.readAppearance(base,config,signal);
               if(!this.active||generation!==this.generation)return;
-              this.base=base;this.configKey=configKey;this.validatedSkin=watchSkin;
+              this.base=base;this.configKey=configKey;this.validatedWatchVersion=watchVersion;
+              if(this.watchVersion===watchVersion)this.watchSnapshot=watched;
+              this.audio.configure(profile);
               this.publish(appearance);this.watch(base);found=true;break;
             }catch{if(signal.aborted)return;}
           }

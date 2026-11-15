@@ -18,14 +18,15 @@ class Stream{
 function fixture(){
   const bridges=[];let saved=null,time=1_000_000,failSave=false;
   const storage={recovery:'new',load:async validate=>saved?validate(saved):null,save:async value=>{if(failSave)throw Error('fixture disk failure');saved=structuredClone(value);},flush:async()=>{}};
-  const world=new CooHomeWorld({botDir:'isolated-fixture'}, {clock:()=>time,storage,bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
+  const memory=()=>{let value=null;return{load:async validate=>value?validate(value):null,save:async next=>{value=structuredClone(next);}};};
+  const world=new CooHomeWorld({botDir:'isolated-fixture'}, {clock:()=>time,storage,chatStorage:memory(),brainStorage:memory(),bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
   return{world,bridges,storage,setTime:value=>{time=value;},setFailure:value=>{failSave=value;},saved:()=>saved};
 }
 
-test('life stage declares no AI tools, events or prompt changes',()=>{
-  assert.equal(definition.id,'coo-home');assert.deepEqual(definition.describe,{tools:[],events:[]});
+test('home declares its limited tool and garden reports without changing persona prompts',()=>{
+  assert.equal(definition.id,'coo-home');assert.equal(definition.describe.tools[0].name,'coo_home');assert.equal(definition.describe.events[0].type,'coo-home.garden');
   assert.deepEqual(definition.defaults(),{enabled:false});
-  const {world}=fixture();assert.deepEqual(world.tools(),[]);assert.equal(world.envPromptVars(),null);
+  const {world}=fixture();assert.equal(world.tools()[0].name,'coo_home');assert.equal(world.envPromptVars(),null);
   assert.equal(world.webUi().panels[0].id,'home');assert.equal(world.status().phase,'life');
   assert.equal(world.status().appearance.connected,false);
 });

@@ -147,3 +147,72 @@ test('JSON response size is bounded and redirect policy reaches the fetcher',asy
   const f=fixture({fetcher:async(url,init)=>{assert.equal(init.redirect,'error');return new Response('{}',{headers:{'content-type':'application/json','content-length':String(5*1024*1024)}});}});
   await assert.rejects(()=>f.bridge.json('http://127.0.0.1:7797/api/state',new AbortController().signal),/too large/);
 });
+
+test('sound-only preferences update a separate profile without changing the Figure descriptor',async t=>{
+  const f=fixture();t.after(()=>f.bridge.stop());
+  Object.assign(f.state,{sound:true,sounds:{volume:45,talk:true,move:false},speech:{enabled:true,pitchHz:430,unitsPerSecond:11}});
+  f.catalog()[0].sounds={note:{file:'note.wav',kind:'talk',volume:.4},invalid:{file:'https://example.com/private.wav',kind:'talk'}};
+  f.catalog()[0].voice={pitch:1.2,unrelated:'not-exported'};
+  await f.bridge.start();const before=f.bridge.snapshot();
+  assert.equal(before.audio.enabled,true);assert.equal(before.audio.volume,45);assert.equal(before.audio.kinds.move,false);
+  assert.equal(before.audio.voice.pitch,1.2);assert.deepEqual(before.audio.sounds.map(sound=>sound.name),['note']);
+  assert(!JSON.stringify(before.audio).includes('private.wav'));assert(!JSON.stringify(before.audio).includes('not-exported'));
+  f.state.sound=false;f.state.sounds.volume=0;
+  f.sockets[0].dispatchEvent(new MessageEvent('message',{data:JSON.stringify({t:'prefs',sound:false,sounds:f.state.sounds})}));
+  await settle(f.bridge);const after=f.bridge.snapshot();
+  assert.equal(after.descriptor.key,before.descriptor.key);assert.notEqual(after.audio.key,before.audio.key);
+  assert.equal(after.audio.assetKey,before.audio.assetKey);assert.equal(after.audio.enabled,false);assert.equal(after.audio.volume,0);
+  assert(f.sockets.every(socket=>socket.sent.length===0));
+});
+
+test('audio proxy accepts only selected sound names and fixed speech resources',async t=>{
+  const samples=new Uint8Array([82,73,70,70,0,0,0,0,87,65,86,69]);
+  const f=fixture({fetcher:async(url,init,{state,catalog})=>{
+    if(url.endsWith('/api/state'))return Response.json(state);
+    if(url.endsWith('/api/figures'))return Response.json(catalog);
+    if(url.endsWith('/model.json'))return Response.json({});
+    if(url.endsWith('/api/speech')){assert.equal(init.method,'POST');assert.deepEqual(JSON.parse(init.body),{text:'abc'});return Response.json({units:[{at:0,key:'a',tone:0,stress:false,weak:false,pos:0,of:1,end:'.'}]});}
+    if(url.endsWith('/web/speech/zh.json'))return Response.json({hz:400,units:{a:[0,.08]}});
+    if(url.endsWith('/note.wav')||url.endsWith('/web/speech/zh.ogg'))return new Response(samples,{headers:{'content-type':'audio/wav'}});
+    throw Error('Unapproved URL');
+  }});t.after(()=>f.bridge.stop());f.state.sound=true;f.catalog()[0].sounds={note:{file:'note.wav',kind:'talk',volume:.5}};
+  await f.bridge.start();const key=f.bridge.snapshot().audio.key,count=f.requests.length;
+  for(const name of ['../note.wav','https://example.com/sound.wav','not-declared'])await assert.rejects(()=>f.bridge.soundAsset({key,name}));
+  await assert.rejects(()=>f.bridge.speechBank({key,part:'../../file'}));assert.equal(f.requests.length,count);
+  assert.equal((await f.bridge.speechUnits({key,text:'abc'})).units.length,1);
+  assert.equal((await f.bridge.speechBank({key,part:'manifest'})).hz,400);
+  assert.equal((await f.bridge.soundAsset({key,name:'note'})).$binary.mime,'audio/wav');
+  await f.bridge.speechBank({key,part:'audio'});const cached=f.requests.length;
+  await f.bridge.soundAsset({key,name:'note'});assert.equal(f.requests.length,cached);
+  assert(f.requests.every(request=>request.redirect==='error'));
+  assert.deepEqual(f.requests.filter(request=>request.method==='POST').map(request=>new URL(request.url).pathname),['/api/speech']);
+  await f.bridge.stop();await assert.rejects(()=>f.bridge.soundAsset({key,name:'note'}));
+});
+
+test('audio response is invalidated if the selected profile changes during fetch',async t=>{
+  let release;const gate=new Promise(resolve=>{release=resolve;});
+  const f=fixture({fetcher:async(url,init,{state,catalog})=>{
+    if(url.endsWith('/api/state'))return Response.json(state);
+    if(url.endsWith('/api/figures'))return Response.json(catalog);
+    if(url.endsWith('/note.wav')){await gate;return new Response(new Uint8Array(16),{headers:{'content-type':'audio/wav'}});}
+    return Response.json({});
+  }});t.after(()=>f.bridge.stop());f.state.sound=true;f.catalog()[0].sounds={note:{file:'note.wav',kind:'talk'}};
+  await f.bridge.start();const key=f.bridge.snapshot().audio.key;
+  const pending=f.bridge.soundAsset({key,name:'note'});const rejected=assert.rejects(pending,/家园声音暂不可用/);
+  f.state.sound=false;f.sockets[0].dispatchEvent(new MessageEvent('message',{data:JSON.stringify({t:'prefs',sound:false})}));
+  await settle(f.bridge);release();await rejected;assert.equal(f.bridge.audio.cacheSize,0);
+});
+
+test('oversized audio and malformed speech units fail without forwarding private errors',async t=>{
+  const f=fixture({fetcher:async(url,init,{state,catalog})=>{
+    if(url.endsWith('/api/state'))return Response.json(state);
+    if(url.endsWith('/api/figures'))return Response.json(catalog);
+    if(url.endsWith('/api/speech'))return Response.json({units:[{at:999,key:'a',tone:0}]});
+    if(url.endsWith('/note.wav'))return new Response('private response',{headers:{'content-type':'audio/wav','content-length':String(9*1024*1024)}});
+    return Response.json({});
+  }});t.after(()=>f.bridge.stop());f.catalog()[0].sounds={note:{file:'note.wav',kind:'talk'}};await f.bridge.start();
+  const key=f.bridge.snapshot().audio.key;
+  await assert.rejects(()=>f.bridge.soundAsset({key,name:'note'}),/^Error: 家园声音暂不可用。$/);
+  await assert.rejects(()=>f.bridge.speechUnits({key,text:'abc'}),/^Error: 家园声音暂不可用。$/);
+  const count=f.requests.length;await assert.rejects(()=>f.bridge.speechUnits({key,text:'x'.repeat(2001)}));assert.equal(f.requests.length,count);
+});

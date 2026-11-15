@@ -75,6 +75,10 @@ export function normalizeLifeState(raw,layout,now){
   return{version:2,layoutVersion:layout.layoutVersion??1,revision:Math.max(0,Math.floor(scalar(migrated.revision,0))),counter:Math.max(0,Math.floor(scalar(migrated.counter,0))),updatedAt:Math.min(now,migrated.updatedAt),
     position:clone(migrated.position),needs:Object.fromEntries(NEEDS.map(key=>[key,clamp(scalar(migrated.needs[key],75))])),paused:migrated.paused===true,pausedAt:stamp(migrated.pausedAt),autonomy:migrated.autonomy!==false,
     manualUntil:stamp(migrated.manualUntil),nextAutoAt:stamp(migrated.nextAutoAt),autoIndex:Math.max(0,Math.floor(scalar(migrated.autoIndex,0))),items,current,queue:(migrated.queue??[]).slice(0,MAX_QUEUE).map(task),garden:migrated.version<2?createGarden(layout):normalizeGarden(migrated.garden,layout,offset),
+    receipts:(Array.isArray(migrated.receipts)?migrated.receipts:[]).slice(-128).map(value=>{
+      if(!plain(value)||typeof value.key!=='string'||value.key.length>96||typeof value.fingerprint!=='string'||value.fingerprint.length>1024||!plain(value.result)||!['accepted','queued','cancelled','paused','resumed'].includes(value.result.outcome)||value.result.taskId!==undefined&&!/^task-\d+$/.test(value.result.taskId))throw Error('Invalid home command receipt');
+      return{key:value.key,fingerprint:value.fingerprint,result:{ok:true,outcome:value.result.outcome,...(value.result.taskId?{accepted:true,taskId:value.result.taskId}:{})}};
+    }),
     recent:(Array.isArray(migrated.recent)?migrated.recent:[]).filter(v=>plain(v)&&/^task-\d+$/.test(v.id)&&allowedActions.has(v.actionId)&&['completed','cancelled','superseded'].includes(v.outcome)).slice(-MAX_EVENTS).map(v=>({id:v.id,itemId:itemIds.has(v.itemId)?v.itemId:null,actionId:v.actionId,outcome:v.outcome,at:stamp(v.at),...(typeof v.reason==='string'?{reason:v.reason.slice(0,160)}:{})}))};
 }
 
@@ -82,7 +86,7 @@ export class HomeLife{
   constructor({layout,state=null,clock=()=>Date.now()}={}){
     this.layout=layout;this.clock=clock;this.navigation=new HomeNavigation(layout);this.catalog=buildCatalog(layout);
     this.itemMap=new Map(this.catalog.map(item=>[item.id,item]));const now=clock();
-    this.state=state?normalizeLifeState(state,layout,now):{version:2,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],garden:createGarden(layout)};
+    this.state=state?normalizeLifeState(state,layout,now):{version:2,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],receipts:[],garden:createGarden(layout)};
     const grounded=this.navigation.ground(this.state.position);if(!grounded)throw Error('Saved home position is no longer walkable.');this.state.position=grounded;
     this.navigation.prepare(grounded);
     for(const id of Object.keys(layout.defaultFurnitureState??{}))this.itemState(id);
@@ -107,6 +111,7 @@ export class HomeLife{
   }
   snapshot(){
     const state=clone(this.state),now=state.updatedAt,time=state.paused?state.pausedAt:now;
+    delete state.receipts;
     if(state.current){state.current.phase=time<state.current.arrivalAt?'walking':'acting';state.current.progress=time<state.current.arrivalAt?Math.min(1,(time-state.current.startedAt)/Math.max(1,state.current.arrivalAt-state.current.startedAt)):Math.min(1,(time-state.current.arrivalAt)/Math.max(1,state.current.endsAt-state.current.arrivalAt));}
     return{...state,garden:gardenSnapshot(this.state.garden,time),now,simulation:this.visible?'visible':'background',offline:clone(this.offline)};
   }
@@ -203,6 +208,20 @@ export class HomeLife{
       if(this.state.queue.length>=MAX_QUEUE)throw Error('家园队列已满，请先完成或取消一些任务。');this.state.queue.push(task);
     }else{this.abandon('superseded',now);this.rebasePause(now);this.begin(task,now);}
     this.state.manualUntil=(this.state.paused?this.state.pausedAt:now)+15_000;this.touch();return this.snapshot();
+  }
+  autonomous({operation='command',itemId,actionId,position}={}){
+    this.advance();const now=this.state.updatedAt;
+    if(this.state.paused||!this.state.autonomy||now<this.state.manualUntil||this.state.current?.source==='manual'||this.state.queue.some(task=>task.source==='manual'))throw Error('手动任务优先，AI 计划已过期。');
+    let task;
+    if(operation==='walk'){
+      const grounded=this.navigation.ground(position);if(!grounded)throw Error('请选择可以行走的地面。');
+      task=this.makeTask(null,'walk','autonomous',now,grounded);
+    }else if(operation==='command'&&typeof itemId==='string'&&typeof actionId==='string'){
+      task=this.makeTask(itemId,actionId,'autonomous',now);
+      if(itemId.startsWith('plot-'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical);
+    }else throw Error('AI 只能安排当前家园支持的动作。');
+    this.navigation.route(this.state.position,task.destination);
+    this.abandon('superseded',now);this.begin(task,now);this.touch();return this.snapshot();
   }
   walk({position,enqueue=false}={}){
     this.advance();const grounded=this.navigation.ground(position);if(!grounded)throw Error('请选择可以行走的地面。');

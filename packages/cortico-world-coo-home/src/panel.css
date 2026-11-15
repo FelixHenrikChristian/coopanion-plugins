@@ -6,6 +6,7 @@
 .coo-home-root .coo-home-status{font-size:12px;color:#c5c9ce;max-width:65%;text-shadow:0 1px 5px #000}
 .coo-home-root .coo-home-toolbar button{pointer-events:auto;margin-left:auto;padding:6px 11px;border-radius:7px;border:1px solid #a0b3c244;color:#e4e5dd;background:#15232bd9;cursor:pointer}
 .coo-home-root .coo-home-toolbar button:focus-visible{outline:2px solid #ffcc8d;outline-offset:3px}
+.coo-home-root .coo-home-toolbar button+button{margin-left:0}
 .coo-home-root .coo-home-item{position:absolute;bottom:126px;left:16px;max-width:60%;padding:9px 13px;background:#172029e8;border:1px solid #c6aa7455;border-radius:8px;z-index:9;font-size:13px;pointer-events:none}
 .coo-home-root .coo-home-figure-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
 .coo-home-root .coo-home-actor{position:absolute;pointer-events:none;mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;-webkit-mask-repeat:no-repeat}
@@ -36,3 +37,33 @@
 .coo-home-root .coo-home-controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .coo-home-root .coo-home-controls-row button{padding:5px 8px}
 @media(max-width:600px){.coo-home-root .coo-home-controls{max-width:calc(100% - 32px);bottom:66px}.coo-home-root .coo-home-item{bottom:180px;max-width:calc(100% - 60px)}.coo-home-root .coo-home-menu{top:52px;max-height:55%;overflow:auto}}
+.coo-home-root .coo-home-chat{position:absolute;z-index:10;top:56px;right:16px;bottom:72px;width:350px;max-width:calc(100% - 32px);box-sizing:border-box;padding:13px;display:flex;flex-direction:column;gap:9px;overflow:auto;background:#142029f5;border:1px solid #ac98756b;border-radius:10px;box-shadow:0 8px 28px #0006;font-size:12px}
+.coo-home-root .coo-home-chat[hidden]{display:none}
+.coo-home-root .coo-home-chat-head{display:flex;align-items:center;justify-content:space-between;font-size:14px;color:#f3d2a0}
+.coo-home-root .coo-home-chat-head button{font-size:18px;padding:0 6px}
+.coo-home-root .coo-home-chat button,.coo-home-root .coo-home-chat textarea,.coo-home-root .coo-home-chat input[type=number]{font:inherit;color:#eee4d5;border:1px solid #98b0bb40;border-radius:6px;background:#263741;padding:7px 9px}
+.coo-home-root .coo-home-chat button{cursor:pointer}
+.coo-home-root .coo-home-chat button:disabled{opacity:.45;cursor:default}
+.coo-home-root .coo-home-chat :is(button,textarea,input):focus-visible{outline:2px solid #ffd291;outline-offset:2px}
+.coo-home-root .coo-home-chat-note,.coo-home-root .coo-home-brain-form p{margin:0;color:#aebfc6;font-size:11px;line-height:1.65}
+.coo-home-root .coo-home-chat-log{min-height:100px;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:4px 2px}
+.coo-home-root .coo-home-chat-message{padding:8px 10px;border-radius:7px;margin-bottom:9px;background:#23323b}
+.coo-home-root .coo-home-chat-message.from-user{background:#293e45;margin-left:20px}
+.coo-home-root .coo-home-chat-message.from-home{margin-right:20px}
+.coo-home-root .coo-home-chat-message span{font-size:10px;color:#ccac7e}
+.coo-home-root .coo-home-chat-message p{margin:5px 0 0;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.coo-home-root .coo-home-chat-empty{color:#aebfc6;line-height:1.8;margin:12px 4px}
+.coo-home-root .coo-home-chat-partial{padding:8px;max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#d5e5df;line-height:1.7;border-left:2px solid #b2af79}
+.coo-home-root .coo-home-chat-status{font-size:11px;line-height:1.6;color:#d6bd96}
+.coo-home-root .coo-home-chat-form textarea{box-sizing:border-box;width:100%;min-height:60px;max-height:130px;resize:vertical;line-height:1.6}
+.coo-home-root .coo-home-chat-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.coo-home-root .coo-home-chat-actions button:last-child{margin-left:auto}
+.coo-home-root .coo-home-chat details{border-top:1px solid #ac987540;padding-top:10px;flex-shrink:0}
+.coo-home-root .coo-home-chat summary{cursor:pointer;color:#d6bd96}
+.coo-home-root .coo-home-brain-form{display:grid;gap:10px;margin-top:12px}
+.coo-home-root .coo-home-brain-form label{display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.6}
+.coo-home-root .coo-home-brain-form label:has(input[type=checkbox]){justify-content:flex-start}
+.coo-home-root .coo-home-brain-form input[type=number]{width:56px;padding:5px}
+.coo-home-root .coo-home-brain-form input[type=checkbox]{accent-color:#e5b573}
+.coo-home-root .coo-home-brain-usage{font-size:11px;line-height:1.6;color:#b2c1ba}
+@media(max-width:600px){.coo-home-root .coo-home-chat{top:52px;bottom:64px;width:calc(100% - 32px)}.coo-home-root .coo-home-title{display:none}.coo-home-root .coo-home-status{flex:1;max-width:none}}

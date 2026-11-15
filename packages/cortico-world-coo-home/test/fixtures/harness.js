@@ -97,6 +97,12 @@ async function mount() {
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
+    async invokeBinary(method, args = []) {
+      metrics.invokes.push({ method, args, binary: true });
+      const response = await fetch('/invoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ method, args }), signal: controller.signal });
+      if (!response.ok) throw new Error(await response.text());
+      return response.blob();
+    },
     timeout(fn, ms) { const token = setTimeout(fn, ms); return own({ dispose() { clearTimeout(token); } }); },
     interval(fn, ms) { const token = setInterval(fn, ms); return own({ dispose() { clearInterval(token); } }); },
     notifyOnUnmount() {},

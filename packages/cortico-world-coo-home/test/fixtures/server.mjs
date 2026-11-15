@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import { CooHomeWorld } from '../../src/index.js';
+import { neutralWave, neutralAudioProfile, neutralSpeechUnits } from './audio.mjs';
 
 const fixtureRoot = new URL('./', import.meta.url);
 const readFixture = (name) => readFile(new URL(name, fixtureRoot));
@@ -24,7 +25,7 @@ function close(server) {
   });
 }
 
-export async function startFixtureServer({ bundlePath, stylePath, initialSave = null, initialTime = null }) {
+export async function startFixtureServer({ bundlePath, stylePath, initialSave = null, initialTime = null, prepare = null, worldOptions = {}, worldHost = {} }) {
   const requests = [];
   const streams = new Set();
   const streamReceivers = new Map();
@@ -34,6 +35,8 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
   let petOrigin;
   let hostOrigin;
   let disconnected = false;
+  let audioRevision = 0;
+  let audioSettings = {};
   let world;
   let appearanceChanged = () => {};
   let offset = Number.isFinite(initialTime) ? initialTime - Date.now() : 0;
@@ -49,6 +52,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
     await mkdir(join(temporary, 'coo-home'), { recursive: true });
     await writeFile(join(temporary, 'coo-home/state.json'), JSON.stringify(initialSave));
   }
+  await prepare?.({ directory: temporary });
   const reply = (response, code, body, type = 'application/json') => {
     response.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'access-control-allow-origin': '*' });
     response.end(type === 'application/json' ? JSON.stringify(body) : body);
@@ -57,6 +61,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
     ? { connected: false, descriptor: null, message: 'Fixture service disconnected' }
     : {
       connected: true,
+      audio: neutralAudioProfile(`neutral-${currentPack}-${currentScheme}-${audioRevision}`, audioSettings),
       descriptor: {
         key: `${currentPack}:${currentScheme}`, frameUrl: `${petOrigin}/figure-frame?pack=${currentPack}`,
         entry: `${petOrigin}/fixture-entry.js`, exportName: 'createFigure', baseUrl: `${petOrigin}/`,
@@ -67,13 +72,21 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
   const snapshot = () => world.status();
   async function startWorld() {
     world = new CooHomeWorld({ botDir: temporary, dataDir: temporary }, {
+      ...worldOptions,
       clock,
       bridgeFactory({ onChange }) {
         appearanceChanged = onChange;
-        return { snapshot: appearance, async start() { onChange(); }, async stop() {} };
+        const valid = args => { if (args?.key !== appearance().audio?.key) throw Error('Stale neutral audio profile'); };
+        const binary = () => ({ $binary: { mime: 'audio/wav', base64: neutralWave().toString('base64') } });
+        return {
+          snapshot: appearance, async start() { onChange(); }, async stop() {},
+          async speechUnits(args) { valid(args); return neutralSpeechUnits(args.text); },
+          async speechBank(args) { valid(args); return args.part === 'manifest' ? { hz: 400, units: { a: [0, .08] } } : binary(); },
+          async soundAsset(args) { valid(args); if (args.name !== 'neutral-tone.wav') throw Error('Unknown neutral sound'); return binary(); },
+        };
       },
     });
-    await world.start();
+    await world.start(worldHost);
     for (const [method, counter] of [['route', 'detailed'], ['preparedRoute', 'prepared']]) {
       const original = world.life.navigation[method];
       if (typeof original !== 'function') throw new Error(`Missing real navigation method: ${method}`);
@@ -145,7 +158,9 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
         let body = '';
         for await (const part of request) { body += part; if (body.length > 8192) throw new Error('Fixture request too large'); }
         const value = JSON.parse(body);
-        return reply(response, 200, await world.webUi('en').invoke('home', value.method, value.args || []));
+        const result = await world.webUi('en').invoke('home', value.method, value.args || []);
+        if (result?.$binary) return reply(response, 200, Buffer.from(result.$binary.base64, 'base64'), result.$binary.mime);
+        return reply(response, 200, result);
       }
       if (url.pathname === '/stream-input' && request.method === 'POST') {
         let body = '';
@@ -196,6 +211,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
       if (!['fixture-round', 'fixture-kite'].includes(pack) || !['plain', 'stripe'].includes(scheme)) throw new Error('Unknown neutral fixture');
       currentPack = pack; currentScheme = scheme; disconnected = false; appearanceChanged();
     },
+    setAudio(settings) { audioSettings = structuredClone(settings); audioRevision++; appearanceChanged(); },
     disconnect() { disconnected = true; appearanceChanged(); },
     reconnect() { disconnected = false; appearanceChanged(); },
     get streamCount() { return streams.size; },

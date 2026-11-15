@@ -8,6 +8,7 @@ import { verifyBrowserLife } from './fixtures/browser-life.mjs';
 import { verifyLifeContract } from './fixtures/life-contract.mjs';
 import { verifyBrowserGarden } from './fixtures/browser-garden.mjs';
 import { verifyGardenContract } from './fixtures/garden-contract.mjs';
+import { verifyBrowserAudio } from './fixtures/browser-audio.mjs';
 
 // Supply Playwright/browser locations through the environment when not installed
 // locally. No development-machine paths or user figure names belong in this file.
@@ -204,9 +205,14 @@ try {
   await painted(4);
   assert.ok(await page.evaluate((frames) => window.__homeHarness.panel.scene.getRendererInfo().frames > frames, hiddenFrames.scene));
   report.checks.hiddenPanel = 'Scene and role stop drawing while the mounted panel is hidden, then resume';
+  report.checks.audio = await verifyBrowserAudio({ fixture, page, root });
 
   for (let cycle = 0; cycle < 3; cycle++) {
-    await page.evaluate(() => window.__homeHarness.unmount());
+    await page.evaluate(async () => { window.__lastFixtureAudio = window.__homeHarness.panel.audio; await window.__homeHarness.unmount(); });
+    const disposedAudio = await page.evaluate(() => window.__lastFixtureAudio.getState());
+    assert.equal(disposedAudio.disposed, true);
+    assert.ok(['closed', 'absent'].includes(disposedAudio.contextState));
+    assert.equal(disposedAudio.playing, 0);
     const stopped = await page.evaluate(() => ({ frames: window.__homeHarness.detachedFrames, callbacks: window.__homeHarness.metrics.frameCallbacks, messages: window.__homeHarness.metrics.messages.length }));
     await page.waitForTimeout(350);
     assert.deepEqual(await page.evaluate(() => ({ frames: window.__homeHarness.detachedFrames, callbacks: window.__homeHarness.metrics.frameCallbacks, messages: window.__homeHarness.metrics.messages.length })), stopped);

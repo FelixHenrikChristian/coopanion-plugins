@@ -4,7 +4,7 @@ const W=512,H=512,FLOOR=448,UNIT=256;
 const finite=(n,fallback=0)=>Number.isFinite(n)?n:fallback;
 const fallbackWords={sleep:['sleep','sit','stand'],sit:['sit','stand'],walk:['walk','stand'],run:['run','walk','stand']};
 
-export function createFigureLayer({root,scene,signal,onStatus=()=>{}}){
+export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=>{}}){
   let active=null,pending=null,generation=0,disposed=false,frameCount=0;
   let placement={position:[.95,.327,9.25],height:1.25,word:'stand',facing:1,worldFacing:null};
   let requestedKey=null,lastTick=0,lastMask=0,maskBusy=false,maskSerial=0;
@@ -94,6 +94,11 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{}}){
         remove(active);active=instance;pending=null;clearTimeout(instance.timeout);
         maskSerial++;lastMask=0;onStatus('已跟随当前角色');
       }
+      if(instance===active)for(const sound of Array.isArray(m.sounds)?m.sounds.slice(0,16):[]){
+        if(typeof sound?.name!=='string'||sound.name.length>128||!['move','touch','face','snore','talk'].includes(sound.kind))continue;
+        const args=(Array.isArray(sound.args)?sound.args:[]).slice(0,4).filter(value=>typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value)||typeof value==='string'&&value.length<=16);
+        try{onSound({name:sound.name,kind:sound.kind,args});}catch{}
+      }
     }else if(m.t==='error'){
       // Pack error text may contain private module paths; never forward it.
       if(pending===instance){remove(pending);pending=null;requestedKey=null;}
@@ -156,6 +161,6 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{}}){
     signal?.removeEventListener('abort',cancel);window.removeEventListener('message',message);
     remove(pending);remove(active);pending=null;active=null;layer.remove();
   }
-  return {setAppearance,setPlacement,update,dispose,getCapabilities:()=>({words:[...(active?.words??[])],walk:!!active?.descriptor.can?.walk&&!active?.walkUnsupported}),getState:()=>({ready:!!active?.ready,loading:!!pending,
+  return {setAppearance,setPlacement,update,dispose,talk(){if(!disposed&&active?.ready)post(active,{t:'talk'});},getCapabilities:()=>({words:[...(active?.words??[])],walk:!!active?.descriptor.can?.walk&&!active?.walkUnsupported}),getState:()=>({ready:!!active?.ready,loading:!!pending,
     maskReady:!!active?.maskReady,frames:frameCount,generation,word:active?.word??null,placement:structuredClone(placement),disposed})};
 }

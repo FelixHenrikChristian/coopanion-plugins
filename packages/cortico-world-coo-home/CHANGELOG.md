@@ -1,5 +1,14 @@
 # Changes
 
+## 0.4.0-alpha.4 — conversation, voice and desktop bridge
+
+- Add independent, persistent home conversation using the host's selected provider, model specification, read-only personality and native SDK authentication.
+- Execute validated home tools through cancellable bounded model turns; preserve accepted tasks and let newer user commands supersede stale chat actions.
+- Add optional AI plans with durable request budgets and manual priority; keep local daily routines available without model calls.
+- Expose the `coo_home` tool to desktop conversation and send deduplicated garden summaries with cooldown and separate wake-up limits.
+- Follow current voice settings and declared audio through a restricted local proxy. Own the audio context, stop when hidden and dispose on unmount.
+- Add a collapsible conversation/settings panel while preserving the approved scene and existing character assets.
+
 ## 0.4.0-alpha.3 — gardening milestone
 
 - Add sowing, watering, growth and harvesting to the eight existing plots, with 30–90 minute crop cycles and no economy or withering.

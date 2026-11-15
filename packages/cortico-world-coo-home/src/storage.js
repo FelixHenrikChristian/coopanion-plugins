@@ -12,15 +12,16 @@ async function replace(source,target){
   }
 }
 export class HomeStore{
-  constructor(dataDir){
+  constructor(dataDir,{name='state',limit=LIMIT}={}){
     if(typeof dataDir!=='string'||!dataDir)throw Error('Home storage requires a deployment data directory.');
-    this.directory=join(resolve(dataDir),'coo-home');this.tail=Promise.resolve();this.recovery='new';this.blocked=null;
+    if(!/^[a-z][a-z-]{0,24}$/.test(name)||!Number.isInteger(limit)||limit<1024||limit>8*LIMIT)throw Error('Invalid home store options.');
+    this.name=name;this.limit=limit;this.directory=join(resolve(dataDir),'coo-home');this.tail=Promise.resolve();this.recovery='new';this.blocked=null;
   }
   async load(validate){
     this.blocked=null;let chosen=null,invalid=false;
-    for(const [name,recovery] of [['state.json','normal'],['state.pending.json','pending'],['state.backup.json','backup']]){
+    for(const [name,recovery] of [[`${this.name}.json`,'normal'],[`${this.name}.pending.json`,'pending'],[`${this.name}.backup.json`,'backup']]){
       try{
-        const file=join(this.directory,name);if((await stat(file)).size>LIMIT)throw saveError('HOME_SAVE_LIMIT','家园存档超出当前版本可读取的大小。进度文件已保留，请使用兼容版本恢复。');
+        const file=join(this.directory,name);if((await stat(file)).size>this.limit)throw saveError('HOME_SAVE_LIMIT','家园存档超出当前版本可读取的大小。进度文件已保留，请使用兼容版本恢复。');
         const raw=JSON.parse(await readFile(file,'utf8')),state=validate(raw);
         // Inspect every candidate before choosing one: a newer interrupted
         // write or backup must not be overwritten by a downgraded plugin.
@@ -39,11 +40,11 @@ export class HomeStore{
   }
   save(value){
     if(this.blocked)return Promise.reject(this.blocked);
-    const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>LIMIT)return Promise.reject(Error('Home save is too large.'));
+    const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>this.limit)return Promise.reject(Error('Home save is too large.'));
     const action=async()=>{
       if(this.blocked)throw this.blocked;
       await mkdir(this.directory,{recursive:true});
-      const temporary=join(this.directory,'state.pending.json'),file=join(this.directory,'state.json'),backup=join(this.directory,'state.backup.json');
+      const temporary=join(this.directory,`${this.name}.pending.json`),file=join(this.directory,`${this.name}.json`),backup=join(this.directory,`${this.name}.backup.json`);
       const handle=await open(temporary,'w');try{await handle.writeFile(encoded);await handle.sync();}finally{await handle.close();}
       // Keep the previous committed save available if an interrupted replace
       // leaves an incomplete primary. The pending file is already fsynced.

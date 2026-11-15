@@ -1,4 +1,58 @@
 {
-  "tools": [],
-  "events": []
+  "tools": [
+    {
+      "name": "coo_home",
+      "description": "查询和控制独立的 coo 家园。先用 catalog 找到物件和动作，command/walk 返回接受或排队回执，只有 recent 的 completed 表示已完成。本工具不会操作桌面角色或衣装。",
+      "tags": [
+        "read",
+        "act",
+        "write"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "status",
+              "catalog",
+              "command",
+              "walk",
+              "cancel",
+              "pause",
+              "resume"
+            ]
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "actionId": {
+            "type": "string"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "enqueue": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "coo-home.garden",
+      "description": "独立家园的作物成熟与采收近况；不会包含家园聊天记录。",
+      "trigger": "piggyback"
+    }
+  ]
 }
