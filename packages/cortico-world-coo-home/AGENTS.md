@@ -4,7 +4,7 @@ Use the approved scene in `../../scenes/amane-mart`. Do not create another neigh
 
 The owner accepts approximate 2D characters in the 3D scene. Prioritize reasonable positions, understandable actions and broadly correct occlusion; do not pursue perfect pose fitting or remodel the approved scene. Preserve its buildings, layout, materials and lighting. Add only the scene state changes needed for the agreed interactions.
 
-All installed character identifiers, names, descriptions, media, outfits and personal configuration are private runtime data. Never put them in source, tests, documentation, screenshots, logs, bundles or published archives. Use generated neutral fixtures. Keep figure modules inside the host's sandbox; never import them into the World page. Do not control or alter the original desktop figure.
+The owner explicitly authorized public Lulu activity screenshots for Coo Home documentation and release. Capture those from the already-public Lulu distribution in an isolated deployment; keep private chat/config out. Other installed character identifiers, names, descriptions, media, outfits and personal configuration are private runtime data. Never put them in source, tests, documentation, screenshots, logs, bundles or published archives. Use generated neutral fixtures. Keep figure modules inside the host's sandbox; never import them into the World page. Do not control or alter the original desktop figure.
 
 Use the supported World API 6 panel lifecycle and own only the panel root. Dispose frame loops, audio, observers, sockets, figure frames, textures and render targets. Read the selected appearance through a watcher; do not connect as `role=pet` or write appearance settings.
 

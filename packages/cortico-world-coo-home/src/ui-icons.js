@@ -1,5 +1,6 @@
 const paths={
   home:'M3 11 12 3l9 8M5 10v11h14V10M9 21v-7h6v7',
+  backpack:'M8 7V5a4 4 0 0 1 8 0v2M6 7h12a3 3 0 0 1 3 3v10H3V10a3 3 0 0 1 3-3ZM7 14h10v6M7 10v2m10-2v2',
   chat:'M20 15a3 3 0 0 1-3 3H9l-6 3V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3ZM7 8h9M7 12h6',
   focus:'M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   expand:'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',

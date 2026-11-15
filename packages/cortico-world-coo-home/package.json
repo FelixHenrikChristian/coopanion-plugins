@@ -1,20 +1,48 @@
 {
   "name": "cortico-world-coo-home",
-  "version": "0.4.0-alpha.6",
-  "private": true,
+  "version": "0.4.0",
   "type": "module",
-  "description": "An independent rainy-night home for the selected Coopanion figure.",
+  "description": "A rainy-night Japanese miniature neighborhood: independent companion life, furniture interactions, gardening and a harvest backpack.",
   "license": "MIT",
   "main": "src/index.js",
   "exports": "./src/index.js",
-  "engines": { "node": ">=22.10.0" },
-  "keywords": ["cortico-world", "coopanion", "home"],
+  "engines": {
+    "node": ">=22.10.0"
+  },
+  "keywords": [
+    "cortico-world",
+    "coopanion",
+    "home"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FelixHenrikChristian/coopanion-plugins.git",
     "directory": "packages/cortico-world-coo-home"
   },
-  "files": ["src/index.js", "src/appearance.js", "src/audio-bridge.js", "src/navigation.js", "src/life.js", "src/storage.js", "src/garden.js", "src/model.js", "src/chat.js", "src/brain.js", "src/preferences.js", "data/home-layout.json", "data/navigation-query.js", "web", "describe.json", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY.md"],
+  "files": [
+    "src/index.js",
+    "src/appearance.js",
+    "src/audio-bridge.js",
+    "src/navigation.js",
+    "src/life.js",
+    "src/storage.js",
+    "src/garden.js",
+    "src/model.js",
+    "src/chat.js",
+    "src/brain.js",
+    "src/preferences.js",
+    "data/home-layout.json",
+    "data/navigation-query.js",
+    "web",
+    "describe.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY.md",
+    "assets",
+    "src/native-config.js",
+    "prompts/HOME_ENVIRONMENT.md"
+  ],
   "scripts": {
     "build": "node build.mjs",
     "describe": "node scripts/describe.mjs",
@@ -22,7 +50,10 @@
     "test": "node --test test/*.test.js",
     "pack:check": "node scripts/pack-check.mjs"
   },
-  "devDependencies": { "three": "0.179.1", "esbuild": "0.25.12" },
+  "devDependencies": {
+    "three": "0.179.1",
+    "esbuild": "0.25.12"
+  },
   "cortico": {
     "kind": "world",
     "api": 6,
@@ -31,8 +62,40 @@
     "webUiClient": "web/panel.js",
     "webUiStyle": "web/panel.css",
     "locales": {
-      "zh": { "displayName": "coo家园", "description": "在雨夜街区中独立显示当前桌宠形象。" },
-      "en": { "displayName": "Coo Home", "description": "An independent home for the selected companion figure." }
-    }
+      "zh": {
+        "displayName": "coo家园",
+        "description": "雨夜日式微缩街区，独立家园生活、家具互动、自由种菜与收获背包。"
+      },
+      "en": {
+        "displayName": "Coo Home",
+        "description": "A rainy-night Japanese miniature neighborhood: independent companion life, furniture interactions, gardening and a harvest backpack."
+      }
+    },
+    "icon": "assets/icon.svg",
+    "tags": [
+      "game",
+      "companion",
+      "voice",
+      "experimental"
+    ],
+    "screenshots": [
+      "assets/world.jpg",
+      "assets/lulu-garden.jpg",
+      "assets/lulu-study.jpg",
+      "assets/lulu-living.jpg",
+      "assets/lulu-sleep.jpg",
+      "assets/backpack.jpg",
+      "assets/config.jpg",
+      "assets/environment.jpg"
+    ]
+  },
+  "author": "FelixHenrikChristian",
+  "homepage": "https://github.com/FelixHenrikChristian/coopanion-plugins/tree/main/packages/cortico-world-coo-home#readme",
+  "bugs": {
+    "url": "https://github.com/FelixHenrikChristian/coopanion-plugins/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   }
 }

@@ -9,7 +9,7 @@ let word = 'stand';
 let ticks = 0;
 let events = [];
 let walking = null;
-const words = ['stand', 'walk', 'sit'];
+const words = ['stand', 'walk', 'sit', ...(pack === 'fixture-rest' ? ['sleep'] : [])];
 const post = (value) => parent.postMessage(value, '*');
 const trace = (message) => post({ t: 'fixture:trace', instance, pack, message });
 const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
@@ -19,16 +19,17 @@ function geometry() {
   const height = Math.max(1, 256 * finite(bounds.S, 1));
   return {
     x: finite(state.start.x, bounds.W / 2),
-    y: finite(state.start.y, bounds.floorY),
-    height: height * (word === 'sit' ? .70 : .94),
-    width: height * .56,
+    // Exercise packs whose visible bound extends below their reported feet.
+    y: finite(state.start.y, bounds.floorY) + (pack === 'fixture-rest' && ['sit','sleep'].includes(word) ? 14 : 0),
+    height: height * (word === 'sleep' ? .33 : word === 'sit' ? .70 : .94),
+    width: height * (word === 'sleep' ? .95 : .56),
   };
 }
 
 function layout() {
   const p = geometry();
   return {
-    x: p.x, y: p.y, facing: state.start.facing === -1 ? -1 : 1,
+    x: p.x, y: finite(state.start.y,state.bounds.floorY), facing: state.start.facing === -1 ? -1 : 1,
     mode: word, busy: word === 'sit', moving: word === 'walk', pressing: false,
     cursor: '',
     box: { x: p.x - p.width / 2, y: p.y - p.height, w: p.width, h: p.height },
@@ -46,6 +47,10 @@ function draw() {
   const top = p.y - p.height;
   const radius = p.width * .29;
   const shirt = scheme === 'stripe' ? '#b4e3c9' : '#f2bd68';
+  if(word === 'sleep'){
+    root.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${b.W} ${b.H}"><g stroke="#26354a" stroke-width="4"><rect x="${p.x-p.width/2}" y="${top+3}" width="${p.width}" height="${p.height-6}" rx="22" fill="${shirt}"/><circle cx="${p.x-p.width/2+p.height/2}" cy="${top+p.height/2}" r="${p.height*.44}" fill="#ef3b9d"/></g></svg>`;
+    root.dataset.word=word;root.dataset.scheme=scheme;root.dataset.localX=String(p.x);root.dataset.stride='0';return;
+  }
   const head = pack === 'fixture-kite'
     ? `<path d="M ${p.x} ${top} L ${p.x + radius} ${top + radius} L ${p.x} ${top + radius * 2} L ${p.x - radius} ${top + radius} Z" fill="#ef3b9d"/>`
     : `<circle cx="${p.x}" cy="${top + radius}" r="${radius}" fill="#ef3b9d"/>`;

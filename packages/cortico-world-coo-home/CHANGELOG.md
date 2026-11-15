@@ -1,5 +1,15 @@
 # Changes
 
+## 0.4.0 — first public release
+
+- Align seated and lying figures to each furniture support surface using the visible artwork bounds; keep a small clearance and preserve foreground occlusion.
+- Use concrete activity labels such as looking at the computer, switching on the television and opening the wardrobe.
+- Highlight the hovered interactive object with a local outline, without adding a full-screen rendering pass.
+- Replace custom settings screens with native Coopanion Configuration and Environment Prompt pages, including live template variables; keep the prompt out of the desktop conversation.
+- Add a harvest backpack with eight crop icons and persistent quantities derived from completed harvests. No selling, shopping or cooking economy yet.
+- Publish illustrated documentation and fresh authorized Lulu activity screenshots, with the neighborhood panorama first.
+- Retain the approved scene, independent home chat, crop selection, camera follow and lightweight offline life.
+
 ## 0.4.0-alpha.6 — home controls and reliable garden plans
 
 - Separate Home, Settings and Environment into native World pages; keep configurable environment text private to home conversation and AI planning.

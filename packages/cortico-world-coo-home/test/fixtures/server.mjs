@@ -66,7 +66,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
         key: `${currentPack}:${currentScheme}`, frameUrl: `${petOrigin}/figure-frame?pack=${currentPack}`,
         entry: `${petOrigin}/fixture-entry.js`, exportName: 'createFigure', baseUrl: `${petOrigin}/`,
         model: null, scheme: currentScheme, skin: { figure: currentPack, scheme: currentScheme },
-        words: ['stand', 'walk', 'sit'], can: { walk: true },
+        words: ['stand', 'walk', 'sit', ...(currentPack === 'fixture-rest' ? ['sleep'] : [])], can: { walk: true },
       },
     };
   const snapshot = () => world.status();
@@ -210,7 +210,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
     resetNavigationCalls() { navigationCalls.detailed = 0; navigationCalls.prepared = 0; },
     async readSave() { return JSON.parse(await readFile(join(temporary, 'coo-home/state.json'), 'utf8')); },
     setAppearance(pack, scheme = 'plain') {
-      if (!['fixture-round', 'fixture-kite'].includes(pack) || !['plain', 'stripe'].includes(scheme)) throw new Error('Unknown neutral fixture');
+      if (!['fixture-round', 'fixture-kite', 'fixture-rest'].includes(pack) || !['plain', 'stripe'].includes(scheme)) throw new Error('Unknown neutral fixture');
       currentPack = pack; currentScheme = scheme; disconnected = false; appearanceChanged();
     },
     setAudio(settings) { audioSettings = structuredClone(settings); audioRevision++; appearanceChanged(); },

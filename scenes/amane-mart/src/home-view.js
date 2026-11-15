@@ -136,7 +136,7 @@ export function makeHomeRegistry(){
       pointer.set(2*(e.clientX-rect.left)/rect.width-1,1-2*(e.clientY-rect.top)/rect.height);
       ray.setFromCamera(pointer,camera);
       const candidates=[];
-      scene.traverseVisible(o=>{if(o.isMesh&&o.layers.test(camera.layers))candidates.push(o);});
+      scene.traverseVisible(o=>{if(o.isMesh&&o.layers.test(camera.layers)&&!o.userData.interactionOutline)candidates.push(o);});
       for(const hit of ray.intersectObjects(candidates,false)){
         // Transparent glass permits inspection; opaque walls and the roof stop picking.
         if(hit.object.material?.transparent&&(hit.object.material.opacity<.35||hit.object.material.blending===THREE.AdditiveBlending))continue;

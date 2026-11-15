@@ -1,6 +1,6 @@
 import {HomeNavigation,timedRoute,routePosition} from './navigation.js';
 import {createNavigationQuery} from '../data/navigation-query.js';
-import {CROP_CATALOG,createGarden,normalizeGarden,gardenSnapshot,advanceGarden,validateCrop,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
+import {CROP_CATALOG,createGarden,normalizeGarden,gardenSnapshot,inventorySnapshot,advanceGarden,validateCrop,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
 
 const clone=structuredClone,clamp=value=>Math.max(0,Math.min(100,value));
 const NEEDS=['energy','hunger','hygiene','comfort'];
@@ -148,7 +148,7 @@ export class HomeLife{
     const state=clone(this.state),now=state.updatedAt,time=state.paused?state.pausedAt:now;
     delete state.receipts;
     if(state.current){state.current.phase=time<state.current.arrivalAt?'walking':'acting';state.current.progress=time<state.current.arrivalAt?Math.min(1,(time-state.current.startedAt)/Math.max(1,state.current.arrivalAt-state.current.startedAt)):Math.min(1,(time-state.current.arrivalAt)/Math.max(1,state.current.endsAt-state.current.arrivalAt));}
-    return{...state,plans:state.plans.map(planView),garden:gardenSnapshot(this.state.garden,time),now,simulation:this.visible?'visible':'background',offline:clone(this.offline)};
+    return{...state,plans:state.plans.map(planView),garden:gardenSnapshot(this.state.garden,time),inventory:inventorySnapshot(this.state.garden),now,simulation:this.visible?'visible':'background',offline:clone(this.offline)};
   }
   touch(){this.state.revision++;}
   decay(duration){if(duration<=0)return;for(const key of NEEDS)this.state.needs[key]=clamp(this.state.needs[key]-RATES[key]*duration/60_000);}

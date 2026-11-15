@@ -2,7 +2,7 @@
 
 The browser bundle includes Three.js 0.179.1, used under the MIT license. Its license notice is retained in the bundle and reproduced below. esbuild 0.25.12 is a build tool under the MIT license; its executable is not distributed in this package.
 
-The approved Amane Mart scene is maintained in this repository at `scenes/amane-mart` with its imported Git history. The package bundles that scene from source. Installed companion figures are loaded at runtime from the local host's sandboxed figure service; their code, descriptions and media are not included in this package.
+The approved Amane Mart scene is maintained in this repository at `scenes/amane-mart` with its imported Git history. The package bundles that scene from source. Installed companion figures are loaded at runtime from the local host's sandboxed figure service; their executable code, descriptions and animation media are not included in this package. The static documentation screenshots use the owner-authorized, already-public Lulu capybara distribution, rendered in an isolated demonstration deployment; they contain no private user conversation or configuration.
 
 ## Three.js
 

@@ -138,7 +138,7 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
     positionMenu();
     if(!life)return;
     const now=life.now+(life.paused?0:Math.max(0,stamp-receivedAt)),current=life.current;
-    let position=life.position,word='stand',facing=null;
+    let position=life.position,word='stand',facing=null,alignment='feet';
     if(current?.phase==='walking'){
       if(!life.paused){const route=routePose(current.route,now,position);position=route.position;facing=route.facing;word=route.moving?'walk':'stand';}
     }else if(current?.phase==='acting'){
@@ -147,11 +147,12 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
       const supported=caps.words.includes(requested),bodyPose=['seated','sleeping','lying'].includes(slot.kind);
       const fallback=(Array.isArray(current.fallback)?current.fallback:current.fallback?.position)??slot.fallback?.position??current.approach??position;
       position=bodyPose&&!supported?fallback:(slot.position??slot.feet??position);
+      if(slot.support&&(!bodyPose||supported))alignment='support';
       word=supported?requested:(caps.words.includes('look')?'look':'stand');facing=current.facing??slot.facing??null;
       if(bodyPose&&!supported&&!life.paused)activity.textContent=`${catalog.get(current.itemId)?.label??'家具'}旁休息 · 使用已有动作`;
     }
     if(facing?.length===2)facing=[facing[0],0,facing[1]];
-    if(Array.isArray(position))actor.setPlacement({position,word,worldFacing:facing});
+    if(Array.isArray(position))actor.setPlacement({position,word,worldFacing:facing,alignment});
   }
   function presence(visible,force=false){
     if(!force&&visible===lastPresence)return;lastPresence=visible;

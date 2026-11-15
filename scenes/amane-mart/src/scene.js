@@ -21,6 +21,7 @@ import {disposeSceneResources} from './scene-resources.js';
 import {createActorMask} from './actor-mask.js';
 import {projectWorldPoint,projectActorBillboard} from './actor-projection.js';
 import {createCameraFollow} from './camera-follow.js';
+import {createInteractionHover} from './interaction-hover.js';
 import {getNavigationData,getActionSlots} from './navigation-data.js';
 import {createNavigationQuery} from './navigation-query.js';
 import {createPlotVisuals} from './plot-visuals.js';
@@ -139,13 +140,14 @@ function fittedDistance(aspect) {
   }));
 }
 const weather=makeWeather(scene,renderer,camera,roadStage);
-let finishOnRequest=false;
+let finishOnRequest=false,hover=null;
 const homeView=createHomeView({camera,controls,shell,button,onView,reducedMotion,signal,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(mode){
-  lightsDirty=true;renderer.shadowMap.needsUpdate=true;weather.setHomeOpen(mode!=='exterior');weather.invalidate();
+  lightsDirty=true;renderer.shadowMap.needsUpdate=true;weather.setHomeOpen(mode!=='exterior');weather.invalidate();hover?.invalidate();
 }});
 const follow=createCameraFollow({camera,controls,onChange:()=>weather.invalidate()});
 const catalog=registry.connect(canvas,camera,scene,homeView,{onItem,signal});
-const onControlChange=()=>weather.invalidate();
+hover=createInteractionHover({canvas,camera,getObject:catalog.getObject,pickSurface,getViewport:()=>viewport,signal});
+const onControlChange=()=>{weather.invalidate();hover.invalidate();};
 controls.addEventListener('change',onControlChange);
 const onControlStart=()=>canvas.classList.add('moving');
 controls.addEventListener('start',onControlStart);
@@ -163,7 +165,7 @@ function resize(){
   const factor=previousFit?distance/previousFit:distance/camera.position.distanceTo(controls.target);
   if(!follow.getState().active)camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);
   controls.maxDistance=Math.max(80,distance*2.3);previousFit=distance;
-  controls.update();weather.invalidate();
+  controls.update();weather.invalidate();hover.invalidate();
 }
 const observer=new ownerWindow.ResizeObserver(resize);
 observer.observe(container);
@@ -217,7 +219,7 @@ function update(stamp=ownerWindow.performance.now()){
   const dt=lastFrame?Math.min((stamp-lastFrame)/1000,.05):0;
   lastFrame=stamp;weatherTime+=dt;
   furnitureVisuals.update(weatherTime,isReduced);
-  controls.update();homeView.update();
+  controls.update();homeView.update();hover.update(stamp);
   if(lightsDirty)syncFixtureLights();
   weather.update(weatherTime,isReduced?.55:THREE.MathUtils.smoothstep(t,1.4,5.4),animating);
   renderer.render(scene,camera);
@@ -279,7 +281,7 @@ function stop(){if(!running)return;running=false;renderer.setAnimationLoop(null)
 function pickSurface(x,y){
   if(disposed||viewport.width<=0||viewport.height<=0)return null;
   const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(2*x/viewport.width-1,1-2*y/viewport.height),camera);
-  const candidates=[];scene.traverseVisible(o=>{if(o.isMesh&&o.layers.test(camera.layers)&&!o.isReflector)candidates.push(o);});
+  const candidates=[];scene.traverseVisible(o=>{if(o.isMesh&&o.layers.test(camera.layers)&&!o.isReflector&&!o.userData.interactionOutline)candidates.push(o);});
   for(const hit of ray.intersectObjects(candidates,false)){
     const m=Array.isArray(hit.object.material)?hit.object.material[hit.face?.materialIndex??0]:hit.object.material;
     if(m?.transparent&&(m.opacity<.35||m.blending===THREE.AdditiveBlending))continue;
@@ -303,14 +305,14 @@ function setFurnitureVisuals(snapshot){
 function setPlotVisuals(snapshot){
   if(disposed)return null;
   const revision=plotVisuals.getRevision(),result=plotVisuals.setPlotVisuals(snapshot);
-  if(revision!==plotVisuals.getRevision()){renderer.shadowMap.needsUpdate=true;weather.invalidate();}
+  if(revision!==plotVisuals.getRevision()){renderer.shadowMap.needsUpdate=true;weather.invalidate();hover.refresh();}
   return result;
 }
 function dispose(){
   if(disposed)return disposal;
   stop();disposed=true;abort.abort();observer.disconnect();
   controls.removeEventListener('change',onControlChange);controls.removeEventListener('start',onControlStart);controls.removeEventListener('end',onControlEnd);
-  homeView.dispose();follow.dispose();controls.dispose();const drained=mask.dispose();
+  homeView.dispose();follow.dispose();hover.dispose();controls.dispose();const drained=mask.dispose();
   disposeSceneResources(scene,weather);registry.dispose();
   for(const stage of stages)stage.g.clear();
   stages.length=0;fixtureLights.length=0;shell.walls.length=0;shell.roof.length=0;
@@ -322,6 +324,7 @@ if(autoStart)start();
 return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
   project,projectBillboard,getCameraPose,setCameraPose,setFollowTarget,getFollowState:follow.getState,getRendererInfo,pickSurface,pickWalkable,
+  setHoveredItem:hover.set,getHoverState:hover.getState,
   getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
   setPlotVisuals,getPlotVisuals:plotVisuals.getPlotVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,

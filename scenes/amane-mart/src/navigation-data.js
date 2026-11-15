@@ -32,18 +32,31 @@ const adjusted={
 const labels={sit:'坐下',nap:'小睡',tv:'看电视',phone:'看手机',rest:'休息',drink:'饮水',read:'阅读',
 inspect:'查看',toggle:'开关',sleep:'睡觉',dress:'整理穿着',open:'打开',look:'观赏',eat:'用餐',tea:'沏茶',
 snack:'吃点心',wash:'清洗',cook:'做饭',heat:'加热',wear:'换拖鞋',take:'取用',store:'收纳',laundry:'洗衣',
-water:'浇水',desk:'书桌活动',draw:'绘画',type:'打字',shower:'淋浴',bath:'泡澡',brush:'刷牙',toilet:'如厕'};
+water:'浇水',desk:'看电脑',draw:'绘画',type:'打字',shower:'淋浴',bath:'泡澡',brush:'刷牙',toilet:'如厕'};
+const itemLabels={
+  'living.tv':{toggle:'开关电视'},'bedroom.bedside':{toggle:'开关纸灯'},
+  'study.laptop':{desk:'看电脑',type:'键盘打字',toggle:'开关电脑'},
+  'living.coffeeTable':{drink:'喝茶'},
+  'bedroom.wardrobe':{dress:'整理衣装',open:'整理衣柜'},'kitchen.fridge':{open:'查看冰箱'},
+  'genkan.shoe':{dress:'整理鞋履',open:'整理鞋柜'},'genkan.umbrella':{take:'取伞',store:'收伞'},
+  'genkan.washer':{open:'检查洗衣机'},'living.console':{inspect:'看看柜上小物'},
+  'living.shelf':{read:'翻阅杂志'},'living.water':{drink:'接水饮用'},'bedroom.window':{look:'赏花',rest:'窗边休息'},
+  'dining.teaCabinet':{inspect:'看看茶具'},'kitchen.sink':{wash:'洗杯子',drink:'接水饮用'},
+  'kitchen.stove':{heat:'热饭'},'kitchen.pantry':{inspect:'查看食材'},
+  'kitchen.prepCart':{inspect:'看看备餐台',cook:'准备食材'},'corridor.gallery':{look:'欣赏挂画'},
+  'corridor.ficus':{look:'看看绿植'},'bathroom.sink':{wash:'洗手'},'engawa.plant':{look:'赏花'}
+};
 const byId=new Map(inventory.map(i=>[i.id,i]));
-// Nominal 1.25 m Figure: seated hips are about .245 m above the reported feet.
-// These feet are display placements on real supports, not walkable destinations.
-// Keep seat centres explicit so hosts with richer pose data can refine alignment.
+// The Figure protocol has a body bound, not a universal hip bone. Rest its
+// lower visible bound just above each real support; never subtract guessed legs.
+// These are display placements, separate from the walkable approach points.
 const seats={
-  'living.sofa':{anchor:[-8.40,.889,10.06],feet:[-8.33,.644,10.06],facing:[1,0]},
-  'living.rug':{anchor:[-6.50,.434,10.13],feet:[-6.50,.434,10.13],facing:[-1,0]},
-  'dining.dining':{anchor:[-2.838,.921,10.448],feet:[-2.838,.676,10.448],facing:[0,-1]},
-  'study.desk':{anchor:[.016,.921,14.945],feet:[.016,.676,14.945],facing:[0,1]},
-  'bathroom.toilet':{anchor:[1.46,.886,13.57],feet:[1.46,.641,13.57],facing:[1,0]},
-  'engawa.chair':{anchor:[-7.73,.6525,16.552],feet:[-7.73,.414,16.552],facing:[0,1]}
+  'living.sofa':{anchor:[-8.33,.889,10.06],clearance:.045,facing:[1,0]},
+  'living.rug':{anchor:[-6.50,.434,10.13],clearance:.025,facing:[-1,0]},
+  'dining.dining':{anchor:[-2.838,.921,10.448],clearance:.045,facing:[0,-1]},
+  'study.desk':{anchor:[.016,.921,14.945],clearance:.045,facing:[0,1]},
+  'bathroom.toilet':{anchor:[1.46,.886,13.57],clearance:.035,facing:[1,0]},
+  'engawa.chair':{anchor:[-7.73,.6525,16.552],clearance:.035,facing:[0,1]}
 };
 const approach=i=>[...(adjusted[i.id]??i.approach)];
 function facing(from,target){
@@ -56,19 +69,20 @@ function actionSlot(item,id){
   if(item.id==='study.laptop'&&['desk','type'].includes(id))station=byId.get('study.desk');
   if(item.id==='living.coffeeTable')station=byId.get('living.rug');
   const position=approach(station),target=[...item.anchor];let face=facing(position,target);
-  let kind='standing',anchorKind='feet',anchor=[...position],feet=[...position];
+  let kind='standing',anchorKind='feet',anchor=[...position],feet=[...position],support=null;
   if(station.id==='bedroom.bed'){
-    kind='lying';anchorKind='body';anchor=[...station.anchor];feet=[-7.93,1.065,14.71];
+    kind='lying';anchorKind='support';anchor=[-7.93,1.067,14.71];support={position:[...anchor],clearance:.05};
   }else if(station.id==='bathroom.shower'){
-    kind=id==='bath'?'seated':'standing';anchorKind='body';anchor=[...station.anchor];feet=[2.05,.768,15.42];
+    kind=id==='bath'?'seated':'standing';anchorKind='support';anchor=[2.05,.8835,15.42];support={position:[...anchor],clearance:.035};
   }else if(seats[station.id]){
-    const seat=seats[station.id];kind='seated';anchorKind='seat';anchor=[...seat.anchor];
-    feet=[...seat.feet];face=[...seat.facing];
+    const seat=seats[station.id];kind='seated';anchorKind='support';anchor=[...seat.anchor];
+    support={position:[...anchor],clearance:seat.clearance};face=[...seat.facing];
   }
-  return {id,label:labels[id]??id,slotId:item.id+':'+id,
+  if(support)feet=[anchor[0],anchor[1]+support.clearance,anchor[2]];
+  return {id,label:itemLabels[item.id]?.[id]??labels[id]??id,slotId:item.id+':'+id,
     ...(item.room==='garden'?{canonicalId:({'查看':'inspect','浇水':'water','采收':'harvest','播种':'sow'})[id]}:{}),
     stance:{position,facing:face},target,
-    occupancyGroup:station.id,pose:{kind,position:feet,anchor,anchorKind,referenceHeight:1.25},
+    occupancyGroup:station.id,pose:{kind,position:feet,anchor,anchorKind,referenceHeight:1.25,...(support?{support}: {})},
     fallback:{kind:'standing',position:[...position],facing:[...face]}
   };
 }

@@ -107,10 +107,17 @@ try{
   report.checks.frame='Official sandboxed Figure API endpoint';
   const invoke=(method,args=[])=>json(origin,statusPath.replace(/status$/,method),{args});
   const invokePanel=(panel,method,args=[])=>json(origin,`/api/webui/providers/world%3Acoo-home/panels/${panel}/${method}`,{args});
+  const promptKey='worlds.coo-home.environment',homePrompt=async()=>(await json(origin,'/api/prompts')).prompts.find(row=>row.key===promptKey);
+  const prompt=await homePrompt();assert.ok(prompt);assert.equal(prompt.role,undefined);assert.equal(prompt.vars.length,4);assert.ok(prompt.vars.every(row=>typeof row.value==='string'));
+  const environmentMarker='NEUTRAL_NATIVE_HOME_TEMPLATE_ONLY';
+  await json(origin,'/api/prompts',{key:promptKey,baseRevision:prompt.revision,content:environmentMarker+'\n{{home.needs}}'});
+  const prefix=await json(origin,'/api/prompts/prefix');assert.ok(!JSON.stringify(prefix).includes(environmentMarker));assert.ok(!prefix.segments.some(row=>row.sourceKey===promptKey));
+  report.checks.nativePrompt='Official template editor API exposes four variables; role-free template is absent from Core desktop prefix';
   await invoke('settings',[{autonomy:false}]);
   await invoke('cancel');
   if(process.argv.includes('--report-only'))report.checks.desktopReport=await verifyHostChatReport({provider,invoke,json,origin,feed,original,until});
-  else report.checks.chat=await verifyHostChat({provider,invoke,json,origin,stream,until,pause,original,configFile:join(deployment,'config.json')});
+  else {report.checks.chat=await verifyHostChat({provider,invoke,json,origin,stream,until,pause,original,configFile:join(deployment,'config.json')});const requests=await provider.audit();assert.ok(JSON.stringify(requests.find(row=>row.kind==='request'&&row.plan==='home-dedup').input).includes(environmentMarker));assert.ok(!JSON.stringify(requests.find(row=>row.kind==='request'&&row.plan==='desktop-bridge').input).includes(environmentMarker));}
+  await json(origin,'/api/prompts/reset',{key:promptKey});assert.equal((await homePrompt()).origin,'package');
   if(!process.argv.includes('--report-only')&&process.env.COO_HOME_PLAYWRIGHT_MODULE&&process.env.COO_HOME_BROWSER){
     const require=createRequire(import.meta.url),{chromium}=require(process.env.COO_HOME_PLAYWRIGHT_MODULE);
     browser=await chromium.launch({executablePath:process.env.COO_HOME_BROWSER,headless:true,args:process.argv.includes('--software')?['--enable-unsafe-swiftshader','--use-angle=swiftshader']:[]});
@@ -190,11 +197,11 @@ try{
     report.checks.browser='Official console and Figure frame: continuous kit walking, animated legs, compensated household anchor, pause/resume';
     report.checks.anchor={samples:anchorErrors.length,maxErrorPixels:Math.max(...anchorErrors)};
     const openPanel=async id=>{
-      const panel=declaration.panels.find(value=>value.id===id);assert.ok(panel,`Official manifest has ${id} panel`);
-      await page.locator('.providertabs').getByRole('button',{name:panel.title,exact:true}).click();
-      await page.getByTestId(id==='home'?'coo-home-root':`home-${id}-page`).waitFor();
+      const title=id==='settings'?'配置':id==='environment'?'环境提示词':declaration.panels.find(value=>value.id===id)?.title;assert.ok(title);
+      await page.locator('.providertabs').getByRole('button',{name:title,exact:true}).click();
+      await (id==='home'?page.getByTestId('coo-home-root'):page.locator(id==='settings'?'.configview':'.template-library')).waitFor();
     };
-    report.checks.chatBrowser=await verifyHostBrowserChat({page,provider,invoke,invokePanel,openPanel,until});
+    report.checks.chatBrowser=await verifyHostBrowserChat({page,provider,invoke,invokePanel,openPanel,until,homePrompt,prefix:()=>json(origin,'/api/prompts/prefix')});
   }
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:false});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===false,'disconnect event');

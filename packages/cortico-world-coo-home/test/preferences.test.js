@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve,dirname,basename} from 'node:path';
-import {HomePreferences,DEFAULT_ENVIRONMENT,ENVIRONMENT_MAX_LENGTH,normalizePreferences} from '../src/preferences.js';
+import {HomePreferences,DEFAULT_ENVIRONMENT,ENVIRONMENT_MAX_LENGTH,normalizePreferences,homePromptDocument,renderHomeTemplate} from '../src/preferences.js';
 import {HomeStore} from '../src/storage.js';
 
 async function fixture(t){
   const directory=await mkdtemp(join(tmpdir(),'coo-home-environment-'));
   t.after(async()=>{assert.equal(dirname(resolve(directory)),resolve(tmpdir()));assert.ok(basename(directory).startsWith('coo-home-environment-'));await rm(directory,{recursive:true,force:true});});
-  const create=options=>new HomePreferences({dataDir:directory,clock:()=>1_000_000,...options});
+  const create=options=>new HomePreferences({dataDir:directory,native:false,clock:()=>1_000_000,...options});
   return{directory,create,path:name=>join(directory,'coo-home',name)};
 }
 
@@ -73,4 +73,34 @@ test('normalization retains only the document schema and stop closes an overlapp
   let release,entered;const entry=new Promise(resolve=>entered=resolve),gate=new Promise(resolve=>release=resolve);
   const p=new HomePreferences({store:{async load(){entered();await gate;return null;},async save(){},async flush(){}},clock:()=>500});
   const start=p.start();await entry;const stop=p.stop();release();await Promise.all([start,stop]);assert.equal(p.started,false);assert.throws(()=>p.text(),error=>error.code==='HOME_ENV_STORAGE');
+});
+
+test('native editor uses a role-free document with declared safe variables and no main-session injection contract',async t=>{
+  const f=await fixture(t),doc=homePromptDocument(f.directory);
+  assert.equal(doc.role,undefined);assert.equal(doc.deploymentPath,f.path('ENVIRONMENT.md'));assert.notEqual(doc.path,doc.deploymentPath);
+  assert.deepEqual(doc.vars.map(value=>value.name),['home.activity','home.needs','home.garden','home.inventory']);
+  assert.equal(renderHomeTemplate('{{home.activity}} / {{home.inventory | 空}} / {{unknown}}',{'home.activity':'阅读','home.inventory':''}),'阅读 / 空 / {{unknown}}');
+  const p=f.create({native:true});await p.start();await writeFile(f.path('ENVIRONMENT.md'),'中性编辑：{{home.activity}}');assert.equal(p.text({'home.activity':'用餐'}),'中性编辑：用餐');
+  assert.equal(homePromptDocument(f.directory).path,f.path('ENVIRONMENT.md'));await p.stop();
+});
+
+test('legacy environment migrates once without overriding native edits or reappearing after native reset',async t=>{
+  const f=await fixture(t),legacy=f.create();await legacy.start();await legacy.save({revision:0,text:'neutral legacy custom document'});await legacy.stop();
+  const old=await readFile(f.path('preferences.json'),'utf8');let p=f.create({native:true});await p.start();assert.equal(p.text(),'neutral legacy custom document');await p.stop();
+  await writeFile(f.path('ENVIRONMENT.md'),'new native editor text');p=f.create({native:true});await p.start();assert.equal(p.text(),'new native editor text');await p.reset({revision:p.snapshot().revision});await p.stop();
+  p=f.create({native:true});await p.start();assert.equal(p.text(),DEFAULT_ENVIRONMENT);assert.equal(await readFile(f.path('preferences.json'),'utf8'),old);await p.stop();
+});
+
+test('invalid native text is preserved and can be repaired without restart',async t=>{
+  const f=await fixture(t),p=f.create({native:true});await p.start();const oversized='x'.repeat(8001);await writeFile(f.path('ENVIRONMENT.md'),oversized);
+  assert.throws(()=>p.text(),error=>error.code==='HOME_ENV_STORAGE');assert.equal(await readFile(f.path('ENVIRONMENT.md'),'utf8'),oversized);
+  await writeFile(f.path('ENVIRONMENT.md'),'repaired neutral environment');assert.equal(p.text(),'repaired neutral environment');await p.stop();
+});
+
+test('invalid native template at startup recovers after editing without bypassing future migration protection',async t=>{
+  const f=await fixture(t);await mkdir(join(f.directory,'coo-home'));await writeFile(f.path('ENVIRONMENT.md'),'x'.repeat(8001));
+  let p=f.create({native:true});await p.start();assert.equal(p.snapshot().storage.editable,false);assert.throws(()=>p.text(),error=>error.code==='HOME_ENV_STORAGE');
+  await writeFile(f.path('ENVIRONMENT.md'),'repaired after startup');assert.equal(p.snapshot().storage.editable,true);assert.equal(p.text(),'repaired after startup');await p.stop();
+  const future=JSON.stringify({version:99,migrated:true});await writeFile(f.path('preferences-native.json'),future);p=f.create({native:true});await p.start();
+  await writeFile(f.path('ENVIRONMENT.md'),'another valid native edit');assert.equal(p.snapshot().storage.editable,false);assert.throws(()=>p.text(),error=>error.code==='HOME_ENV_STORAGE');assert.equal(await readFile(f.path('preferences-native.json'),'utf8'),future);await p.stop();
 });

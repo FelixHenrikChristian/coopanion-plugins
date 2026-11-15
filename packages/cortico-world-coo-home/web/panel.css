@@ -1,13 +1,13 @@
 /* Lightweight DOM UI: no backdrop filters, canvas widgets or perpetual animation. */
-.coo-home-root,.coo-settings-page{--coo-paper:#f4f1e9;--coo-card:#fffdf7;--coo-ink:#273b3a;--coo-muted:#78847d;--coo-line:#d8ded2;--coo-sage:#608c78;--coo-accent:#b47755;--coo-shadow:0 10px 36px #08131d24;font-family:Inter,system-ui,"Microsoft YaHei",sans-serif;color:var(--coo-ink);font-size:13px;line-height:1.5;color-scheme:light}
+.coo-home-root{--coo-paper:#f4f1e9;--coo-card:#fffdf7;--coo-ink:#273b3a;--coo-muted:#78847d;--coo-line:#d8ded2;--coo-sage:#608c78;--coo-accent:#b47755;--coo-shadow:0 10px 36px #08131d24;font-family:Inter,system-ui,"Microsoft YaHei",sans-serif;color:var(--coo-ink);font-size:13px;line-height:1.5;color-scheme:light}
 .coo-home-root{position:relative;width:100%;height:clamp(500px,80vh,1100px);min-height:460px;overflow:hidden;isolation:isolate;background:#090d17;border-radius:18px;container-type:inline-size}
-.coo-home-root:fullscreen{width:100vw;height:100vh;border-radius:0}
-.coo-home-root *,.coo-settings-page *{box-sizing:border-box}
-.coo-home-root [hidden],.coo-settings-page [hidden]{display:none!important}
-.coo-home-root svg,.coo-settings-page svg{width:20px;height:20px;flex-shrink:0}
-.coo-home-root button,.coo-settings-page button{font:inherit;cursor:pointer;color:inherit;touch-action:manipulation}
-.coo-home-root button:disabled,.coo-settings-page button:disabled{opacity:.42;cursor:default}
-.coo-home-root :is(button,textarea,input):focus-visible,.coo-settings-page :is(button,textarea,input):focus-visible{outline:2px solid var(--coo-accent);outline-offset:3px}
+.coo-home-root:fullscreen{width:100vw;max-width:none;height:100vh;margin:0;border-radius:0}
+.coo-home-root *{box-sizing:border-box}
+.coo-home-root [hidden]{display:none!important}
+.coo-home-root svg{width:20px;height:20px;flex-shrink:0}
+.coo-home-root button{font:inherit;cursor:pointer;color:inherit;touch-action:manipulation}
+.coo-home-root button:disabled{opacity:.42;cursor:default}
+.coo-home-root :is(button,textarea,input):focus-visible{outline:2px solid var(--coo-accent);outline-offset:3px}
 .coo-home-root .coo-home-stage{position:absolute;inset:0;overflow:hidden}
 .coo-eyebrow{display:block;font-size:9px;font-weight:650;letter-spacing:.12em;color:var(--coo-muted);line-height:1.6}
 .coo-home-root .coo-home-toolbar{position:absolute;top:18px;left:20px;right:20px;z-index:8;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
@@ -108,23 +108,21 @@
 @container (max-width:800px){.coo-home-root .coo-tool-button span{display:none}.coo-home-root .coo-tool-button{width:37px;height:37px;padding:9px}.coo-home-root .coo-home-controls{width:330px}.coo-home-root.coo-chat-open .coo-home-controls{width:300px}.coo-home-root .coo-home-chat{width:320px}.coo-home-root .coo-home-needs{gap:10px 12px}.coo-home-root .coo-plan-count{display:none}}
 @container (max-width:680px){.coo-home-root.coo-chat-open .coo-home-controls{display:none}.coo-home-root .coo-home-brand>svg{display:none}.coo-home-root .coo-home-controls{bottom:66px}.coo-home-root .coo-home-item{bottom:280px}.coo-home-root .coo-home-chat{width:360px}.coo-home-root .coo-home-toolbar{top:14px;left:16px;right:16px}.coo-home-root .coo-home-garden-overlay{padding:16px}.coo-home-root .coo-home-garden-dialog{padding:20px}.coo-home-root .coo-home-status{max-width:150px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){.coo-home-root *{transition:none!important}}
-/* Native configuration pages share the same visual language, with no renderer. */
-.coo-settings-page{background:var(--coo-paper);border:1px solid #ffffff66;border-radius:22px;padding:34px;max-width:980px;min-height:520px;box-shadow:0 4px 24px #0c191c0c}
-.coo-settings-page>h2{font-size:27px;font-weight:500;letter-spacing:.02em;margin:0 0 9px}
-.coo-settings-page>p{color:var(--coo-muted);font-size:12px;margin:0 0 26px;line-height:1.8;max-width:680px}
-.coo-settings-card{padding:24px;background:var(--coo-card);border:1px solid #dfe3d7;border-radius:16px;margin:0 0 18px}
-.coo-settings-card h3{margin:0 0 12px;font-size:16px;font-weight:550}
-.coo-settings-form{display:flex;flex-direction:column;gap:16px}
-.coo-field{display:flex;align-items:center;justify-content:space-between;gap:22px;font-size:12px;line-height:1.6}
-.coo-field input[type=number]{font:inherit;color:var(--coo-ink);background:#f0f2e9;border:1px solid #dce1d2;border-radius:8px;padding:8px 10px;width:110px}
-.coo-field input[type=checkbox]{width:16px;height:16px;accent-color:#718f73;flex-shrink:0;cursor:pointer}
-.coo-settings-note{font-size:11px;line-height:1.8;color:#83907f;margin:0}
-.coo-settings-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
-.coo-settings-page button{background:#6c8c74;color:#fff;border:1px solid #6c8c74;border-radius:10px;padding:9px 17px;font-size:12px;font-weight:500}
-.coo-settings-page button:hover:not(:disabled){background:#597960}.coo-settings-page button+button{color:#7b866f;background:transparent;border-color:#ccd5c1}
-.coo-settings-status{font-size:11px;line-height:1.8;color:#a87a52;min-height:18px;margin:10px 0 0}
-.coo-settings-usage{font-size:11px;color:#788b74;background:#eef2e8;border-radius:8px;padding:9px 12px}
-.coo-environment-input{font:inherit;font-size:12px;line-height:1.9;resize:vertical;width:100%;min-height:300px;padding:18px;background:#fafbf5;color:#33443b;border:1px solid #d6ddcb;border-radius:12px;tab-size:2}
-.coo-environment-count{font-size:10px;text-align:right;color:#89947f;margin:7px 0 12px}
-@media(max-width:650px){.coo-settings-page{padding:22px 16px}.coo-settings-card{padding:20px 16px}.coo-field{gap:12px}.coo-settings-page>h2{font-size:23px}}
-.coo-settings-form fieldset{display:flex;flex-direction:column;gap:16px;min-inline-size:0;margin:0;padding:0;border:0}.coo-settings-page .coo-field-toggle{justify-content:flex-start;gap:10px}.coo-settings-page .coo-field:has(textarea){flex-direction:column;align-items:stretch;gap:9px}
+
+/* A static DOM inventory: opens on demand and updates only when stock changes. */
+.coo-home-root .coo-home-backpack-overlay{position:absolute;inset:0;z-index:22;display:grid;place-items:center;padding:24px;background:#09172666}
+.coo-home-root .coo-home-backpack-dialog{width:510px;max-width:100%;max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--coo-paper);border:1px solid #ffffffe0;border-radius:24px;padding:25px;box-shadow:0 20px 60px #07152255}
+.coo-home-root .coo-home-backpack-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.coo-home-root .coo-home-backpack-dialog h2{margin:4px 0 0;font-size:22px;font-weight:600}
+.coo-home-root .coo-home-backpack-summary{color:var(--coo-muted);font-size:11px;margin:13px 0 20px}
+.coo-home-root .coo-home-backpack-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.coo-home-root .coo-home-backpack-card{display:flex;flex-direction:column;align-items:center;padding:17px 10px 14px;background:var(--coo-card);border:1px solid var(--coo-line);border-radius:16px;gap:6px}
+.coo-home-root .coo-home-backpack-icon{display:grid;place-items:center;width:62px;height:62px;background:#e9eddf;border-radius:18px;margin-bottom:3px}
+.coo-home-root .coo-home-backpack-icon svg{width:52px;height:52px}
+.coo-home-root .coo-home-backpack-card strong{font-size:12px;font-weight:550}
+.coo-home-root .coo-home-backpack-quantity{font-size:15px;font-weight:600;color:var(--coo-sage);font-variant-numeric:tabular-nums}
+.coo-home-root .coo-home-backpack-empty{text-align:center;padding:36px 12px 40px;color:var(--coo-muted)}
+.coo-home-root .coo-home-backpack-empty>svg{width:48px;height:48px;color:#91a88c}.coo-home-root .coo-home-backpack-empty h3{font-size:16px;font-weight:550;color:var(--coo-ink)}
+.coo-home-root .coo-home-backpack-empty p,.coo-home-root .coo-home-backpack-note{font-size:11px;line-height:1.8}
+.coo-home-root .coo-home-backpack-note{margin:20px 0 0;padding-top:15px;border-top:1px solid var(--coo-line);color:var(--coo-muted)}
+@container(max-width:480px){.coo-home-root .coo-home-backpack-overlay{padding:16px}.coo-home-root .coo-home-backpack-dialog{padding:20px}.coo-home-root .coo-home-backpack-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

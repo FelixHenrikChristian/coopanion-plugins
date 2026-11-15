@@ -4,9 +4,18 @@ const W=512,H=512,FLOOR=448,UNIT=256;
 const finite=(n,fallback=0)=>Number.isFinite(n)?n:fallback;
 const fallbackWords={sleep:['sleep','sit','stand'],sit:['sit','stand'],walk:['walk','stand'],run:['run','walk','stand']};
 
+export function actorFrameAnchor(layout,{alignment='feet',mirrored=false}={}){
+  let x=finite(layout?.x,W/2),y=finite(layout?.y,FLOOR);
+  const box=layout?.box;
+  if(alignment==='support'&&box&&box.w>0&&box.h>0){
+    x=Math.max(0,Math.min(W,finite(box.x,x-box.w/2)+box.w/2));y=Math.max(0,Math.min(H,finite(box.y,y-box.h)+box.h));
+  }
+  return{x:mirrored?W-x:x,y};
+}
+
 export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=>{}}){
   let active=null,pending=null,generation=0,disposed=false,frameCount=0;
-  let placement={position:[.95,.327,9.25],height:1.25,word:'stand',facing:1,worldFacing:null};
+  let placement={position:[.95,.327,9.25],height:1.25,word:'stand',facing:1,worldFacing:null,alignment:'feet'};
   let requestedKey=null,lastTick=0,lastMask=0,maskBusy=false,maskSerial=0;
   const layer=document.createElement('div');layer.className='coo-home-figure-layer';root.append(layer);
   const cancel=()=>dispose();signal?.addEventListener('abort',cancel,{once:true});
@@ -74,6 +83,7 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=
     }else if(m.t==='frame'&&instance.ready){
       instance.waiting=false;frameCount++;
       const l=m.layout??{},box=l.box??{};
+      if(instance===active&&placement.alignment==='support'&&instance.layout?.mode!==l.mode){maskSerial++;lastMask=0;instance.maskReady=false;}
       instance.layout={x:Math.max(0,Math.min(W,finite(l.x,W/2))),y:Math.max(0,Math.min(H,finite(l.y,FLOOR))),
         facing:l.facing===-1?-1:1,mode:typeof l.mode==='string'?l.mode:null,
         box:{x:finite(box.x),y:finite(box.y),w:Math.max(0,Math.min(W,finite(box.w,UNIT))),h:Math.max(0,Math.min(H,finite(box.h,UNIT)))}};
@@ -129,7 +139,7 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=
     }
     const scale=Math.max(.025,Math.min(3,pixelHeight/UNIT));
     const mirrored=(i.layout?.facing??placement.facing)!==placement.facing;
-    const anchorX=mirrored?W-(i.layout?.x??W/2):(i.layout?.x??W/2),anchorY=i.layout?.y??FLOOR;
+    const {x:anchorX,y:anchorY}=actorFrameAnchor(i.layout,{alignment:placement.alignment,mirrored});
     const x=foot.x-anchorX*scale,y=foot.y-anchorY*scale,width=W*scale,height=H*scale;
     Object.assign(i.host.style,{left:`${x}px`,top:`${y}px`,width:`${width}px`,height:`${height}px`});
     i.frame.style.transform=mirrored?`translateX(${width}px) scale(${-scale},${scale})`:`scale(${scale})`;
@@ -150,12 +160,15 @@ export function createFigureLayer({root,scene,signal,onStatus=()=>{},onSound=()=
     }
   }
   function setPlacement(next){
+    const changedSupport=next.alignment!==undefined&&next.alignment!==placement.alignment||placement.alignment==='support'&&next.position&&Math.hypot(...next.position.map((n,i)=>n-placement.position[i]))>.12;
     if(next.position){if(next.position.length!==3||!next.position.every(Number.isFinite))throw Error('Invalid actor position');placement.position=[...next.position];}
     if(Number.isFinite(next.height))placement.height=Math.max(.3,Math.min(2.4,next.height));
     if(typeof next.word==='string')placement.word=next.word;
+    if(next.alignment==='feet'||next.alignment==='support')placement.alignment=next.alignment;
     if(next.facing===1||next.facing===-1)placement.facing=next.facing;
     if(next.worldFacing===null)placement.worldFacing=null;
     else if(Array.isArray(next.worldFacing)&&next.worldFacing.length===3&&next.worldFacing.every(Number.isFinite))placement.worldFacing=[...next.worldFacing];
+    if(changedSupport){maskSerial++;lastMask=0;if(active)active.maskReady=false;}
   }
   function dispose(){
     if(disposed)return;disposed=true;maskSerial++;

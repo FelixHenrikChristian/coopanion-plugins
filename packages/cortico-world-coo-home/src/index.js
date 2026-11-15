@@ -7,7 +7,8 @@ import {CROP_CATALOG,validateCrop} from './garden.js';
 import {HomeModel,safeError,checkAbort} from './model.js';
 import {HomeChat} from './chat.js';
 import {HomeBrain} from './brain.js';
-import {HomePreferences} from './preferences.js';
+import {HomePreferences,homePromptDocument} from './preferences.js';
+import {HOME_DEFAULTS,HOME_SETTING_KEYS,homeConfigGroups,readHomeConfig,migrateHomeConfig} from './native-config.js';
 
 const OPERATIONS=['status','catalog','command','gardenPlan','walk','cancel','pause','resume'];
 const PARAMETERS={operation:{type:'string',enum:OPERATIONS},itemId:{type:['string','null']},actionId:{type:['string','null']},cropId:{type:['string','null'],enum:[...CROP_CATALOG.map(crop=>crop.id),null]},plotIds:{type:['array','null'],items:{type:'string'},minItems:1,maxItems:8},position:{type:['array','null'],items:{type:'number'},minItems:3,maxItems:3},enqueue:{type:['boolean','null']}};
@@ -42,7 +43,7 @@ export class CooHomeWorld{
   id='coo-home';
   constructor(ctx,{bridgeFactory=options=>new AppearanceBridge(options),clock=()=>Date.now(),layout=null,storage=null,chatStorage=null,brainStorage=null,preferencesStorage=null,modelFactory=options=>new HomeModel(options)}={}){
     this.ctx=ctx;this.bridgeFactory=bridgeFactory;this.bridge=null;this.clock=clock;this.layout=layout;this.storage=storage;this.chatStorage=chatStorage;this.brainStorage=brainStorage;this.preferencesStorage=preferencesStorage;this.modelFactory=modelFactory;
-    this.clients=new Set();this.clientPanels=new Map();this.presence=new Map();this.started=false;this.tail=Promise.resolve();this.life=null;this.timer=null;this.savedAt=0;this.storageError=false;this.manualEpoch=0;this.lifecycle=0;this.chat=null;this.brain=null;this.preferences=null;this.model=null;this.host={};this.modelsEnded=true;
+    this.clients=new Set();this.clientPanels=new Map();this.presence=new Map();this.started=false;this.tail=Promise.resolve();this.life=null;this.timer=null;this.savedAt=0;this.storageError=false;this.manualEpoch=0;this.lifecycle=0;this.chat=null;this.brain=null;this.preferences=null;this.model=null;this.host={};this.modelsEnded=true;this.nativeConfig=false;this.configApplied=null;
   }
   serial(action){const result=this.tail.then(action);this.tail=result.catch(()=>{});return result;}
   start(host={}){return this.serial(async()=>{
@@ -57,8 +58,9 @@ export class CooHomeWorld{
     this.preferences=new HomePreferences({dataDir:this.ctx.dataDir,store:this.preferencesStorage,clock:this.clock,onChange:()=>this.send({phase:'environment',environment:this.preferences.snapshot()})});
     await this.preferences.start();
     this.chat=new HomeChat({dataDir:this.ctx.dataDir,store:this.chatStorage,model:this.model,clock:this.clock,onChange:()=>this.send({phase:'chat',chat:this.chat.snapshot()}),beforeTurn:()=>{this.manual();return{manualEpoch:this.manualEpoch,lifecycle:this.lifecycle};},tools:active=>this.localTools('chat',active),system:()=>this.chatSystem()});
-    this.brain=new HomeBrain({dataDir:this.ctx.dataDir,store:this.brainStorage,model:this.model,host,clock:this.clock,timezone:this.ctx.timezone,visible:()=>this.visible(),context:()=>this.homeView(true),environment:()=>this.preferences.text(),canPlan:()=>this.canPlan(),guard:()=>this.planGuard(),tools:active=>this.localTools('autonomous',active),onChange:()=>this.send({phase:'brain',brain:this.brain.snapshot()})});
+    this.brain=new HomeBrain({dataDir:this.ctx.dataDir,store:this.brainStorage,model:this.model,host,clock:this.clock,timezone:this.ctx.timezone,visible:()=>this.visible(),context:()=>this.homeView(true),environment:()=>this.preferences.text(this.envPromptVars()),canPlan:()=>this.canPlan(),guard:()=>this.planGuard(),tools:active=>this.localTools('autonomous',active),onChange:()=>this.send({phase:'brain',brain:this.brain.snapshot()})});
     await this.chat.start();await this.brain.start(this.life.snapshot().garden.events);
+    this.nativeConfig=await migrateHomeConfig(this.ctx,{autonomy:this.life.state.autonomy,brain:this.brain.state.settings});this.configApplied=null;await this.applyNativeConfig();
     this.started=true;this.modelsEnded=true;
     this.bridge=this.bridgeFactory({botDir:this.ctx.botDir,onChange:()=>this.broadcast(true)});
     try{await this.bridge.start();this.timer=setInterval(()=>{void this.tick().catch(()=>{});},1000);this.timer.unref?.();}
@@ -98,9 +100,27 @@ export class CooHomeWorld{
   }
   broadcast(full=false){this.send(full?this.status():{phase:'life',life:this.lifeStatus()});}
   async persist(){try{await this.storage.save(this.life.export());this.savedAt=this.clock();this.storageError=false;}catch{this.storageError=true;throw safeError('HOME_SAVE','家园进度暂时无法保存。');}}
+  async applyNativeConfig(){
+    if(!this.nativeConfig)return;
+    const values=readHomeConfig(this.ctx.cfg),signature=JSON.stringify(values);if(signature===this.configApplied)return;
+    this.manual();
+    if(this.life.state.autonomy!==values.autonomy){const previous=this.life.export();try{this.life.settings({autonomy:values.autonomy});await this.persist();}catch(error){this.life=new HomeLife({layout:this.layout,state:previous,clock:this.clock});throw error;}}
+    const brain=Object.fromEntries(HOME_SETTING_KEYS.filter(key=>key!=='autonomy').map(key=>[key,values[key]]));
+    if(Object.keys(brain).some(key=>this.brain.state.settings[key]!==brain[key]))await this.brain.settings(brain);
+    this.configApplied=signature;
+  }
+  configure(patch,kind){
+    if(!plain(patch)||Object.keys(patch).some(key=>!(kind==='life'?['autonomy']:HOME_SETTING_KEYS.filter(key=>key!=='autonomy')).includes(key)))return Promise.reject(safeError('HOME_CONFIG','家园配置包含不支持的选项。'));
+    if(!this.nativeConfig){if(kind==='life')return this.control('settings',[patch]);this.manual();return this.brain.settings(patch).then(brain=>({phase:'brain',brain}));}
+    this.manual();return this.serial(async()=>{
+      if(!this.started)throw safeError('HOME_DISABLED','请先启用家园。');
+      readHomeConfig({...this.ctx.cfg,...patch});await this.ctx.persist(patch);await this.applyNativeConfig();this.broadcast();return kind==='life'?this.status():{phase:'brain',brain:this.brain.snapshot()};
+    });
+  }
   async tick(){
     const result=await this.serial(async()=>{
       if(!this.started||!this.life)return;
+      await this.applyNativeConfig();
       const current=this.life.state.current?.id,phase=this.life.snapshot().current?.phase;
       this.life.advance(this.clock(),{visible:this.visible()});
       try{if(this.clock()-this.savedAt>=5000||current!==this.life.state.current?.id||phase!==this.life.snapshot().current?.phase)await this.persist();}
@@ -120,11 +140,11 @@ export class CooHomeWorld{
   homeView(withEvents=false){
     if(!this.life)return null;
     const state=this.life.snapshot(),brief=task=>task?Object.fromEntries(['id','itemId','actionId','cropId','planId','label','source','phase','arrivalAt','endsAt'].filter(key=>task[key]!==undefined).map(key=>[key,task[key]])):null;
-    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),plans:state.plans,recent:state.recent,items:state.items,garden:{plots:state.garden.plots,crops:state.garden.crops,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
+    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),plans:state.plans,recent:state.recent,items:state.items,inventory:state.inventory,garden:{plots:state.garden.plots,crops:state.garden.crops,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
   }
   catalogItems(){return(this.life?.catalog??[]).map(item=>{const plot=this.life.state.garden.plots.find(plot=>plot.id===item.id);return{...structuredClone(item),...(plot?{cropId:plot.cropId,cropLabel:CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??null}:{})};});}
   toolCatalog(){return{crops:structuredClone(CROP_CATALOG),items:this.catalogItems().map(item=>({id:item.id,label:item.label,room:item.room,kind:item.kind,...(item.kind==='plot'?{cropId:item.cropId,cropLabel:item.cropLabel}:{}),actions:item.actions.map(action=>({id:action.id,canonicalId:action.canonical,label:action.label,description:action.description}))}))};}
-  chatSystem(){return'你是独立的 coo 家园中的陪伴角色。自然聊天，也可以通过 coo_home 工具安排走动、家具活动或种菜。你只知道家园历史，不具有桌面主会话历史。禁止声称正在控制桌面原角色、修改外观或读写文件。先查 catalog 获取合法动作，不猜物件 ID。多块田播种及首次浇水使用一次 gardenPlan；逐项报告 skipped 的原因，不得声称占用的田已被重新播种。工具返回 accepted/queued 仅表示任务已安排，只有当前状态 recent 或 plans 中 completed 才能说已完成。模型出错或停止回复不会自动撤销已接受的家园任务。\n家园环境说明：\n'+this.preferences.text()+'\n当前家园：'+JSON.stringify(this.homeView());}
+  chatSystem(){return'你是独立的 coo 家园中的陪伴角色。自然聊天，也可以通过 coo_home 工具安排走动、家具活动或种菜。你只知道家园历史，不具有桌面主会话历史。禁止声称正在控制桌面原角色、修改外观或读写文件。先查 catalog 获取合法动作，不猜物件 ID。多块田播种及首次浇水使用一次 gardenPlan；逐项报告 skipped 的原因，不得声称占用的田已被重新播种。工具返回 accepted/queued 仅表示任务已安排，只有当前状态 recent 或 plans 中 completed 才能说已完成。模型出错或停止回复不会自动撤销已接受的家园任务。\n家园环境说明：\n'+this.preferences.text(this.envPromptVars())+'\n当前家园：'+JSON.stringify(this.homeView());}
   localTools(source,active){return[{...TOOL,handler:(args,context)=>this.runTool(args,context,{source,active})}];}
   tools(){return[{...TOOL,handler:(args,context={})=>this.runTool(args,context,{source:'desktop'})}];}
   async runTool(raw,context={},mode={source:'desktop'}){
@@ -169,21 +189,20 @@ export class CooHomeWorld{
       return{text:JSON.stringify(result)};
     }catch(error){return{failed:true,text:JSON.stringify({ok:false,error:error.code?.startsWith('HOME_')||error.code==='GARDEN_STAGE'?error.message:'家园没有接受这条操作，请先查看目录和当前状态。'})};}
   }
-  envPromptVars(){return null;}
+  envPromptVars(){
+    if(!this.life)return{'home.activity':'','home.needs':'','home.garden':'','home.inventory':''};
+    const state=this.life.snapshot(),stages={empty:'空田',seeded:'已播种，等待首次浇水',seedling:'幼苗',growing:'生长中',ripe:'已成熟'};
+    return{'home.activity':state.paused?'家园已暂停':state.current?.label??'正在家园休息','home.needs':Object.entries({energy:'精力',hunger:'饱腹',hygiene:'整洁',comfort:'舒适'}).map(([key,label])=>`${label} ${Math.round(state.needs[key]??0)}/100`).join('，'),'home.garden':state.garden.plots.map((plot,index)=>`菜畦 ${index+1}：${CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??''}${stages[plot.stage]??''}`).join('\n'),'home.inventory':state.inventory?.items.map(item=>`${item.label} ${item.quantity}${item.unit}`).join('\n')??''};
+  }
   webUi(language='zh'){
     const zh=language!=='en';
-    const methods={home:['status','catalog','command','walk','settings','cancel','pause','resume','speechUnits','speechBank','soundAsset','chatSend','chatCancel','chatHistory','chatClear','brainSettings'],settings:['status','settings','brainSettings'],environment:['environmentGet','environmentSave','environmentReset']};
-    return{label:zh?'coo家园':'Coo Home',panels:[{id:'home',title:zh?'家园':'Home'},{id:'settings',title:zh?'设置':'Settings'},{id:'environment',title:zh?'环境':'Environment'}],invoke:async(panel,method,args=[])=>{
+    const methods={home:['status','catalog','command','walk','settings','cancel','pause','resume','speechUnits','speechBank','soundAsset','chatSend','chatCancel','chatHistory','chatClear','brainSettings']},prompt=homePromptDocument(this.ctx.dataDir,language);
+    return{label:zh?'coo家园':'Coo Home',panels:[{id:'home',title:zh?'家园':'Home'}],config:homeConfigGroups(language),promptDocs:prompt?[prompt]:[],invoke:async(panel,method,args=[])=>{
       if(!Object.hasOwn(methods,panel)||!methods[panel].includes(method)||!Array.isArray(args))throw Error('Unsupported home request.');
-      if(panel==='environment'){
-        if(!this.started)throw safeError('HOME_DISABLED','请先启用家园。');
-        if(method==='environmentGet'&&!args.length)return this.panelStatus(panel);
-        if(['environmentSave','environmentReset'].includes(method)&&args.length===1)return{phase:'environment',environment:await this.preferences[method==='environmentSave'?'save':'reset'](args[0])};
-        throw Error('Unsupported home request.');
-      }
       if(method==='status'&&!args.length){await this.tick();return this.panelStatus(panel);}
       if(method==='catalog'&&!args.length)return{items:this.catalogItems(),crops:structuredClone(CROP_CATALOG)};
-      if(['command','walk','settings'].includes(method)&&args.length===1){const value=await this.control(method,args);return panel==='home'?value:this.panelValue(panel,value);}
+      if(['command','walk'].includes(method)&&args.length===1)return this.control(method,args);
+      if(method==='settings'&&args.length===1)return this.configure(args[0],'life');
       if(['cancel','pause','resume'].includes(method)&&!args.length)return this.control(method,args);
       if(!this.started)throw safeError('HOME_DISABLED','请先启用家园。');
       if(['speechUnits','speechBank','soundAsset'].includes(method)&&args.length===1&&plain(args[0]))return this.bridge[method](args[0]);
@@ -191,7 +210,7 @@ export class CooHomeWorld{
       if(method==='chatCancel'&&args.length===1)return{phase:'chat',chat:await this.chat.cancel(args[0])};
       if(method==='chatHistory'&&!args.length)return{phase:'chat',chat:this.chat.snapshot()};
       if(method==='chatClear'&&!args.length)return{phase:'chat',chat:await this.chat.clear()};
-      if(method==='brainSettings'&&args.length===1){this.manual();return{phase:'brain',brain:await this.brain.settings(args[0])};}
+      if(method==='brainSettings'&&args.length===1)return this.configure(args[0],'brain');
       throw Error('Unsupported home request.');
     },stream:(panel,socket)=>{
       if(!Object.hasOwn(methods,panel)||!this.started){socket.close('Home stream unavailable.');return;}
@@ -203,4 +222,4 @@ export class CooHomeWorld{
   shutdownVerification(){return[{key:'appearance-watcher',label:'Home appearance watcher',status:this.started?'still-live':'verified-ended',detail:this.started?'Home watcher is active.':'Home watcher and panel streams are closed.',manualAction:this.started?'Disable the Home World.':''},{key:'home-save',label:'Home progress',status:this.storageError?'unknown':this.started?'still-live':'verified-ended',detail:this.storageError?'The latest household progress could not be saved.':'Household save completed.',manualAction:this.storageError?'Check available disk space and enable the Home World again.':''},{key:'home-model',label:'Home model requests',status:this.started?'still-live':this.modelsEnded?'verified-ended':'unknown',detail:this.modelsEnded?'Home requests ended.':'A provider has not confirmed that its request ended.',manualAction:this.modelsEnded?'':'Close the host if the provider remains unresponsive.'}];}
 }
 
-export default{id:'coo-home',label:'coo家园',defaults:()=>({enabled:false}),create:ctx=>new CooHomeWorld(ctx),describe:DESCRIBE};
+export default{id:'coo-home',label:'coo家园',defaults:()=>({...HOME_DEFAULTS}),create:ctx=>new CooHomeWorld(ctx),describe:DESCRIBE};

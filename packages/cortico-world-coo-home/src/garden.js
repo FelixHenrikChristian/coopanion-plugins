@@ -19,6 +19,13 @@ export function createGarden(layout){
   return{plots:knownPlots(layout).map(item=>({id:item.id,cropId:null,stage:'empty',cycle:0,harvests:0,legacyHarvests:0,harvestedByCrop:{},plantedAt:null,wateredAt:null,growthStartedAt:null,readyAt:null,lastHarvestAt:null})),events:[],nextCareAt:0};
 }
 
+// No consumption exists yet: recorded harvests are the single inventory ledger.
+// Derive a fresh view instead of persisting a second, potentially divergent count.
+export function inventorySnapshot(garden){
+  const items=CROP_CATALOG.map(crop=>({cropId:crop.id,label:crop.label,quantity:garden.plots.reduce((sum,plot)=>sum+(plot.harvestedByCrop[crop.id]??0),0),unit:crop.yieldUnit})).filter(item=>item.quantity>0);
+  return{items,kindCount:items.length};
+}
+
 export function normalizeGarden(raw,layout,offset=0,{legacy=false,quantitiesKnown=!legacy}={}){
   if(!raw||!Array.isArray(raw.plots)||raw.plots.length!==8||!Array.isArray(raw.events)||!finite(raw.nextCareAt))throw Error('Invalid garden save.');
   const ids=new Set(raw.plots.map(plot=>plot?.id));if(ids.size!==8)throw Error('Duplicate garden plots.');

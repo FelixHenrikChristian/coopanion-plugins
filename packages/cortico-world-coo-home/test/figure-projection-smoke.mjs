@@ -8,6 +8,8 @@ import {build} from 'esbuild';
 import {startFixtureServer} from './fixtures/server.mjs';
 import {verifyBrowserProjection} from './fixtures/browser-projection.mjs';
 import {verifyBrowserCameraFollow} from './fixtures/browser-camera-follow.mjs';
+import {verifyBrowserInteractions} from './fixtures/browser-interactions.mjs';
+import {getNavigationData} from '../../../scenes/amane-mart/src/navigation-data.js';
 
 const require=createRequire(import.meta.url),{chromium}=require(process.env.COO_HOME_PLAYWRIGHT_MODULE||'playwright');
 const packageRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -19,8 +21,15 @@ const report={fixture:'neutral Figure API 2',checks:{},errors:[]};
 try{
   // Compile into an isolated temporary file, without changing release artifacts.
   const bundlePath=join(temporary,'panel.js');
-  await build({stdin:{contents:"export {mount} from './src/panel.js';",resolveDir:packageRoot,loader:'js'},outfile:bundlePath,bundle:true,format:'esm',target:'es2022'});
-  fixture=await startFixtureServer({bundlePath,stylePath:join(packageRoot,'src/panel.css')});
+  await build({stdin:{contents:`export {mount} from './src/panel.js';
+    import * as THREE from 'three';
+    globalThis.__homeSupportProbe=(scene,id,p)=>{
+      const object=scene.getObject(id);object.updateWorldMatrix(true,true);
+      const ray=new THREE.Raycaster(new THREE.Vector3(p[0],p[1]+.02,p[2]),new THREE.Vector3(0,-1,0));
+      const meshes=[];object.traverseVisible(o=>{if(o.isMesh&&!o.userData.interactionOutline)meshes.push(o);});
+      return ray.intersectObjects(meshes,false).map(h=>({point:h.point.toArray(),name:h.object.name}));
+    };`,resolveDir:packageRoot,loader:'js'},outfile:bundlePath,bundle:true,format:'esm',target:'es2022'});
+  fixture=await startFixtureServer({bundlePath,stylePath:join(packageRoot,'src/panel.css'),worldOptions:{layout:getNavigationData()}});
   await fixture.invoke('settings',[{autonomy:false}]);
   browser=await chromium.launch({headless:true,...(process.env.COO_HOME_BROWSER?{executablePath:process.env.COO_HOME_BROWSER}:{}),args:process.argv.includes('--software')?['--enable-unsafe-swiftshader','--use-angle=swiftshader']:[]});
   const page=await browser.newPage({viewport:{width:1280,height:900},reducedMotion:'reduce'});
@@ -42,7 +51,8 @@ try{
       return count;
     },bytes.toString('base64'));
   }
-  if(process.argv.includes('--camera-follow'))await verifyBrowserCameraFollow({fixture,page,shot,report});
+  if(process.argv.includes('--interactions'))await verifyBrowserInteractions({fixture,page,shot,markerPixels,report});
+  else if(process.argv.includes('--camera-follow'))await verifyBrowserCameraFollow({fixture,page,shot,report});
   else await verifyBrowserProjection({fixture,page,shot,markerPixels,report});
   await page.evaluate(()=>window.__homeHarness.unmount());
   assert.equal(await page.locator('[data-testid="home-figure"]').count(),0);

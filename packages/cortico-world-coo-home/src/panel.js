@@ -2,6 +2,7 @@ import {createNeighborhood} from '../../../scenes/amane-mart/src/scene.js';
 import {createFigureLayer} from './figure.js';
 import {createLifePanel} from './life-panel.js';
 import {createChatPanel} from './chat-panel.js';
+import {createBackpackPanel} from './backpack-panel.js';
 import {createHomeAudio} from './audio.js';
 import {icon} from './ui-icons.js';
 
@@ -15,12 +16,12 @@ export async function mount(ctx){
   const notice=text=>{if(!signal.aborted)status.textContent=text;};
   const frameMs=1000/60;
   let frameHandle=null,stream=null,disposed=false,disposal=null,elapsed=0,renderBudget=frameMs,lastVisible=false,hideItem=null;
-  let scene=null,actor=null,lifePanel=null,chatPanel=null,audio=null;
+  let scene=null,actor=null,lifePanel=null,chatPanel=null,backpack=null,audio=null;
   function feedback(text){if(signal.aborted)return;item.textContent=text;item.hidden=false;clearTimeout(hideItem);hideItem=setTimeout(()=>{item.hidden=true;},3500);}
   function dispose(){
     if(disposed)return disposal;disposed=true;abort.abort();
     ctx.signal.removeEventListener('abort',stop);clearTimeout(hideItem);
-    stream?.dispose();frameHandle?.dispose();lifePanel?.dispose();chatPanel?.dispose();actor?.dispose();
+    stream?.dispose();frameHandle?.dispose();lifePanel?.dispose();chatPanel?.dispose();backpack?.dispose();actor?.dispose();
     disposal=Promise.all([scene?.dispose(),audio?.dispose()]);root.remove();
     return disposal;
   }
@@ -31,6 +32,10 @@ export async function mount(ctx){
     actor=createFigureLayer({root:stage,scene,signal,onStatus:notice,onSound:event=>audio.playFigureSound(event)});
     lifePanel=createLifePanel({root,scene,actor,ctx,signal,send:text=>stream?.send(text),feedback});
     chatPanel=createChatPanel({root,ctx,signal,feedback,onReply:(text,options)=>{void audio.speak(text,options).catch(()=>{});}});
+    backpack=createBackpackPanel({root,signal});
+    const backpackButton=document.createElement('button');backpackButton.type='button';backpackButton.className='coo-tool-button';backpackButton.dataset.testid='home-backpack';backpackButton.title='查看收获背包';backpackButton.setAttribute('aria-expanded','false');backpackButton.innerHTML=`${icon('backpack')}<span>背包</span>`;
+    root.querySelector('[data-testid=home-fullscreen]').before(backpackButton);
+    backpackButton.addEventListener('click',()=>backpack.open?backpack.close():backpack.show(backpackButton),{signal});
     for(const name of ['pointerdown','keydown'])root.addEventListener(name,event=>{if(event.isTrusted)void audio.unlock();},{signal,capture:true});
     const button=root.querySelector('[data-testid=home-fullscreen]');
     const follow=root.querySelector('[data-testid=home-follow]');
@@ -43,7 +48,7 @@ export async function mount(ctx){
     document.addEventListener('fullscreenchange',()=>{button.querySelector('span').textContent=document.fullscreenElement===root?'退出全屏':'全屏';scene.resize();},{signal});
     let received=0;
     function receive(text){
-      try {const value=JSON.parse(text);received++;if(value?.appearance){actor.setAppearance(value.appearance);audio.configure(value.appearance.audio??null);}lifePanel.receive(value);chatPanel.receive(value);}
+      try {const value=JSON.parse(text);received++;if(value?.appearance){actor.setAppearance(value.appearance);audio.configure(value.appearance.audio??null);}lifePanel.receive(value);chatPanel.receive(value);if(value.life)backpack.receive(value.life);}
       catch {notice('家园连接正在恢复…');}
     }
     // Subscribe before fetching the current snapshot so the initial selection
@@ -66,7 +71,7 @@ export async function mount(ctx){
     const revision=received;
     try {
       const state=await ctx.invoke('status');
-      if(!signal.aborted&&received===revision){if(state.appearance){actor.setAppearance(state.appearance);audio.configure(state.appearance.audio??null);}lifePanel.receive(state);chatPanel.receive(state);}
+      if(!signal.aborted&&received===revision){if(state.appearance){actor.setAppearance(state.appearance);audio.configure(state.appearance.audio??null);}lifePanel.receive(state);chatPanel.receive(state);if(state.life)backpack.receive(state.life);}
     }catch {notice('场景已打开，角色连接暂不可用。');}
     return {dispose,scene,actor,audio,getLifeState:()=>lifePanel.getState(),getChatState:()=>chatPanel.getChatState(),getBrainState:()=>chatPanel.getBrainState()};
   }catch(error){dispose();throw error;}
