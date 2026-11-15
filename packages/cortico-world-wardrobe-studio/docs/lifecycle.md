@@ -2,9 +2,11 @@
 
 Wardrobe Studio reads a local desktop-pet HTTP service at a configurable loopback origin. Runtime requests use `/api/figures`, `/api/state`, `/api/skin` and read-only thumbnail assets declared by installed packs. Thumbnail URLs must remain within the same loopback origin and pack asset directory; redirects are rejected, image MIME types are restricted and responses are limited to 2 MiB. The state response is reduced to appearance data before it is returned by the extension. The extension makes no internet request. No listening production service is opened.
 
+These endpoints are internal, not a public extension contract. Host updates may require adaptation; see the [maintainer clarification](https://github.com/Pal-AI-Lab/cortico-extensions/issues/853#issuecomment-6832234773).
+
 ## What changes
 
-Importing a profile writes `wardrobe-studio/profiles.json` under the extension's supplied data directory. Applying a combination uses the desktop pet's standard appearance API; this changes its selected figure/scheme as an ordinary wardrobe selection does. Figure manifests and animation assets are never edited. Host program files are never read for patching or modified.
+Importing a profile writes `wardrobe-studio/profiles.json` under the extension's supplied data directory. Applying a combination uses the desktop pet's internal loopback appearance endpoints; this changes its selected figure/scheme as an ordinary wardrobe selection does. Figure manifests and animation assets are never edited. Host program files are never read for patching or modified.
 
 The extension defaults to Chinese independently of the host language. Its Chinese/English selector stores only `{language}` in its own `wardrobe-studio/preferences.json`, shared by both panels and retained across restart. It does not change the host language, profiles or appearance. Imported names remain user-provided text. Switching panel language preserves the pending outfit selection and JSON draft.
 

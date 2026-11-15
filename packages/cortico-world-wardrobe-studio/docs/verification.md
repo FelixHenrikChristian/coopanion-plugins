@@ -1,5 +1,9 @@
 # Verification
 
+## Package 0.6.1
+
+The wardrobe screenshots were captured from the actual panel against its isolated demo service, using approved standing stills from the released Lulu figure. Orange with/without its bird bag was selected and applied in that isolated service. Existing profile mappings and production behavior are unchanged. Wardrobe Studio's 22 isolated tests pass, along with syntax, describe and package allowlist checks. No running personal deployment was changed for screenshots. Current release artifacts and checks are recorded separately.
+
 ## Package 0.6.0
 
 Independent-panel release: the host patch adapter, restoration utility, feed, helper clients, configuration switches and native-page prototype are removed. Regression coverage checks that legacy configuration cannot touch a host directory, bind a compatibility port or change the panel contract. Existing isolated tests cover profiles, allowed combinations, thumbnails, language, appearance ownership and recovery. Historical checks below apply only to their named versions. Current release execution evidence is recorded separately.

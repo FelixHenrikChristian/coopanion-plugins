@@ -27,28 +27,30 @@
 | 你要做的事 | 扩展提供什么 |
 | :--- | :--- |
 | 整理衣橱 | 按服装显示独立选项，禁用没有完整资源的组合 |
-| 切换搭配 | 使用桌宠标准外观接口，读取本机角色缩略图 |
+| 切换搭配 | 使用桌宠本机外观接口，读取本机角色缩略图 |
 | 制作角色 | 参考图提示词、连续视频、播放验收、连续抠像、形象包接入指南 |
 | 编写配置 | 完整字段表、噜噜示例、JSON Schema、本机 ID 查询和只读校验 |
 | 切换语言 | 默认中文，可选 English，记住选择并保留编辑草稿 |
 
 > [!IMPORTANT]
-> **0.6.0 起仅提供独立面板，已删除原生页补丁。** 升级前先用旧版正常停用并确认还原；参见[迁移说明](docs/panel-only-migration.md)。市场是否恢复收录由维护者复审决定。
+> **0.6.0 起仅提供独立面板，已删除原生页补丁。** 升级前先用旧版正常停用并确认还原；参见[迁移说明](docs/panel-only-migration.md)。[官方维护者已确认恢复收录](https://github.com/Pal-AI-Lab/cortico-extensions/issues/853#issuecomment-6832234773)。
 
-<details>
-<summary><strong>查看独立衣橱预览 · 噜噜示例</strong></summary>
-<br>
-<div align="center"><img src="assets/wardrobe.png" width="500" alt="噜噜的独立衣橱面板"></div>
+## 噜噜衣橱实拍
 
-噜噜示例有橘子装、粉色睡衣和纸箱恐龙装；橘子装可戴上或摘下小鸟包包。示例复用已验收的四套外观预览，完整动作包由独立噜噜 Release 提供。
+![独立衣橱面板：橘子噜噜、小鸟包包与三套服装](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe.png)
 
-</details>
+这是插件实际面板在独立演示服务中的截图，使用正式噜噜角色包的静帧，不含个人设置。先选橘子装，下方只显示对应的“小鸟包包”选项；选择睡衣或纸箱恐龙时，显示各自支持的搭配。
+
+![选择摘下小鸟包包后的噜噜预览](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe-bag-off.jpg)
+
+橘子装带包和摘包分别映射到 <code>bag</code>、<code>plain</code>，睡衣与恐龙装映射到 <code>sleep</code>、<code>dino</code>：**三套服装、四个完整外观**。点击“应用装扮”才会切换桌宠；图片是静态预览，不代表动画播放。完整动作由[独立噜噜角色包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2)提供。
+
 
 ## 开始使用
 
 ### 1 · 安装并启用
 
-市场恢复收录需等待复审。目前可使用下方 GitHub 安装包，或在手动安装器填写 `cortico-world-wardrobe-studio@0.6.0`；按宿主提示重启 Core 后启用。
+已恢复官方市场收录。刷新 World 扩展市场，搜索“装扮工作室”或“Wardrobe Studio”；也可从 GitHub 下载，或在手动安装器填写 `cortico-world-wardrobe-studio@0.6.1`；按宿主提示重启 Core 后启用。
 
 也可从 [GitHub Releases](https://github.com/FelixHenrikChristian/coopanion-plugins/releases) 下载归档，解压后在手动安装中选择含 `package.json` 的目录。
 
@@ -67,7 +69,7 @@
 3. 点击 **校验配置**，修复结构或 ID 报错后再导入。
 4. 选择服装与搭配，点击 **应用装扮**。
 
-[默认噜噜配置](examples/lulu.profile.json)对应[独立噜噜角色包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0)。先安装该角色包即可直接使用示例 ID；仅在改成其他角色时替换 ID。
+[默认噜噜配置](examples/lulu.profile.json)对应[独立噜噜角色包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2)。先安装该角色包即可直接使用示例 ID；仅在改成其他角色时替换 ID。
 
 [完整 JSON 字段与可复制示例 →](docs/profile-format.zh.md)
 
@@ -109,6 +111,7 @@
 - **本机存储**：配置、语言偏好和外观恢复记录保存在扩展自己的目录。
 - **资源保护**：角色 manifest、动画素材和宿主程序文件均不改写。
 - **恢复边界**：强制结束进程、服务不可用或旧角色被删除时，可能需要下次启用后恢复；卸载前应确认结果。
+- **接口边界**：换装使用桌宠内部的 `GET /api/figures`、`GET /api/state`、`POST /api/skin`，并非公开兼容契约，宿主更新后可能需要适配。
 - **运行要求**：World API 6、形象包 manifest/API 2、Node.js ≥22，零运行时 npm 依赖。
 - **能力范围**：指导工具提供步骤，不自动安装模型、生成素材或补齐未制作的动作。Coo 自带配件继续使用原生页。
 

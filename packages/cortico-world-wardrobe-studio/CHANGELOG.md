@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+- Show the Lulu wardrobe screenshot directly in both READMEs, with a second screenshot demonstrating the removable bird bag.
+- Refresh approved example portraits from the released figure without changing character proportions, and document the three-outfit/four-scheme mapping.
+- Update exact npm installation instructions and Lulu figure links; record confirmed market reinstatement and the internal-API compatibility boundary. Independent-panel behavior and existing profiles are unchanged.
+
 ## 0.6.0
 
 - Remove native-page patching, recovery utility, compatibility feed/helpers, native settings and prototype.

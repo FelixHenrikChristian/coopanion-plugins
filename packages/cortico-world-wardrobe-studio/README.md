@@ -27,27 +27,29 @@ A character's outfits do not need to share every option. Wardrobe Studio groups 
 | You want to… | Wardrobe Studio provides… |
 | :--- | :--- |
 | Organize a wardrobe | Outfit-specific options; unavailable combinations disabled |
-| Choose a combination | Standard appearance persistence and local thumbnails |
+| Choose a combination | Local appearance selection, persistence and thumbnails |
 | Create a character | Reference prompts, continuous video, playback gates and temporal matting guidance |
 | Write an import profile | Field tables, Lulu examples, JSON Schema and installed-ID checks |
 
 > [!IMPORTANT]
-> **0.6.0 is independent-panel only.** Host-page patches have been removed. Stop the old version and verify rollback before upgrading; see the [migration guide](docs/panel-only-migration.md). Market reinstatement requires maintainer review.
+> **0.6.0 is independent-panel only.** Host-page patches have been removed. Stop the old version and verify rollback before upgrading; see the [migration guide](docs/panel-only-migration.md). [Maintainer review restored market listing](https://github.com/Pal-AI-Lab/cortico-extensions/issues/853#issuecomment-6832234773).
 
-<details>
-<summary><strong>Separate-panel preview · Lulu wardrobe</strong></summary>
-<br>
-<div align="center"><img src="assets/wardrobe.png" width="600" alt="Lulu wardrobe panel"></div>
+## Lulu wardrobe in pictures
 
-The Lulu example provides Orange with a removable bird bag, Pajamas and Cardboard Dinosaur: three outfits and four complete schemes. It reuses approved stills; the complete animated figure is supplied by the [independent Lulu release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0).
+![Independent wardrobe panel with Lulu outfits and removable bird bag](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe.png)
 
-</details>
+Captured from the actual panel against an isolated demo service using stills from the released Lulu figure, without personal settings. Selecting Orange shows its bird-bag controls; Pajamas and Cardboard Dinosaur expose their own supported choices.
+
+![Lulu preview with the bird bag removed](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe-bag-off.jpg)
+
+Orange with/without the bag maps to <code>bag</code>/<code>plain</code>; Pajamas and Dinosaur map to <code>sleep</code>/<code>dino</code>: **three outfits, four complete looks**. Press **Apply** to switch the pet. These are static previews; the [independent Lulu figure pack](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2) supplies the complete animations.
+
 
 ## Get started
 
 ### 1 · Install and enable
 
-Market reinstatement is pending review. For now, download a [GitHub release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases), extract it and select the folder containing `package.json` in the manual installer.
+The package has been reinstated in the official index. Refresh the World market and search for **Wardrobe Studio** or **装扮工作室**. You can also install `cortico-world-wardrobe-studio@0.6.1` through the manual installer, or download a [GitHub release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases), extract it and select the folder containing `package.json` in the manual installer.
 
 ### 2 · Prepare figure resources
 
@@ -59,7 +61,7 @@ Keep the desktop-pet World running and install/verify your figure pack first. Th
 
 Open **Wardrobe Studio → Wardrobe → Import profile**. Inspect installed IDs, download the Lulu example or JSON Schema, fill in your figure/schemes, run **Check configuration**, then import. Choose an outfit/options and **Apply**.
 
-The [default Lulu profile](examples/lulu.profile.json) matches the [independent Lulu figure release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.0). Install that figure pack and keep the sample IDs unchanged; replace IDs only when adapting it for another character.
+The [default Lulu profile](examples/lulu.profile.json) matches the [independent Lulu figure release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2). Install that figure pack and keep the sample IDs unchanged; replace IDs only when adapting it for another character.
 
 The extension UI defaults to Chinese. Its **中文 / English** selector is persistent and independent of the host language; imported names remain your own text.
 
@@ -102,7 +104,7 @@ The guide panel, agent tool and downloadable manuals share the same source docum
 
 - Profiles, language and recovery records stay in this extension's local namespace. No conversation reading or internet requests.
 - Figure manifests, animation assets and host program files are never modified.
-- The independent panel uses the documented desktop-pet appearance API.
+- The independent panel uses the desktop pet’s internal loopback appearance endpoints (`GET /api/figures`, `GET /api/state`, `POST /api/skin`). These are not a public compatibility contract and can change after a host update.
 - World API 6, figure manifest/API 2, Node.js ≥22; no runtime npm dependencies or model downloads.
 - Guidance provides instructions, not automatic media generation or missing animation resources.
 

@@ -7,7 +7,7 @@ const root=fileURLToPath(new URL('../',import.meta.url)),cache=join(root,'scratc
 const npmCli=process.env.npm_execpath??join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
 const result=spawnSync(process.execPath,[npmCli,'pack','--dry-run','--ignore-scripts','--json','--cache',cache],{cwd:root,encoding:'utf8'});
 assert.equal(result.status,0,result.stderr);const manifest=JSON.parse(result.stdout)[0];
-const allowed=name=>/^assets\/lulu\/(bag|plain|sleep|dino)\.png$/.test(name)||/^(src|web|docs|examples)\//.test(name)||['package.json','assets/icon.svg','assets/wardrobe.png','describe.json','README.md','README_zh.md','README.en.md','CHANGELOG.md','LICENSE'].includes(name);
+const allowed=name=>/^assets\/lulu\/(bag|plain|sleep|dino)\.png$/.test(name)||/^(src|web|docs|examples)\//.test(name)||['package.json','assets/icon.svg','assets/wardrobe.png','assets/wardrobe-bag-off.jpg','describe.json','README.md','README_zh.md','README.en.md','CHANGELOG.md','LICENSE'].includes(name);
 const secrets=[/-----BEGIN [A-Z ]*PRIVATE KEY-----/,/\bgh[pousr]_[A-Za-z0-9]{25,}\b/,/\bgithub_pat_[A-Za-z0-9_]{25,}\b/,/\b[A-Z]:[\\/]Users[\\/][^\s"']+/i,/codex-clipboard-[a-f0-9-]+/i];
 for(const f of manifest.files){
  assert(allowed(f.path),`Unexpected packaged file: ${f.path}`);
@@ -19,5 +19,6 @@ for(const f of manifest.files){
  }
 }
 assert(manifest.unpackedSize<2*1024*1024,'Unexpected package size; inspect media and caches');
+const pkg=JSON.parse(await readFile(join(root,'package.json'),'utf8'));const paths=new Set(manifest.files.map(f=>f.path));for(const path of [pkg.cortico.icon,...pkg.cortico.screenshots])assert(paths.has(path),`Missing public asset: ${path}`);
 const screenshot=await stat(join(root,'assets/wardrobe.png'));assert(screenshot.size<2*1024*1024);
 console.log(JSON.stringify({status:'ALLOWLIST_AND_PATTERN_CHECK_PASS',files:manifest.files.map(f=>f.path),packedBytes:manifest.size,unpackedBytes:manifest.unpackedSize,manualContentReviewStillRequired:true},null,2));

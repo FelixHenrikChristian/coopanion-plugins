@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Replace the simplified SVG icon with a square, aspect-preserving crop of the released Lulu figure.
+- Show four bundled outfit photos in the wardrobe, including both bird-bag variants, before and after figure installation.
+- Add illustrated Chinese/English installation guidance, a wardrobe screenshot and clearer plugin/figure version boundaries. The animated figure remains 0.1.2.
+
 ## 0.1.3
 
 修复宿主弹性布局和尺寸隔离下衣橱被压窄、文字逐字换行的问题。将面板样式放入独立内部容器，保留宿主根节点布局；按钮适配窄窗口。沿用 0.1.2 角色包，角色素材、服装与配置不变。
