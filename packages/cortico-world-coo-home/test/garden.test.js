@@ -16,7 +16,7 @@ function fixture(){
 }
 
 test('all eight plots start empty and offer the approved 30–90 minute crop catalog',()=>{
-  const f=fixture();assert.equal(f.life.state.version,3);
+  const f=fixture();assert.equal(f.life.state.version,4);
   assert.deepEqual(f.life.snapshot().garden.crops,CROP_CATALOG);assert.equal(CROP_CATALOG.length,8);
   assert.ok(f.life.snapshot().garden.plots.every(plot=>plot.stage==='empty'&&plot.cropId===null&&plot.growth===0&&plot.harvests===0&&plot.actions.sow&&!plot.actions.harvest&&plot.durationMs===0));
   assert.equal(f.life.snapshot().garden.totalHarvests,0);assert.deepEqual(f.life.snapshot().garden.events,[]);
@@ -84,7 +84,7 @@ test('hidden and offline progress produce one maturity event and preserve harves
 test('v1 migration preserves furniture work and queue while adding empty plots',()=>{
   const f=fixture();f.life.command({itemId:'living.sofa',actionId:'sit'});f.life.command({itemId:'bedroom.bed',actionId:'sleep',enqueue:true});
   const previous=f.life.export();previous.version=1;delete previous.garden;
-  const migrated=normalizeLifeState(previous,layout,f.now());assert.equal(migrated.version,3);
+  const migrated=normalizeLifeState(previous,layout,f.now());assert.equal(migrated.version,4);
   assert.deepEqual(migrated.position,previous.position);assert.deepEqual(migrated.needs,previous.needs);assert.equal(migrated.current.id,previous.current.id);assert.deepEqual(migrated.current.route,previous.current.route);assert.equal(migrated.queue[0].id,previous.queue[0].id);assert.deepEqual(migrated.items,previous.items);
   assert.ok(migrated.garden.plots.every(plot=>plot.stage==='empty'&&plot.cropId===null));
   const inspect=fixture();inspect.life.command({itemId:'plot-1',actionId:'查看'});const old=inspect.life.export();old.version=1;delete old.garden;const resumed=new HomeLife({layout,state:old,clock:inspect.now});assert.equal(resumed.state.current.actionId,'查看');
@@ -105,7 +105,7 @@ test('garden save validation rejects duplicate crops and strips unrecognized fie
   const bad=structuredClone(raw.garden);bad.plots[0].cropId='unknown';assert.throws(()=>normalizeGarden(bad,layout),/crop/);
 });
 
-test('real World migration saves schema3 and restart keeps a selected crop',async t=>{
+test('real World migration saves schema4 and restart keeps a selected crop',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'coo-home-garden-'));t.after(async()=>{assert.equal(dirname(resolve(directory)),resolve(tmpdir()));assert.ok(basename(directory).startsWith('coo-home-garden-'));await rm(directory,{recursive:true,force:true});});
   const f=fixture(),legacy=f.life.export();legacy.version=1;delete legacy.garden;await mkdir(join(directory,'coo-home'));await writeFile(join(directory,'coo-home/state.json'),JSON.stringify(legacy));
   const bridgeFactory=()=>({start:async()=>{},stop:async()=>{},snapshot:()=>({connected:false,descriptor:null})});
@@ -116,7 +116,7 @@ test('real World migration saves schema3 and restart keeps a selected crop',asyn
   const queued=JSON.parse((await world.tools()[0].handler({operation:'command',itemId:'plot-2',actionId:'sow',cropId:'pepper',enqueue:true},{role:'fixture-home',callId:'choose-pepper'})).text);
   assert.equal(queued.life.queue[0].cropId,'pepper');
   const changed=await world.tools()[0].handler({operation:'command',itemId:'plot-1',actionId:'sow',cropId:'pepper'},{role:'fixture-home',callId:'choose-carrot'});assert.equal(changed.failed,true);assert.equal(world.status().life.current.cropId,'carrot');
-  f.set(task.endsAt+1);await world.tick();await world.stop();const saved=JSON.parse(await readFile(join(directory,'coo-home/state.json'),'utf8'));assert.equal(saved.version,3);
+  f.set(task.endsAt+1);await world.tick();await world.stop();const saved=JSON.parse(await readFile(join(directory,'coo-home/state.json'),'utf8'));assert.equal(saved.version,4);
   const next=new CooHomeWorld({dataDir:directory},{layout,clock:f.now,bridgeFactory});await next.start();assert.equal(next.status().life.garden.totalHarvests,0);assert.equal(next.status().life.garden.plots[0].cropId,'carrot');assert.equal(next.status().life.garden.plots[0].stage,'seeded');await next.stop();
 });
 
@@ -150,7 +150,7 @@ test('v2 migration clears only unplanted display crops and preserves real sowing
   for(const plot of old.garden.plots)delete plot.legacyHarvests;
   old.garden.plots[0].wateredAt=f.now()-1000; // Care is not evidence of sowing.
   const migrated=normalizeLifeState(old,layout,f.now());
-  assert.equal(migrated.version,3);assert.equal(migrated.garden.plots[0].stage,'empty');assert.equal(migrated.garden.plots[0].cropId,null);
+  assert.equal(migrated.version,4);assert.equal(migrated.garden.plots[0].stage,'empty');assert.equal(migrated.garden.plots[0].cropId,null);
   const kept=migrated.garden.plots[1];assert.equal(kept.cropId,'eggplant');assert.equal(kept.readyAt,real.readyAt);assert.equal(kept.growthStartedAt,real.growthStartedAt);assert.equal(kept.harvests,1);assert.equal(kept.cycle,1);assert.equal(kept.legacyHarvests,1);
   assert.equal(migrated.garden.events.length,0);
   const roundtrip=new HomeLife({layout,state:migrated,clock:f.now});assert.deepEqual(roundtrip.state.garden,migrated.garden);

@@ -91,7 +91,7 @@ test('walk validates the floor, ignores client height and rejects blocked/outsid
 
 test('migration and saves exclude non-household data and reject malformed jobs',()=>{
   const f=fixture();const raw={...f.life.export(),version:0,figure:'private-fixture-sentinel',chat:[{text:'not-household'}],unknown:'not-household'};
-  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,3);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
+  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,4);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
   f.life.command({itemId:'living.sofa',actionId:'sit'});const bad=f.life.export();bad.current.actionId='unavailable';assert.throws(()=>normalizeLifeState(bad,layout,f.now()),/action/);
   const crossed=f.life.export();crossed.current.route=[{position:layout.spawn,at:1},{position:[999,0,999],at:2}];assert.throws(()=>normalizeLifeState(crossed,layout,f.now()),/walkable/);
 });

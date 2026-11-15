@@ -3,12 +3,13 @@ import {createFigureLayer} from './figure.js';
 import {createLifePanel} from './life-panel.js';
 import {createChatPanel} from './chat-panel.js';
 import {createHomeAudio} from './audio.js';
+import {icon} from './ui-icons.js';
 
 export async function mount(ctx){
   const abort=new AbortController(),signal=abort.signal;
   const stop=()=>dispose();ctx.signal.addEventListener('abort',stop,{once:true});
   const root=document.createElement('section');root.className='coo-home-root';root.dataset.testid='coo-home-root';
-  root.innerHTML='<div class="coo-home-stage" data-testid="home-scene"></div><div class="coo-home-toolbar"><span class="coo-home-title">coo家园</span><span class="coo-home-status" role="status" data-testid="home-status">正在打开街区…</span><button type="button" data-testid="home-fullscreen" title="全屏查看">全屏</button></div><div class="coo-home-item" hidden></div>';
+  root.innerHTML=`<div class="coo-home-stage" data-testid="home-scene"></div><div class="coo-home-toolbar"><div class="coo-home-brand">${icon('home')}<div><span class="coo-home-title">coo家园</span><span class="coo-home-status" role="status" data-testid="home-status">正在打开街区…</span></div></div><div class="coo-home-toolbar-actions"><button type="button" class="coo-tool-button" data-testid="home-follow" aria-pressed="false" title="定位并跟随角色">${icon('focus')}<span>跟随角色</span></button><button type="button" class="coo-tool-button" data-testid="home-fullscreen" title="全屏查看">${icon('expand')}<span>全屏</span></button></div></div><div class="coo-home-item" role="status" hidden></div>`;
   ctx.root.append(root);
   const stage=root.querySelector('.coo-home-stage'),status=root.querySelector('[role=status]'),item=root.querySelector('.coo-home-item');
   const notice=text=>{if(!signal.aborted)status.textContent=text;};
@@ -32,11 +33,14 @@ export async function mount(ctx){
     chatPanel=createChatPanel({root,ctx,signal,feedback,onReply:(text,options)=>{void audio.speak(text,options).catch(()=>{});}});
     for(const name of ['pointerdown','keydown'])root.addEventListener(name,event=>{if(event.isTrusted)void audio.unlock();},{signal,capture:true});
     const button=root.querySelector('[data-testid=home-fullscreen]');
+    const follow=root.querySelector('[data-testid=home-follow]');
+    function paintFollow(){const active=!!scene.getFollowState?.().active;if(follow.getAttribute('aria-pressed')!==String(active)){follow.setAttribute('aria-pressed',String(active));follow.querySelector('span').textContent=active?'自由视角':'跟随角色';follow.title=active?'解除跟随，恢复自由视角':'定位并跟随角色';}}
+    follow.addEventListener('click',()=>{const active=scene.getFollowState().active;scene.setFollowTarget(active?null:actor.getState().placement.position);paintFollow();},{signal});
     button.addEventListener('click',async()=>{
       try {if(document.fullscreenElement===root)await document.exitFullscreen();else await root.requestFullscreen();}
       catch {notice('此窗口暂不支持全屏，请放大窗口查看。');}
     },{signal});
-    document.addEventListener('fullscreenchange',()=>{button.textContent=document.fullscreenElement===root?'退出全屏':'全屏';scene.resize();},{signal});
+    document.addEventListener('fullscreenchange',()=>{button.querySelector('span').textContent=document.fullscreenElement===root?'退出全屏':'全屏';scene.resize();},{signal});
     let received=0;
     function receive(text){
       try {const value=JSON.parse(text);received++;if(value?.appearance){actor.setAppearance(value.appearance);audio.configure(value.appearance.audio??null);}lifePanel.receive(value);chatPanel.receive(value);}
@@ -55,7 +59,9 @@ export async function mount(ctx){
       elapsed+=step;renderBudget=Math.min(100,renderBudget+step);lastVisible=true;
       if(renderBudget<frameMs)return;
       renderBudget%=frameMs;
-      const stamp=performance.now();scene.update(elapsed);lifePanel.update(stamp);actor.update(stamp);
+      const stamp=performance.now();lifePanel.update(stamp);
+      if(scene.getFollowState?.().active)scene.setFollowTarget(actor.getState().placement.position);
+      scene.update(elapsed);actor.update(stamp);paintFollow();
     });
     const revision=received;
     try {

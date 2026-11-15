@@ -19,7 +19,7 @@ function fixture(){
   const bridges=[];let saved=null,time=1_000_000,failSave=false;
   const storage={recovery:'new',load:async validate=>saved?validate(saved):null,save:async value=>{if(failSave)throw Error('fixture disk failure');saved=structuredClone(value);},flush:async()=>{}};
   const memory=()=>{let value=null;return{load:async validate=>value?validate(value):null,save:async next=>{value=structuredClone(next);}};};
-  const world=new CooHomeWorld({botDir:'isolated-fixture'}, {clock:()=>time,storage,chatStorage:memory(),brainStorage:memory(),bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
+  const world=new CooHomeWorld({botDir:'isolated-fixture'}, {clock:()=>time,storage,chatStorage:memory(),brainStorage:memory(),preferencesStorage:memory(),bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
   return{world,bridges,storage,setTime:value=>{time=value;},setFailure:value=>{failSave=value;},saved:()=>saved};
 }
 

@@ -1,7 +1,8 @@
 // Household-only planting state. No money, decay, model calls or figure data.
 export const CROP_MINUTES=Object.freeze({'spring-onion':30,daikon:45,carrot:45,cabbage:60,cucumber:60,tomato:75,eggplant:75,pepper:90});
 const NAMES={'spring-onion':'小葱',daikon:'白萝卜',carrot:'胡萝卜',cabbage:'卷心菜',cucumber:'黄瓜',tomato:'番茄',eggplant:'茄子',pepper:'甜椒'};
-export const CROP_CATALOG=Object.freeze(Object.entries(CROP_MINUTES).map(([id,growMinutes])=>Object.freeze({id,label:NAMES[id],growMinutes,durationMs:growMinutes*60_000})));
+const YIELDS={'spring-onion':[12,'束'],daikon:[8,'根'],carrot:[12,'根'],cabbage:[6,'颗'],cucumber:[10,'根'],tomato:[12,'颗'],eggplant:[8,'根'],pepper:[10,'个']};
+export const CROP_CATALOG=Object.freeze(Object.entries(CROP_MINUTES).map(([id,growMinutes])=>Object.freeze({id,label:NAMES[id],growMinutes,durationMs:growMinutes*60_000,yieldCount:YIELDS[id][0],yieldUnit:YIELDS[id][1]})));
 const STAGES=new Set(['empty','seeded','seedling','growing','ripe']);
 const MUTATIONS=new Set(['sow','water','harvest']);
 const WET_MS=30*60_000,MAX_EVENTS=64;
@@ -15,10 +16,10 @@ const knownPlots=layout=>{
 };
 
 export function createGarden(layout){
-  return{plots:knownPlots(layout).map(item=>({id:item.id,cropId:null,stage:'empty',cycle:0,harvests:0,legacyHarvests:0,plantedAt:null,wateredAt:null,growthStartedAt:null,readyAt:null,lastHarvestAt:null})),events:[],nextCareAt:0};
+  return{plots:knownPlots(layout).map(item=>({id:item.id,cropId:null,stage:'empty',cycle:0,harvests:0,legacyHarvests:0,harvestedByCrop:{},plantedAt:null,wateredAt:null,growthStartedAt:null,readyAt:null,lastHarvestAt:null})),events:[],nextCareAt:0};
 }
 
-export function normalizeGarden(raw,layout,offset=0,{legacy=false}={}){
+export function normalizeGarden(raw,layout,offset=0,{legacy=false,quantitiesKnown=!legacy}={}){
   if(!raw||!Array.isArray(raw.plots)||raw.plots.length!==8||!Array.isArray(raw.events)||!finite(raw.nextCareAt))throw Error('Invalid garden save.');
   const ids=new Set(raw.plots.map(plot=>plot?.id));if(ids.size!==8)throw Error('Duplicate garden plots.');
   const stamp=value=>value===null?null:finite(value)?value+offset:(()=>{throw Error('Invalid garden clock.');})();
@@ -35,6 +36,10 @@ export function normalizeGarden(raw,layout,offset=0,{legacy=false}={}){
     if(![0,1].includes(source.legacyHarvests)||source.harvests!==(source.cycle+source.legacyHarvests-(source.stage==='empty'?0:1)))throw Error('Invalid garden harvest count.');
     if(source.stage==='empty'?source.cropId!==null:!Object.hasOwn(CROP_MINUTES,source.cropId))throw Error('Invalid garden crop state.');
     const plot={id:item.id,cropId:source.cropId,stage:source.stage,cycle:source.cycle,harvests:source.harvests,legacyHarvests:source.legacyHarvests};
+    const amounts=quantitiesKnown?source.harvestedByCrop:{};
+    if(!amounts||typeof amounts!=='object'||Array.isArray(amounts)||Object.entries(amounts).some(([id,count])=>!Object.hasOwn(YIELDS,id)||!integer(count)||count%YIELDS[id][0]!==0))throw Error('Invalid garden harvest quantities.');
+    if(Object.entries(amounts).reduce((sum,[id,count])=>sum+count/YIELDS[id][0],0)>plot.harvests)throw Error('Invalid garden harvest quantities.');
+    plot.harvestedByCrop={...amounts};
     for(const key of ['plantedAt','wateredAt','growthStartedAt','readyAt','lastHarvestAt'])plot[key]=stamp(source[key]??null);
     if(plot.stage==='empty'&&['plantedAt','wateredAt','growthStartedAt','readyAt'].some(key=>plot[key]!==null))throw Error('Invalid empty plot.');
     if(plot.stage==='seeded'&&(plot.cycle===0||plot.plantedAt===null||plot.growthStartedAt!==null||plot.wateredAt!==null||plot.readyAt!==null))throw Error('Invalid unwatered plot.');
@@ -72,7 +77,7 @@ export function gardenSnapshot(garden,time){
   const plots=garden.plots.map(plot=>{
     const durationMs=cropDuration(plot.cropId),growing=['seedling','growing'].includes(plot.stage);
     const growth=plot.stage==='ripe'?1:growing?Math.max(0,Math.min(1,(time-plot.growthStartedAt)/durationMs)):0;
-    return{...clone(plot),cropLabel:NAMES[plot.cropId]??null,durationMs,growth,wetness:plot.wateredAt===null?0:Math.max(0,Math.min(1,1-(time-plot.wateredAt)/WET_MS)),
+    return{...clone(plot),cropLabel:NAMES[plot.cropId]??null,durationMs,growth,expectedYieldCount:YIELDS[plot.cropId]?.[0]??0,yieldUnit:YIELDS[plot.cropId]?.[1]??null,wetness:plot.wateredAt===null?0:Math.max(0,Math.min(1,1-(time-plot.wateredAt)/WET_MS)),
       remainingMs:plot.stage==='seeded'?durationMs:growing?Math.max(0,plot.readyAt-time):0,needsFirstWater:plot.stage==='seeded',
       actions:{sow:plot.stage==='empty',water:plot.stage!=='empty',harvest:plot.stage==='ripe'}};
   });
@@ -99,6 +104,7 @@ export function applyGardenAction(garden,plotId,action,time,cycle,cropId){
     plot.wateredAt=time;
     if(plot.stage==='seeded'){plot.stage='seedling';plot.growthStartedAt=time;plot.readyAt=time+cropDuration(plot.cropId);}
   }else if(action==='harvest'){
+    plot.harvestedByCrop[plot.cropId]=(plot.harvestedByCrop[plot.cropId]??0)+YIELDS[plot.cropId][0];
     plot.harvests++;plot.lastHarvestAt=time;emit(garden,plot,'harvest',time);plot.stage='empty';plot.cropId=null;plot.plantedAt=null;plot.wateredAt=null;plot.growthStartedAt=null;plot.readyAt=null;
   }
   return plot;

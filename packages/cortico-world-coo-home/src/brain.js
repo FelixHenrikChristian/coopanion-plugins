@@ -22,8 +22,8 @@ export function normalizeBrain(raw){
 }
 
 export class HomeBrain{
-  constructor({dataDir,store,model,host={},clock=()=>Date.now(),timezone='UTC',context=()=>({}),tools=()=>[],canPlan=()=>false,guard=()=>()=>false,onChange=()=>{},visible=()=>false}={}){
-    this.store=store??new HomeStore(dataDir,{name:'brain'});this.model=model;this.host=host;this.clock=clock;this.timezone=timezone;this.context=context;this.tools=tools;this.canPlan=canPlan;this.guard=guard;this.onChange=onChange;this.visible=visible;
+  constructor({dataDir,store,model,host={},clock=()=>Date.now(),timezone='UTC',context=()=>({}),environment=()=>'',tools=()=>[],canPlan=()=>false,guard=()=>()=>false,onChange=()=>{},visible=()=>false}={}){
+    this.store=store??new HomeStore(dataDir,{name:'brain'});this.model=model;this.host=host;this.clock=clock;this.timezone=timezone;this.context=context;this.environment=environment;this.tools=tools;this.canPlan=canPlan;this.guard=guard;this.onChange=onChange;this.visible=visible;
     this.state=initial(clock(),timezone);this.tail=Promise.resolve();this.started=false;this.available=true;this.storageError=null;this.active=null;this.job=null;this.reporting=null;this.pending=new Set();this.ended=true;
   }
   async start(events=[]){
@@ -61,7 +61,7 @@ export class HomeBrain{
     try{
       await this.update(()=>{checkAbort(active.controller.signal);this.state.nextPlanAt=this.clock()+this.state.settings.intervalMinutes*60_000;});
       checkAbort(active.controller.signal);
-      const result=await this.model.run({records:[],system:'你是独立家园中的角色。根据当前生活状态选择一项轻量活动，可使用 coo_home 查看目录和状态。只安排一项家园动作，不访问桌面、文件或外部世界，不重复安排已经接受的任务。用户的手动操作永远优先。\n当前家园：'+JSON.stringify(this.context()),
+      const result=await this.model.run({records:[],system:'你是独立家园中的角色。根据当前生活状态选择一项轻量活动，可使用 coo_home 查看目录和状态。只安排一项家园动作，不访问桌面、文件或外部世界，不重复安排已经接受的任务。用户的手动操作永远优先。\n家园环境说明：\n'+this.environment()+'\n当前家园：'+JSON.stringify(this.context()),
         tools:this.tools(active),signal:active.controller.signal,sessionId:'coo-home/autonomy',beforeRespond:()=>this.reserveCall(active)
       });
       checkAbort(active.controller.signal);if(!active.valid())throw safeError('HOME_CANCELLED','旧计划已丢弃。');

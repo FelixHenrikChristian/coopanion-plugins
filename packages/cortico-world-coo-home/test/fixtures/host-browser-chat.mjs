@@ -1,14 +1,31 @@
 import assert from 'node:assert/strict';
 
-export async function verifyHostBrowserChat({ page, provider, invoke, until }) {
+export async function verifyHostBrowserChat({ page, provider, invoke, invokePanel, openPanel, until }) {
   const root = page.getByTestId('coo-home-root');
   await root.getByTestId('home-chat-toggle').click();
   assert.equal(await page.evaluate(() => window.__neutralAudio.started), 0, 'Opening a page replayed saved chat audio');
   const input = root.getByTestId('home-chat-input'), send = root.getByTestId('home-chat-send');
   const reply = '<b>中性回复</b>：已经接受的活动仍需实际完成。';
   await provider.plan({ id: 'browser-chat', steps: [{ text: reply, chunkMs: 600 }] });
-  await input.fill('中性浏览器测试，请说明家园状态。');
-  await send.click();
+  const beforeTyping = (await invoke('chatHistory')).chat.messages.length;
+  await input.fill('中性浏览器测试');
+  await input.press('Shift+Enter');
+  await input.press('End');
+  await input.type('请说明家园状态。');
+  assert.match(await input.inputValue(), /\n/, 'Shift+Enter must add a newline');
+  const composing = await input.evaluate(element => {
+    element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '中' }));
+    const current = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true, bubbles: true, cancelable: true });
+    element.dispatchEvent(current);
+    element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '中' }));
+    const legacy = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 229, bubbles: true, cancelable: true });
+    element.dispatchEvent(legacy);
+    return { currentPrevented: current.defaultPrevented, legacyPrevented: legacy.defaultPrevented };
+  });
+  assert.deepEqual(composing, { currentPrevented: false, legacyPrevented: false });
+  await page.waitForTimeout(150);
+  assert.equal((await invoke('chatHistory')).chat.messages.length, beforeTyping, 'Newlines or IME composition sent a message');
+  await input.press('Enter');
   await root.getByTestId('home-chat-partial').waitFor({ state: 'visible' });
   assert.equal(await send.isDisabled(), true);
   assert.equal(await root.getByTestId('home-chat-cancel').isVisible(), true);
@@ -40,15 +57,47 @@ export async function verifyHostBrowserChat({ page, provider, invoke, until }) {
   await root.getByTestId('home-chat-cancel').click();
   await until(async () => (await invoke('status')).chat.job?.status === 'cancelled', 'browser cancellation');
   assert.ok(!(await root.getByTestId('home-chat-log').innerText()).includes('must not appear'));
-  await root.getByTestId('home-brain-settings').locator('summary').click();
-  await root.getByTestId('home-ai-enabled').uncheck();
-  await root.getByTestId('home-ai-interval').fill('15');
-  await root.getByTestId('home-ai-calls').fill('3');
-  await root.getByTestId('home-report-limit').fill('1');
-  await root.getByTestId('home-brain-save').click();
+  assert.equal(await root.getByTestId('home-brain-settings').count(), 0, 'Configuration remained in the chat drawer');
+  const beforePages = await invoke('status');
+  const audioContexts = await page.evaluate(() => window.__neutralAudio.contexts.length);
+  await openPanel('settings');
+  const settings = page.getByTestId('home-settings-page');
+  await settings.getByTestId('home-ai-enabled').uncheck();
+  await settings.getByTestId('home-ai-interval').fill('15');
+  await settings.getByTestId('home-ai-calls').fill('3');
+  await settings.getByTestId('home-report-limit').fill('1');
+  await settings.getByTestId('home-brain-save').click();
   await until(async () => (await invoke('status')).brain.settings.dailyCalls === 3, 'brain UI settings saved');
+  await settings.getByTestId('home-autonomy-enabled').uncheck();
+  await settings.getByTestId('home-life-save').click();
+  await until(async () => (await settings.getByTestId('home-life-settings-status').innerText()).includes('已保存'), 'native life settings saved');
+  assert.equal(await page.getByTestId('coo-home-root').count(), 0);
+  assert.equal(await settings.locator('canvas,iframe').count(), 0, 'Settings mounted rendering resources');
+  await until(async () => await page.evaluate(() => window.__neutralAudio.active.size === 0), 'leaving home releases active audio');
+  assert.equal(await page.evaluate(() => window.__neutralAudio.contexts.length), audioContexts, 'Settings started a second audio instance');
   const brain = (await invoke('status')).brain;
   assert.equal(brain.settings.aiEnabled, false); assert.equal(brain.settings.intervalMinutes, 15); assert.equal(brain.settings.dailyReports, 1);
+  await openPanel('environment');
+  const environment = page.getByTestId('home-environment-page'), text = environment.getByTestId('home-environment-input');
+  const prompt = 'NEUTRAL_BROWSER_HOME_ENVIRONMENT\n窗边留一盏暖灯。<script>neutral()</script>';
+  await text.fill(prompt);await environment.getByTestId('home-environment-save').click();
+  await until(async () => (await invokePanel('environment', 'environmentGet')).environment.text === prompt, 'native environment saved');
+  assert.equal(await environment.locator('canvas,iframe,script').count(), 0, 'Environment mounted rendering resources or interpreted user HTML');
+  assert.equal(await page.evaluate(() => window.__neutralAudio.contexts.length), audioContexts);
+  await openPanel('settings');
+  assert.equal(await settings.getByTestId('home-ai-interval').inputValue(), '15');
+  assert.equal(await settings.getByTestId('home-ai-calls').inputValue(), '3');
+  await openPanel('environment');assert.equal(await text.inputValue(), prompt);
+  await environment.getByTestId('home-environment-reset').click();
+  await until(async () => (await invokePanel('environment', 'environmentGet')).environment.isDefault, 'native environment restored to default');
+  const afterPages = await invoke('status');
+  assert.equal(afterPages.life.current?.id, beforePages.life.current?.id);
+  assert.deepEqual(afterPages.life.garden, beforePages.life.garden);
+  assert.deepEqual(afterPages.chat.messages, beforePages.chat.messages, 'Native pages changed the home conversation');
+  await openPanel('home');await root.getByTestId('home-chat-toggle').click();
+  await root.getByTestId('home-chat-log').getByText('中性后台手动回复，只保存，不补播。', { exact: true }).waitFor();
+  assert.equal(await root.locator('canvas').count() >= 1, true);
+  assert.equal(await root.locator('iframe').count(), 1);
   const life = (await invoke('status')).life;
   page.once('dialog', dialog => dialog.accept());
   await root.getByTestId('home-chat-clear').click();
@@ -56,6 +105,7 @@ export async function verifyHostBrowserChat({ page, provider, invoke, until }) {
   const after = (await invoke('status')).life;
   assert.equal(after.current?.id, life.current?.id); assert.deepEqual(after.garden.plots.map(p => p.harvests), life.garden.plots.map(p => p.harvests));
   await root.getByTestId('home-chat-close').click();
-  return { streaming: true, cancellation: true, textEscaped: true, settingsSaved: true, independentClear: true,
+  return { streaming: true, cancellation: true, textEscaped: true, enterSends: true, shiftEnterNewline: true, imeDoesNotSend: true,
+    nativePages: { settingsSaved: true, environmentSavedAndReset: true, noSceneOrAudio: true, homeStatePreserved: true }, independentClear: true,
     selectedNeutralPackAudio: true, hiddenManualCompletionSilent: true, noHistoryAudioReplay: true };
 }

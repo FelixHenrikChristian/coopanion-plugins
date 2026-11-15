@@ -20,6 +20,7 @@ import {mountSceneUI} from './scene-ui.js';
 import {disposeSceneResources} from './scene-resources.js';
 import {createActorMask} from './actor-mask.js';
 import {projectWorldPoint,projectActorBillboard} from './actor-projection.js';
+import {createCameraFollow} from './camera-follow.js';
 import {getNavigationData,getActionSlots} from './navigation-data.js';
 import {createNavigationQuery} from './navigation-query.js';
 import {createPlotVisuals} from './plot-visuals.js';
@@ -142,6 +143,7 @@ let finishOnRequest=false;
 const homeView=createHomeView({camera,controls,shell,button,onView,reducedMotion,signal,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(mode){
   lightsDirty=true;renderer.shadowMap.needsUpdate=true;weather.setHomeOpen(mode!=='exterior');weather.invalidate();
 }});
+const follow=createCameraFollow({camera,controls,onChange:()=>weather.invalidate()});
 const catalog=registry.connect(canvas,camera,scene,homeView,{onItem,signal});
 const onControlChange=()=>weather.invalidate();
 controls.addEventListener('change',onControlChange);
@@ -159,7 +161,7 @@ function resize(){
   renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   const distance=fittedDistance(camera.aspect);
   const factor=previousFit?distance/previousFit:distance/camera.position.distanceTo(controls.target);
-  camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);
+  if(!follow.getState().active)camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);
   controls.maxDistance=Math.max(80,distance*2.3);previousFit=distance;
   controls.update();weather.invalidate();
 }
@@ -240,6 +242,7 @@ canvas.addEventListener('keydown',e=>{
     case '+':case '=':sphere.radius=Math.max(controls.minDistance,sphere.radius*.88);break;
     case '-':sphere.radius=Math.min(controls.maxDistance,sphere.radius/.88);break;
     case 'Home':
+      follow.setTarget(null);
       if(!homeView.home()){controls.target.copy(look);camera.position.copy(look).addScaledVector(viewDir,previousFit);controls.update();}
       e.preventDefault();return;
     default:return;
@@ -258,8 +261,12 @@ function getCameraPose(){return {eye:camera.position.toArray(),target:controls.t
 function setCameraPose(pose){
   if(disposed)return;
   if(!pose||!Array.isArray(pose.eye)||!Array.isArray(pose.target)||pose.eye.length!==3||pose.target.length!==3||![...pose.eye,...pose.target].every(Number.isFinite))throw new TypeError('Invalid camera pose');
-  homeView.cancelTravel();camera.position.fromArray(pose.eye);controls.target.fromArray(pose.target);
+  follow.setTarget(null);homeView.cancelTravel();camera.position.fromArray(pose.eye);controls.target.fromArray(pose.target);
   controls.update();weather.invalidate();
+}
+function setFollowTarget(position){
+  if(disposed)return follow.getState();
+  homeView.cancelTravel();return follow.setTarget(position);
 }
 function getRendererInfo(){
   return {frames:frameCount,running,disposed,viewport:{...viewport},
@@ -303,7 +310,7 @@ function dispose(){
   if(disposed)return disposal;
   stop();disposed=true;abort.abort();observer.disconnect();
   controls.removeEventListener('change',onControlChange);controls.removeEventListener('start',onControlStart);controls.removeEventListener('end',onControlEnd);
-  homeView.dispose();controls.dispose();const drained=mask.dispose();
+  homeView.dispose();follow.dispose();controls.dispose();const drained=mask.dispose();
   disposeSceneResources(scene,weather);registry.dispose();
   for(const stage of stages)stage.g.clear();
   stages.length=0;fixtureLights.length=0;shell.walls.length=0;shell.roof.length=0;
@@ -314,7 +321,7 @@ function dispose(){
 if(autoStart)start();
 return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
-  project,projectBillboard,getCameraPose,setCameraPose,getRendererInfo,pickSurface,pickWalkable,
+  project,projectBillboard,getCameraPose,setCameraPose,setFollowTarget,getFollowState:follow.getState,getRendererInfo,pickSurface,pickWalkable,
   getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
   setPlotVisuals,getPlotVisuals:plotVisuals.getPlotVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,

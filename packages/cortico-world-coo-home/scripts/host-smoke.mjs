@@ -80,7 +80,7 @@ try{
   assert.ok(declaration,'Home page appears in official WebUI manifest');
   const initial=await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected&&value;},'initial appearance');
   assert.equal(initial.phase,'life');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
-  assert.equal(initial.life.version,3);
+  assert.equal(initial.life.version,4);
   assert.equal(initial.life.garden.plots.length,8);
   assert.ok(initial.life.garden.plots.filter(plot=>!process.argv.includes('--report-only')||plot.id!=='plot-8').every(plot=>plot.stage==='empty'&&plot.cropId===null));
   if(process.argv.includes('--report-only'))assert.equal(initial.life.garden.plots[7].stage,'ripe','Report fixture crop was sown and watered by the real engine');
@@ -106,6 +106,7 @@ try{
   const frame=await fetch(initial.appearance.descriptor.frameUrl);assert.equal(frame.status,200);assert.match(frame.headers.get('content-security-policy'),/sandbox allow-scripts/);
   report.checks.frame='Official sandboxed Figure API endpoint';
   const invoke=(method,args=[])=>json(origin,statusPath.replace(/status$/,method),{args});
+  const invokePanel=(panel,method,args=[])=>json(origin,`/api/webui/providers/world%3Acoo-home/panels/${panel}/${method}`,{args});
   await invoke('settings',[{autonomy:false}]);
   await invoke('cancel');
   if(process.argv.includes('--report-only'))report.checks.desktopReport=await verifyHostChatReport({provider,invoke,json,origin,feed,original,until});
@@ -188,7 +189,12 @@ try{
     assert.deepEqual(errors,[],'Official host browser has no page errors');
     report.checks.browser='Official console and Figure frame: continuous kit walking, animated legs, compensated household anchor, pause/resume';
     report.checks.anchor={samples:anchorErrors.length,maxErrorPixels:Math.max(...anchorErrors)};
-    report.checks.chatBrowser=await verifyHostBrowserChat({page,provider,invoke,until});
+    const openPanel=async id=>{
+      const panel=declaration.panels.find(value=>value.id===id);assert.ok(panel,`Official manifest has ${id} panel`);
+      await page.locator('.providertabs').getByRole('button',{name:panel.title,exact:true}).click();
+      await page.getByTestId(id==='home'?'coo-home-root':`home-${id}-page`).waitFor();
+    };
+    report.checks.chatBrowser=await verifyHostBrowserChat({page,provider,invoke,invokePanel,openPanel,until});
   }
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:false});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===false,'disconnect event');
@@ -209,7 +215,7 @@ try{
   const restored=await json(origin,statusPath);
   assert.equal(restored.life.current.id,pending.life.current.id,'Home did not restore the persisted in-progress activity');
   assert.equal(restored.life.autonomy,false);
-  assert.equal(restored.life.version,3);
+  assert.equal(restored.life.version,4);
   assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'empty');
   assert.equal(restored.life.current.cropId,'carrot');
   assert.ok(!restored.chat.messages.some(message=>message.text.includes('must not be saved')));
@@ -218,7 +224,7 @@ try{
     assert.equal(events.events.filter(event=>event.senderKey===report.checks.desktopReport.senderKey).length,1,'Restart redelivered an official garden report');
     report.checks.desktopReport.restartDidNotDuplicate=true;
   }
-  report.checks.garden='Eight empty plots loaded; a schema-3 sowing task and selected crop remain pending through a real World stop/start';
+  report.checks.garden='Eight empty plots loaded; a schema-4 sowing task and selected crop remain pending through a real World stop/start';
   report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){

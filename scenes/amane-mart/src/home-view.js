@@ -30,7 +30,7 @@ export function createHomeView({camera,controls,shell,button,items,onChange,onVi
     for(const u of [.28,.72])for(const v of [.28,.72])samples.push([x0+(x1-x0)*u,.75,z0+(z1-z0)*v]);
   }
   let mode='exterior',updated=true,lastEye=new THREE.Vector3(Infinity,0,0);
-  let travel=null, savedView=null;
+  let travel=null;
   function visibleWalls(){
     let changed=false;
     for(const wall of shell.walls){
@@ -70,11 +70,7 @@ export function createHomeView({camera,controls,shell,button,items,onChange,onVi
   function setMode(next){
     if(!views.includes(next))throw new RangeError('Unknown home view');
     if(next===mode)return;
-    finishAssembly();
-    if(mode==='exterior'){
-      savedView={eye:camera.position.clone(),target:controls.target.clone()};
-      goTo(internalPose());
-    }else if(next==='exterior'&&savedView){goTo(savedView);savedView=null;}
+    travel=null;finishAssembly();
     mode=next;updated=true;
     const i=views.indexOf(mode);
     name.textContent=titles[mode];step.textContent=(i+1)+' / '+views.length;

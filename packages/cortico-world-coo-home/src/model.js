@@ -77,7 +77,11 @@ export class HomeModel{
         checkAbort(combined);await beforeRespond();checkAbort(combined);totalCalls++;
         let generated,streamText='';
         try{
-          const request=client.respond(sdk.responseRequest(spec,context,tools),{context,nativeSpec:spec,signal:combined,role:'worlds.coo-home',sessionId,
+          const wire=sdk.responseRequest(spec,context,tools);
+          // The host helper deliberately selects only standard schema fields,
+          // so carry our explicitly compatible strict contract onto the wire.
+          wire.tools=wire.tools.map(tool=>tools.find(value=>value.name===tool.name)?.strict===true?{...tool,strict:true}:tool);
+          const request=client.respond(wire,{context,nativeSpec:spec,signal:combined,role:'worlds.coo-home',sessionId,
             onEvent:event=>{if(combined.aborted)return;if(event.type==='response.output_text.delta'&&typeof event.delta==='string'){streamText=(streamText+event.delta).slice(0,16_000);onText(streamText);}}
           });this.inflight.add(request);try{generated=await request;}finally{this.inflight.delete(request);}report(generated.attempts);
         }catch(error){report(error.attempts);throw error;}

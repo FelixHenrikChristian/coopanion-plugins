@@ -9,6 +9,7 @@ import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {HomeModel,loadHostSdk} from '../../src/model.js';
 import {HomeChat} from '../../src/chat.js';
+import {CooHomeWorld,DESCRIBE} from '../../src/index.js';
 
 const app=process.env.COOPANION_APP_ROOT;
 if(!app)throw Error('Set COOPANION_APP_ROOT to the installed application source directory.');
@@ -21,7 +22,8 @@ globalThis.fetch=(input,init)=>{
   if(url.hostname!=='127.0.0.1')throw Error('External requests are blocked in the native model fixture');
   return originalFetch(input,init);
 };
-const requests=[];let server,model,chat,registry,createResponse,toolRuns=0;
+const requests=[];let server,model,chat,registry,world,createResponse,toolRuns=0,scenario='simple',clock=Date.UTC(2030,0,1);
+const strictArgs=fields=>Object.assign(Object.fromEntries(Object.keys(DESCRIBE.tools[0].parameters.properties).map(key=>[key,null])),fields);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function settled(){
   for(let index=0;index<200;index++){if(chat.snapshot().job?.status!=='running')return chat.snapshot();await sleep(10);}
@@ -46,7 +48,7 @@ try{
       const result=createResponse(`resp_fixture_${requests.length}`,body);
       const hasTool=body.tools?.some(tool=>tool.name==='coo_home');
       const lastUser=body.input.findLastIndex(item=>item.type==='message'&&item.role==='user');
-      const hasReceipt=body.input.slice(lastUser+1).some(item=>item.type==='function_call_output');
+      const receipts=body.input.slice(lastUser+1).filter(item=>item.type==='function_call_output'),hasReceipt=receipts.length>0;
       res.writeHead(200,{'content-type':'text/event-stream'});
       let sequence=0;const emit=event=>res.write(`data: ${JSON.stringify({...event,sequence_number:sequence++})}\n\n`);
       emit({type:'response.created',response:result});
@@ -54,19 +56,36 @@ try{
       result.output=hasTool&&!hasReceipt
         ?[{type:'function_call',id:`fc_fixture_${requests.length}`,call_id:`call_fixture_${requests.length}`,name:'coo_home',arguments:'{"operation":"status"}',status:'completed'}]
         :[{type:'message',id:`msg_fixture_${requests.length}`,role:'assistant',status:'completed',content:[{type:'output_text',text:'Neutral local response.',annotations:[]}]}];
-      const item=result.output[0];
-      emit({type:'response.output_item.added',output_index:0,item:{...item,status:'in_progress',...(item.type==='message'?{content:[]}:{arguments:''})}});
-      if(item.type==='message'){
-        const part=item.content[0];
-        emit({type:'response.content_part.added',item_id:item.id,output_index:0,content_index:0,part:{...part,text:''}});
-        emit({type:'response.output_text.delta',item_id:item.id,output_index:0,content_index:0,delta:part.text});
-        emit({type:'response.output_text.done',item_id:item.id,output_index:0,content_index:0,text:part.text});
-        emit({type:'response.content_part.done',item_id:item.id,output_index:0,content_index:0,part});
-      }else{
-        emit({type:'response.function_call_arguments.delta',item_id:item.id,output_index:0,delta:item.arguments});
-        emit({type:'response.function_call_arguments.done',item_id:item.id,output_index:0,arguments:item.arguments});
+      if(scenario==='strict-world'){
+        const tool=body.tools.find(tool=>tool.name==='coo_home');assert.equal(tool.strict,true);
+        assert.deepEqual(tool.parameters.required,Object.keys(tool.parameters.properties));
+        for(const [key,value] of Object.entries(tool.parameters.properties))if(key!=='operation')assert.ok(value.type.includes('null'));
+        for(const receipt of receipts)assert.equal(JSON.parse(receipt.output).ok,true,'The real World rejected a valid strict call');
+        const call=(id,args,ordinal)=>({type:'function_call',id:`fc_strict_${requests.length}_${ordinal}`,call_id:id,name:'coo_home',arguments:JSON.stringify(strictArgs(args)),status:'completed'});
+        if(receipts.length===0)result.output=[call('strict-catalog',{operation:'catalog'},0),call('strict-status',{operation:'status'},1)];
+        else if(receipts.length===2){
+          assert.equal(JSON.parse(receipts[0].output).items.length,40);
+          const args={operation:'gardenPlan',plotIds:Array.from({length:8},(_,i)=>`plot-${i+1}`),cropId:'spring-onion'};
+          result.output=[call('strict-garden',args,0),call('strict-garden',args,1)];
+        }else if(receipts.length===4){
+          const accepted=JSON.parse(receipts[2].output);assert.equal(accepted.taskIds.length,16);assert.equal(accepted.life.plans[0].status,'accepted');
+          result.output=[call('strict-tv',{operation:'command',itemId:'living.tv',actionId:'tv',enqueue:false},0)];
+        }else{assert.equal(receipts.length,5);assert.equal(JSON.parse(receipts[4].output).outcome,'queued');}
       }
-      emit({type:'response.output_item.done',output_index:0,item});
+      for(const [output_index,item] of result.output.entries()){
+        emit({type:'response.output_item.added',output_index,item:{...item,status:'in_progress',...(item.type==='message'?{content:[]}:{arguments:''})}});
+        if(item.type==='message'){
+          const part=item.content[0];
+          emit({type:'response.content_part.added',item_id:item.id,output_index,content_index:0,part:{...part,text:''}});
+          emit({type:'response.output_text.delta',item_id:item.id,output_index,content_index:0,delta:part.text});
+          emit({type:'response.output_text.done',item_id:item.id,output_index,content_index:0,text:part.text});
+          emit({type:'response.content_part.done',item_id:item.id,output_index,content_index:0,part});
+        }else{
+          emit({type:'response.function_call_arguments.delta',item_id:item.id,output_index,delta:item.arguments});
+          emit({type:'response.function_call_arguments.done',item_id:item.id,output_index,arguments:item.arguments});
+        }
+        emit({type:'response.output_item.done',output_index,item});
+      }
       result.usage={input_tokens:10,output_tokens:5,total_tokens:15,input_tokens_details:{cached_tokens:0},output_tokens_details:{reasoning_tokens:0}};
       emit({type:'response.completed',response:result});res.end();
     }catch{res.writeHead(500,{'content-type':'application/json'});res.end('{"error":{"message":"Neutral fixture contract failure"}}');}
@@ -104,9 +123,19 @@ try{
   assert.equal(latest.input.filter(item=>item.type==='message'&&item.role==='user').length,2);
   assert.ok(latest.input.some(item=>item.type==='function_call_output'));
   assert.ok(latest.input.filter(item=>item.type==='message').every(item=>item.id===undefined||item.id.startsWith('msg_')));
-  console.log(JSON.stringify({nativeAdapter:'openai-responses-compat',legacyRejection:'HTTP 400',officialControl:'passed',homeChat:'passed',toolFollowup:'passed',savedHistoryReplay:'passed',externalRequests:0}));
+  await chat.stop();chat=null;scenario='strict-world';
+  world=new CooHomeWorld({botDir,repoRoot:temporary,dataDir:join(temporary,'world-data'),timezone:'UTC'},{clock:()=>clock,bridgeFactory:()=>({start:async()=>{},stop:async()=>{},snapshot:()=>({connected:false,descriptor:null})})});
+  await world.start();await world.webUi().invoke('home','settings',[{autonomy:false}]);
+  await world.webUi().invoke('home','chatSend',[{text:'Neutral fixture: plant all eight beds with spring onion, water them, then watch TV.',clientId:'strict-world-plan'}]);
+  for(let i=0;i<300&&world.chat.snapshot().job.status==='running';i++)await sleep(10);
+  assert.equal(world.chat.snapshot().job.status,'done');assert.equal(world.life.state.counter,17);assert.equal(world.life.state.queue.length,16);
+  const count=requests.length;await world.webUi().invoke('home','chatSend',[{text:'Neutral fixture duplicate.',clientId:'strict-world-plan'}]);assert.equal(requests.length,count);
+  for(let i=0;i<20&&world.life.state.current;i++){clock=world.life.state.current.endsAt+1;await world.tick();}
+  const finished=world.status().life;assert.equal(finished.plans[0].status,'completed');assert.equal(finished.plans[0].completed,16);assert.equal(finished.items['living.tv'].uses,1);
+  assert.ok(finished.garden.plots.every(plot=>plot.cropId==='spring-onion'&&plot.cycle===1&&plot.growthStartedAt!==null));
+  console.log(JSON.stringify({nativeAdapter:'openai-responses-compat',legacyRejection:'HTTP 400',officialControl:'passed',homeChat:'passed',toolFollowup:'passed',savedHistoryReplay:'passed',strictNullableWorldTools:'passed',eightPlotPlanAndTV:'completed',duplicateCalls:'not repeated',externalRequests:0}));
 }finally{
-  await chat?.stop();await model?.close();await registry?.stopAll();
+  await world?.stop();await chat?.stop();await model?.close();await registry?.stopAll();
   if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
   globalThis.fetch=originalFetch;await rm(temporary,{recursive:true,force:true});
 }

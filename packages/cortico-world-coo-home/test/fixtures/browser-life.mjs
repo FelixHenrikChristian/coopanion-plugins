@@ -117,6 +117,10 @@ export async function verifyBrowserLife({ fixture, page, root, canvas, view, pai
   report.checks.walking = { samples: samples.points.length, nativeBodyMoves: true, animatedStride: true, pausedAndResumed: true };
 
   await walk([5, .18, 7.05]);
+  // Wall modes only change visibility. Use one explicit view covering both
+  // the outdoor pavement and the interior instead of relying on a camera jump.
+  await page.evaluate(() => window.__homeHarness.panel.scene.setCameraPose({ eye: [17, 22, 30], target: [0, .6, 10] }));
+  await painted(6);
   await view('exterior');
   const outside = await visiblePixels('role-outdoors', count => count > 20);
   assert.ok(outside > 20);

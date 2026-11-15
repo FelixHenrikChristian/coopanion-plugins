@@ -9,7 +9,7 @@ export async function verifyGardenContract(fixture) {
   await fixture.invoke('settings', [{ autonomy: false }]);
   await fixture.invoke('cancel');
   const initial = fixture.snapshot();
-  assert.equal(initial.life.version, 3);
+  assert.equal(initial.life.version, 4);
   assert.equal(initial.life.garden.plots.length, 8);
   assert.ok(initial.life.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null), 'New homes must offer eight empty plots');
   assert.equal(initial.life.garden.crops.length, 8);
@@ -109,14 +109,14 @@ export async function verifyGardenContract(fixture) {
   });
   try {
     const state = migrated.snapshot().life;
-    assert.equal(state.version, 3);
+    assert.equal(state.version, 4);
     assert.equal(state.storage.recovery, 'migrated');
     assert.equal(state.current.id, source.current.id);
     assert.deepEqual(state.queue.map(task => task.id), source.queue.map(task => task.id));
     assert.deepEqual(state.items, source.items);
     assert.equal(state.paused, true);
     assert.ok(state.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null));
-    assert.equal((await migrated.readSave()).version, 3);
+    assert.equal((await migrated.readSave()).version, 4);
   } finally { await migrated.dispose(); }
   await fixture.invoke('cancel');
   await fixture.invoke('resume');

@@ -3,7 +3,7 @@ import * as panel from '/bundle.js';
 // This host exists only in a loopback test page. Its diagnostics are not plugin APIs.
 const root = document.getElementById('mount');
 const fixture = await fetch('/fixture-config').then((response) => response.json());
-const metrics = { mounts: 0, activeFrames: 0, frameCallbacks: 0, activeStreams: 0, invokes: [], messages: [], original: [], roleFrames: [] };
+const metrics = { mounts: 0, activeFrames: 0, frameCallbacks: 0, activeStreams: 0, activeGuards: 0, invokes: [], messages: [], original: [], roleFrames: [] };
 const memory = new Map();
 let current = null;
 let controller = null;
@@ -62,17 +62,17 @@ function frame(fn) {
   return handle;
 }
 
-function stream(handlers) {
+function stream(handlers, panelId, signal) {
   let closed = false;
   const id = crypto.randomUUID();
-  const events = new EventSource(`/events?id=${id}`);
+  const events = new EventSource(`/events?id=${id}&panel=${encodeURIComponent(panelId)}`);
   metrics.activeStreams++;
   events.onopen = () => handlers.open?.();
   events.onmessage = (event) => handlers.message(event.data);
   events.onerror = () => { if (!closed) handlers.close?.(true); };
   return own({
     get open() { return events.readyState === EventSource.OPEN; },
-    send(text) { fetch(`/stream-input?id=${id}`, { method: 'POST', body: text, signal: controller.signal }).catch(() => {}); },
+    send(text) { fetch(`/stream-input?id=${id}`, { method: 'POST', body: text, signal }).catch(() => {}); },
     dispose() {
       if (closed) return;
       closed = true;
@@ -83,32 +83,35 @@ function stream(handlers) {
   });
 }
 
-async function mount() {
+async function mount(panelId = 'home') {
   if (current) throw new Error('Unmount the current panel before mounting another');
+  if (!['home', 'settings', 'environment'].includes(panelId)) throw new Error('Unknown fixture panel');
   controller = new AbortController();
+  const signal = controller.signal;
   owners = [];
   const ctx = {
-    root, signal: controller.signal, pageId: 'world:coo-home', panelId: 'home', language: 'zh', scope: {},
-    own, frame, stream,
-    memo: { get(key, fallback) { return memory.has(key) ? memory.get(key) : fallback; }, set(key, value) { memory.set(key, value); } },
+    root, signal, pageId: 'world:coo-home', panelId, language: 'zh', scope: {},
+    own, frame, stream: handlers => stream(handlers, panelId, signal),
+    memo: { get(key, fallback) { return memory.has(`${panelId}:${key}`) ? memory.get(`${panelId}:${key}`) : fallback; }, set(key, value) { memory.set(`${panelId}:${key}`, value); } },
     async invoke(method, args = []) {
-      metrics.invokes.push({ method, args });
-      const response = await fetch('/invoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ method, args }), signal: controller.signal });
+      metrics.invokes.push({ panelId, method, args });
+      const response = await fetch('/invoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ panelId, method, args }), signal });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     async invokeBinary(method, args = []) {
-      metrics.invokes.push({ method, args, binary: true });
-      const response = await fetch('/invoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ method, args }), signal: controller.signal });
+      metrics.invokes.push({ panelId, method, args, binary: true });
+      const response = await fetch('/invoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ panelId, method, args }), signal });
       if (!response.ok) throw new Error(await response.text());
       return response.blob();
     },
     timeout(fn, ms) { const token = setTimeout(fn, ms); return own({ dispose() { clearTimeout(token); } }); },
     interval(fn, ms) { const token = setInterval(fn, ms); return own({ dispose() { clearInterval(token); } }); },
+    guardLeave(fn) { let disposed = false; metrics.activeGuards++; return own({ check: fn, dispose() { if (!disposed) { disposed = true; metrics.activeGuards--; } } }); },
     notifyOnUnmount() {},
   };
-  const factory = panel.mount || panel.default?.panels?.home?.mount;
-  if (typeof factory !== 'function') throw new Error('Built bundle does not export the home panel mount');
+  const factory = panel.default?.panels?.[panelId]?.mount || (panelId === 'home' ? panel.mount : null);
+  if (typeof factory !== 'function') throw new Error(`Built bundle does not export the ${panelId} panel mount`);
   current = await factory(ctx);
   lastCanvas = root.querySelector('canvas');
   metrics.mounts++;
@@ -130,4 +133,4 @@ window.__homeHarness = {
   get panel() { return current; },
   get detachedFrames() { return Number(lastCanvas?.dataset.frames || 0); },
 };
-await mount();
+await mount(new URL(location.href).searchParams.get('panel') || 'home');

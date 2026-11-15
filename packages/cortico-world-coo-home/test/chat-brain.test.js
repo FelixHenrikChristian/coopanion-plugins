@@ -15,7 +15,7 @@ function deferred(){let resolve;const promise=new Promise(done=>{resolve=done;})
 async function until(fn){for(let i=0;i<500;i++){const value=fn();if(value)return value;await new Promise(resolve=>setTimeout(resolve,2));}throw Error('Fixture did not settle');}
 function fixture({run=async()=>({text:'Neutral fixture reply',records:[]}),bridgeStart=async()=>{},chatStorage=memory()}={}){
   let now=Date.UTC(2026,0,2),calls=0,closed=0;const storage=memory(),brainStorage=memory();
-  const world=new CooHomeWorld({botDir:'isolated-fixture',timezone:'UTC'},{storage,chatStorage,brainStorage,clock:()=>now,
+  const world=new CooHomeWorld({botDir:'isolated-fixture',timezone:'UTC'},{storage,chatStorage,brainStorage,preferencesStorage:memory(),clock:()=>now,
     modelFactory:()=>({run:async options=>{calls++;return run(options);},close:async()=>{closed++;return true;}}),
     bridgeFactory:()=>({start:bridgeStart,stop:async()=>{},snapshot:()=>({connected:false,descriptor:null})})});
   return{world,storage,chatStorage,brainStorage,setTime:value=>{now=value;},now:()=>now,calls:()=>calls,closed:()=>closed,invoke:(method,...args)=>world.webUi().invoke('home',method,args)};

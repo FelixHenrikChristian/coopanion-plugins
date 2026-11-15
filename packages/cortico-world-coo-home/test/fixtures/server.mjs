@@ -127,6 +127,8 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
       if (url.pathname === '/harness.js') return reply(response, 200, await readFixture('harness.js'), 'text/javascript; charset=utf-8');
       if (url.pathname === '/fixture-config') return reply(response, 200, { petOrigin });
       if (url.pathname === '/events') {
+        const panelId = url.searchParams.get('panel') || 'home';
+        if (!['home', 'settings', 'environment'].includes(panelId)) throw new Error('Unknown fixture panel');
         response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
         streams.add(response);
         const callbacks = new Set();
@@ -144,7 +146,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
           callbacks.clear();
           response.end();
         };
-        world.webUi('en').stream('home', {
+        world.webUi('en').stream(panelId, {
           get open() { return open; },
           send(text) { if (open) response.write(`data: ${text}\n\n`); },
           close,
@@ -156,9 +158,9 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
       }
       if (url.pathname === '/invoke' && request.method === 'POST') {
         let body = '';
-        for await (const part of request) { body += part; if (body.length > 8192) throw new Error('Fixture request too large'); }
+        for await (const part of request) { body += part; if (body.length > 64000) throw new Error('Fixture request too large'); }
         const value = JSON.parse(body);
-        const result = await world.webUi('en').invoke('home', value.method, value.args || []);
+        const result = await world.webUi('en').invoke(value.panelId || 'home', value.method, value.args || []);
         if (result?.$binary) return reply(response, 200, Buffer.from(result.$binary.base64, 'base64'), result.$binary.mime);
         return reply(response, 200, result);
       }
@@ -183,7 +185,7 @@ export async function startFixtureServer({ bundlePath, stylePath, initialSave = 
   return {
     hostOrigin, petOrigin, requests, mutations,
     snapshot,
-    async invoke(method, args = []) { return world.webUi('en').invoke('home', method, args); },
+    async invoke(method, args = [], panelId = 'home') { return world.webUi('en').invoke(panelId, method, args); },
     async advanceTo(timestamp) {
       if (!Number.isFinite(timestamp) || timestamp < clock()) throw new Error('Fixture clock must move forward');
       offset += timestamp - clock();

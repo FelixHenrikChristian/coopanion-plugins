@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 import {startFixtureServer} from './fixtures/server.mjs';
 import {verifyBrowserProjection} from './fixtures/browser-projection.mjs';
+import {verifyBrowserCameraFollow} from './fixtures/browser-camera-follow.mjs';
 
 const require=createRequire(import.meta.url),{chromium}=require(process.env.COO_HOME_PLAYWRIGHT_MODULE||'playwright');
 const packageRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -41,7 +42,8 @@ try{
       return count;
     },bytes.toString('base64'));
   }
-  await verifyBrowserProjection({fixture,page,shot,markerPixels,report});
+  if(process.argv.includes('--camera-follow'))await verifyBrowserCameraFollow({fixture,page,shot,report});
+  else await verifyBrowserProjection({fixture,page,shot,markerPixels,report});
   await page.evaluate(()=>window.__homeHarness.unmount());
   assert.equal(await page.locator('[data-testid="home-figure"]').count(),0);
   assert.deepEqual(report.errors,[]);

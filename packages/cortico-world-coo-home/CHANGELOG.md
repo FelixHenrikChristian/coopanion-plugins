@@ -1,5 +1,17 @@
 # Changes
 
+## 0.4.0-alpha.6 — home controls and reliable garden plans
+
+- Separate Home, Settings and Environment into native World pages; keep configurable environment text private to home conversation and AI planning.
+- Send chat with Enter, insert a newline with Shift + Enter, and preserve input-method composition.
+- Refresh controls with lightweight DOM and SVG components, without blur filters or additional rendering loops.
+- Make mouse commands interrupt current work and remaining plans; remove the manual queue checkbox while retaining ordered tasks for conversational plans.
+- Handle nullable optional arguments in strict Responses tool calls, keep unknown or invalid arguments rejected, and declare the compatible strict schema on the wire.
+- Add bounded, durable `gardenPlan` requests for sowing and first watering across up to eight beds. Skip occupied or already growing crops, preserve idempotent receipts, and distinguish accepted plans from completed work.
+- Record fixed harvest quantities per crop in save format 4. Preserve older planting progress and harvest counts without inventing historical quantities.
+- Open crop inspection in a separate, live details dialog without starting an activity; include growth times, expected yields and recorded harvests.
+- Add camera follow for the home character and preserve the current camera when switching wall visibility. Keep the approved scene artwork.
+
 ## 0.4.0-alpha.5 — object actions and selectable crops
 
 - Keep the figure's projected size stable across viewing angles while preserving zoom and furniture occlusion.
