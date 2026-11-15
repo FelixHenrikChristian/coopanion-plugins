@@ -19,6 +19,8 @@ import {createHomeView,makeHomeRegistry} from './home-view.js';
 import {mountSceneUI} from './scene-ui.js';
 import {disposeSceneResources} from './scene-resources.js';
 import {createActorMask} from './actor-mask.js';
+import {getNavigationData,getActionSlots} from './navigation-data.js';
+import {createNavigationQuery} from './navigation-query.js';
 
 export function createNeighborhood({root,onItem=()=>{},onView=()=>{},reducedMotion,autoStart=true}={}){
 if(!root?.appendChild)throw new TypeError('A scene root element is required');
@@ -49,7 +51,8 @@ const registry=makeHomeRegistry();
 buildHomeGrounds(kit,registry.register);
 buildStationRow(kit);
 const shell=buildHomeShell(kit);
-buildHomeFurniture(kit,registry.register);
+const furnitureVisuals=buildHomeFurniture(kit,registry.register);
+const navigationQuery=createNavigationQuery(getNavigationData());
 const roomLights=kit.group('雨庭 · 室内灯',1.9);
 // Local pools from the reading lamp, bedside paper lamp, dining pendant and service area.
 for(const [x,y,z,power,reach,color] of [
@@ -59,6 +62,7 @@ for(const [x,y,z,power,reach,color] of [
   [-.39,2.35,14.73,6.8,5.7,0xffdfb0]
 ]){
   const light=new THREE.PointLight(color,power,reach,2);
+  if(x===-6.83)light.userData.furniturePowerId='bedroom.bedside';
   light.position.set(x,y,z);roomLights.add(light);
 }
 makeNightSky(scene);
@@ -101,7 +105,7 @@ function syncFixtureLights(){
     socket.getWorldPosition(light.position);
     let holder=socket;
     while(holder&&holder.visible)holder=holder.parent;
-    light.intensity=holder?0:power;
+    light.intensity=holder||!furnitureVisuals.isPowered(light.userData.furniturePowerId)?0:power;
   }
   lightsDirty=false;
 }
@@ -207,6 +211,7 @@ function update(stamp=ownerWindow.performance.now()){
   animatingPrev=animating;
   const dt=lastFrame?Math.min((stamp-lastFrame)/1000,.05):0;
   lastFrame=stamp;weatherTime+=dt;
+  furnitureVisuals.update(weatherTime,isReduced);
   controls.update();homeView.update();
   if(lightsDirty)syncFixtureLights();
   weather.update(weatherTime,isReduced?.55:THREE.MathUtils.smoothstep(t,1.4,5.4),animating);
@@ -274,6 +279,19 @@ function pickSurface(x,y){
   }
   return null;
 }
+function pickWalkable(x,y){
+  if(disposed||!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>viewport.width||y>viewport.height)return null;
+  const hit=pickSurface(x,y);
+  if(!hit||hit.itemId||!hit.normal||hit.normal[1]<.8)return null;
+  const destination=navigationQuery.locate(hit.point);
+  // Ignore tables, rooftops and other horizontal surfaces above the navigable floor.
+  return destination&&Math.abs(destination.position[1]-hit.point[1])<.075?destination:null;
+}
+function setFurnitureVisuals(snapshot){
+  if(disposed)return null;
+  const result=furnitureVisuals.setFurnitureVisuals(snapshot);
+  lightsDirty=true;weather.invalidate();return result;
+}
 function dispose(){
   if(disposed)return disposal;
   stop();disposed=true;abort.abort();observer.disconnect();
@@ -289,7 +307,8 @@ function dispose(){
 if(autoStart)start();
 return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
-  project,getCameraPose,setCameraPose,getRendererInfo,pickSurface,
+  project,getCameraPose,setCameraPose,getRendererInfo,pickSurface,pickWalkable,
+  getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,
   finishAssembly(){finishOnRequest=true;}
 });

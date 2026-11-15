@@ -33,7 +33,13 @@ const figureCode=`export function createFixture(base,{host,scheme}){
 const kitFigureCode=`export function createFixture(base,{host,scheme,kit}){
  let selected=scheme;
  return kit.createBody(host,{figure:{extent:[64,26,192,256],hits:[[128,140,64]],
- draw(group){if(!group.firstChild)group.innerHTML='<rect x="64" y="26" width="128" height="230" rx="36"/>';group.firstChild.setAttribute('fill',selected==='stripe'?'#f4bb79':'#70c4c4');},
+ draw(group,face,frame){
+   group.classList.add('fixture-body');group.dataset.mode=frame.mode;
+   group.dataset.stride=JSON.stringify(frame.legs);
+   if(!group.firstChild)group.innerHTML='<path class="fixture-legs" fill="none" stroke="#273c56" stroke-width="12" stroke-linecap="round"/><rect x="70" y="80" width="116" height="120" rx="20"/><circle cx="128" cy="53" r="37" fill="#df5e9c"/>';
+   group.querySelector('rect').setAttribute('fill',selected==='stripe'?'#f4bb79':'#70c4c4');
+   group.querySelector('path').setAttribute('d',frame.legs.map(leg=>'M '+leg[0]+' '+leg[1]+' L '+leg[2]+' '+leg[3]).join(' '));
+ },
  setScheme(value){selected=value;}}});
 }`;
 
@@ -63,7 +69,7 @@ try{
   const declaration=manifest.providers?.find(p=>p.id==='world:coo-home');
   assert.ok(declaration,'Home page appears in official WebUI manifest');
   const initial=await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected&&value;},'initial appearance');
-  assert.equal(initial.phase,'foundation');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
+  assert.equal(initial.phase,'life');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
   assert.equal(initial.appearance.descriptor.scheme,'plain');assert.ok(initial.appearance.descriptor.frameUrl.startsWith(petOrigin));
   report.checks.discovery='Official fixed-port desktop-pet service and real catalog';
   const feed=stream(origin.replace('http:','ws:')+'/ws/providers/world%3Acoo-home/panels/home');
@@ -85,9 +91,12 @@ try{
   report.checks.watcher='Official preference broadcasts follow both figure and outfit changes';
   const frame=await fetch(initial.appearance.descriptor.frameUrl);assert.equal(frame.status,200);assert.match(frame.headers.get('content-security-policy'),/sandbox allow-scripts/);
   report.checks.frame='Official sandboxed Figure API endpoint';
+  const invoke=(method,args=[])=>json(origin,statusPath.replace(/status$/,method),{args});
+  await invoke('settings',[{autonomy:false}]);
+  await invoke('cancel');
   if(process.env.COO_HOME_PLAYWRIGHT_MODULE&&process.env.COO_HOME_BROWSER){
     const require=createRequire(import.meta.url),{chromium}=require(process.env.COO_HOME_PLAYWRIGHT_MODULE);
-    browser=await chromium.launch({executablePath:process.env.COO_HOME_BROWSER,headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+    browser=await chromium.launch({executablePath:process.env.COO_HOME_BROWSER,headless:true,args:process.argv.includes('--software')?['--enable-unsafe-swiftshader','--use-angle=swiftshader']:[]});
     const context=await browser.newContext({viewport:{width:1280,height:900}});
     await context.grantPermissions(['local-network-access'],{origin});
     const page=await context.newPage(),errors=[];
@@ -119,19 +128,55 @@ try{
     await until(async()=>await page.evaluate(()=>window.__neutralFrames.length>=8),'official kit frames');
     const layouts=await page.evaluate(()=>window.__neutralFrames);
     assert.ok(layouts.every(value=>Math.abs(value.x-256)<.01),'The household anchor remains fixed with the official body kit');
+    await page.locator('.coo-home-actor').waitFor({state:'visible',timeout:60_000});
+    await page.evaluate(()=>{window.__neutralFrames=[];});
+    const walking=await invoke('walk',[{position:[-7,.414,16.54]}]);
+    assert.equal(walking.life.current.phase,'walking');
+    await until(async()=>await page.evaluate(()=>{
+      const frames=window.__neutralFrames;
+      return frames.some(frame=>frame.moving)&&Math.max(...frames.map(frame=>frame.x))-Math.min(...frames.map(frame=>frame.x))>20;
+    }),'official kit continuous walking',20_000);
+    const strides=new Set(),anchorErrors=[],screenFeet=[];
+    for(let i=0;i<12;i++){
+      strides.add(await page.frameLocator('.coo-home-root iframe').locator('.fixture-body').getAttribute('data-stride'));
+      const point=await page.evaluate(()=>{
+        const frame=document.querySelector('.coo-home-root iframe'),layout=window.__neutralFrames.at(-1);
+        const host=frame.parentElement.getBoundingClientRect(),shadow=frame.parentElement.querySelector('.coo-home-contact').getBoundingClientRect();
+        // Official kit bodies on a fixed floor omit layout.y; this Figure
+        // sandbox uses the panel's documented 448 px floor in a 512 px frame.
+        const localY=Number.isFinite(layout.y)?layout.y:448;
+        const p=new DOMMatrix(getComputedStyle(frame).transform).transformPoint(new DOMPoint(layout.x,localY));
+        const x=host.left+p.x,y=host.top+p.y;
+        return{x,y,local:[layout.x,layout.y],shadow:[shadow.left+shadow.width/2,shadow.top+shadow.height/2],error:Math.hypot(x-(shadow.left+shadow.width/2),y-(shadow.top+shadow.height/2))};
+      });
+      anchorErrors.push(point.error);screenFeet.push(point);await pause(80);
+    }
+    assert.ok(strides.size>2,'The official kit did not animate its legs; distinct strides='+strides.size);
+    assert.ok(Math.max(...anchorErrors)<4,'Official body local walking escaped its projected household anchor: '+JSON.stringify(screenFeet));
+    assert.ok(Math.hypot(screenFeet.at(-1).x-screenFeet[0].x,screenFeet.at(-1).y-screenFeet[0].y)>2,'World route did not advance the visible anchor');
+    await invoke('pause');
+    await pause(150);
+    const held=await json(origin,statusPath);await pause(300);assert.deepEqual((await json(origin,statusPath)).life.position,held.life.position);
+    await invoke('resume');await invoke('cancel');
     assert.deepEqual(errors,[],'Official host browser has no page errors');
-    report.checks.browser='Official console and figure-frame rendered a neutral official-kit body at a stable household anchor';
+    report.checks.browser='Official console and Figure frame: continuous kit walking, animated legs, compensated household anchor, pause/resume';
+    report.checks.anchor={samples:anchorErrors.length,maxErrorPixels:Math.max(...anchorErrors)};
   }
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:false});
-  await until(()=>feed.values.at(-1)?.appearance?.connected===false,'disconnect event');
+  await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===false,'disconnect event');
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:true});
-  await until(()=>feed.values.at(-1)?.appearance?.connected===true,'automatic reconnect');
+  await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===true,'automatic reconnect');
   report.checks.reconnect='Desktop-pet stop/start recovers automatically';
+  const pending=await invoke('command',[{itemId:'bedroom.bed',actionId:'nap'}]);
+  assert.equal(pending.life.current.source,'manual');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:false});
   await until(()=>feed.readyState===WebSocket.CLOSED,'home stream disposal');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:true});
   await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected;},'home reenable');
-  report.checks.lifecycle='Disable closes the panel stream; reenable creates a working new watcher';
+  const restored=await json(origin,statusPath);
+  assert.equal(restored.life.current.id,pending.life.current.id,'Home did not restore the persisted in-progress activity');
+  assert.equal(restored.life.autonomy,false);
+  report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){
   // Logs belong only to this generated deployment; never read the live app logs.

@@ -51,7 +51,8 @@ mask to its wrapper:
 ```js
 const mask = await scene.renderActorMask({
   rect: { x, y, width, height }, // Character rectangle in local CSS pixels.
-  worldPoint: [worldX, floorY, worldZ] // Character's world anchor, usually the feet.
+  worldPoint: [worldX, floorY, worldZ], // Character's world feet anchor.
+  worldHeight: 1.25 // Same nominal height used to project the Figure iframe.
 });
 if (mask) {
   wrapper.style.maskImage = `url("${mask.url}")`;
@@ -70,7 +71,10 @@ null, as do offscreen/empty requests and results that finish after disposal.
 Keep the previous mask while a newer request is in flight. Refresh when the
 actor, camera, cutaway or nearby geometry changes rather than on every frame.
 
-The pass uses the anchor's camera depth and the visible scene. It excludes the
+When `worldHeight` is supplied, the pass projects the feet and head and interpolates
+depth along screen Y. A seated head is therefore not incorrectly hidden using
+the deeper feet depth. Omitting height retains the legacy constant-depth pass.
+It excludes the
 painted sky, rain, additive effects, water reflection and translucent glass.
 Opaque furniture, walls and railing geometry occlude the character; removing a
 wall in a cutaway also removes its visual occlusion. The mask is a rendering
@@ -79,3 +83,53 @@ aid and must not be used as a collision or pathfinding map.
 Glass tinting, reflections of DOM characters and transparent refractive layers
 are not synthesized by this pass. They require separate visual treatment if a
 host needs those effects.
+
+## Navigation and furniture state
+
+`getNavigationData()` returns a fresh serializable contract with schema/layout
+versions, metre coordinates, floor polygons, solid footprints, 40 destinations
+and a verified undirected graph. Import the same function from
+`src/navigation-data.js` in a Node build; it has no DOM or Three.js dependency.
+`node scripts/export-navigation.mjs` writes JSON to stdout (or a supplied output
+filename). `scripts/compile-navigation.mjs` rebuilds the graph after spatial edits;
+`scripts/check-navigation.mjs` checks every destination and action approach.
+
+The measured footprints and semantic inventory are maintained separately from
+rendered meshes. Moving fixed walls or furniture requires updating
+`navigation-footprints.js` and the corresponding inventory/action stations before
+recompiling the graph. The graph compiler does not remeasure the rendered model.
+
+The physical radius is 0.18 m plus 0.02 m clearance. The 0.445 m planting-bed
+aisles require the documented grid phase if a host rebuilds a raster search.
+The supplied 82-node graph avoids ongoing grid searches. The pure
+`createNavigationQuery(layout)` helper provides `locate`, `surfaceAt`,
+`isWalkable` and `segmentWalkable`; use the same circular obstacle inflation.
+Walk heights follow the selected floor surface, including the entrance steps.
+Cutaway visibility never alters these obstacles. Leaves are visual occluders;
+pots and bed frames are physical obstacles. Street shops are outside this map.
+
+`getActionSlots(itemId)` returns the action-specific ground approach, facing
+vector `[x,z]`, target and occupancy group. `pose.position` is the character's
+feet point; `pose.anchor` is separately labelled as feet, seat or body. The host
+must require a compatible existing Figure action before using a seated/lying
+pose. Otherwise use `fallback.position` on clear ground. Screen targets must
+never become character positions. The legacy catalogue and its old approach
+values remain unchanged; the navigation contract contains calibrated stations.
+Seat feet placements are calibrated against real cushion tops for a nominal
+1.25 m Figure (also recorded as `pose.referenceHeight`). Figure API 2 does not
+expose a universal hip joint, so individual packages with very different seated
+proportions may need host-side placement refinement.
+
+`pickWalkable(x,y)` accepts scene-local CSS pixels and returns
+`{position:[x,y,z],surfaceId}` or null. It rejects furniture, walls, rooftops,
+off-canvas positions and floor points without sufficient physical clearance.
+
+`setFurnitureVisuals({ 'living.tv': {power:false} })` applies an idempotent patch.
+Supported IDs are `living.tv`, `study.laptop`, `bedroom.bedside` and
+`genkan.washer`; each accepts boolean `power`, and the washer also accepts
+boolean `running`. Powering off the washer clears running. Unknown fields/IDs
+are rejected atomically. `getFurnitureVisuals()` returns a detached snapshot.
+The host-state defaults use `on/active` in `defaultFurnitureState`; map these
+to `power/running` before applying visual state. With no host state supplied,
+the standalone page retains its original lit screens, warm lamp and mature
+garden. Task effects, saved progress and plant growth are not owned by these APIs.

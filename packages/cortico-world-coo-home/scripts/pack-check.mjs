@@ -8,7 +8,7 @@ const root=fileURLToPath(new URL('..',import.meta.url));
 const npm=process.env.npm_execpath??join(dirname(process.execPath),'node_modules/npm/bin/npm-cli.js');
 const output=execFileSync(process.execPath,[npm,'pack','--dry-run','--ignore-scripts','--json'],{cwd:root,encoding:'utf8'});
 const [archive]=JSON.parse(output);
-const allowed=new Set(['package.json','src/index.js','src/appearance.js','web/panel.js','web/panel.css','describe.json','README.md','CHANGELOG.md','LICENSE','THIRD_PARTY.md']);
+const allowed=new Set(['package.json','src/index.js','src/appearance.js','src/navigation.js','src/life.js','src/storage.js','data/home-layout.json','data/navigation-query.js','web/panel.js','web/panel.css','describe.json','README.md','CHANGELOG.md','LICENSE','THIRD_PARTY.md']);
 assert.equal(archive.files.length,allowed.size,'Unexpected files in archive');
 for(const file of archive.files){
   assert.ok(allowed.delete(file.path),`Unexpected package file: ${file.path}`);

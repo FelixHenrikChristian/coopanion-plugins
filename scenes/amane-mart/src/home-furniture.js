@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {createFurnitureVisuals} from './furniture-visuals.js';
 
 // Furniture uses room-local assemblies and a walk-up point on the adjacent
 // floor. Actor anchors sit on the actual mattress, chair or cushion as needed.
@@ -389,10 +390,10 @@ export function buildHomeFurniture(k, register) {
   rod(bedside,[lampX,.483,lampZ],[lampX,.558,lampZ],.016,'#736b56');
   const shadeProfile=[[.047,.536],[.094,.548],[.125,.585],[.144,.65],[.143,.729],[.118,.80],[.078,.832],[.049,.838]];
   const shadeShape=new THREE.LatheGeometry(shadeProfile.map(([r,y])=>new THREE.Vector2(r,y)),24);
-  add(bedside,shadeShape,k.mat('#ffe8bf',{emissive:'#ffd296',intensity:.70}),lampX,0,lampZ);
+  const bedsideShade=add(bedside,shadeShape,k.mat('#ffe8bf',{emissive:'#ffd296',intensity:.70}),lampX,0,lampZ);
   for(const [r,y] of shadeProfile.slice(1,-1))cyl(bedside,lampX,y,lampZ,r+.001,r+.001,.0032,'#b09a7b',{segments:24});
   cyl(bedside,lampX,.839,lampZ,.048,.05,.009,'#7e6856',{segments:16});
-  k.glow(bedside,lampX,.69,lampZ,'#ffd4a2',.47,.13);
+  const bedsideGlow=k.glow(bedside,lampX,.69,lampZ,'#ffd4a2',.47,.13);
   book(bedside,.127,.454,.080,.108,.026,.16,'#758c91');book(bedside,.124,.482,.072,.105,.022,.15,'#c59776');
   box(bedside,.135,.503,.15,.021,.002,.037,'#aa725c');
   const ward=furniture('bedroom','wardrobe','杉木推拉衣柜',-5.31,14.80,[-5.98,14.66],['dress','open'],'her_room/wardrobe',[0,1.04,.287],-Math.PI/2);
@@ -740,7 +741,8 @@ export function buildHomeFurniture(k, register) {
   const washer=furniture('genkan','washer','家政洗衣机',2.49,10.84,[1.74,10.77],['laundry','open'],'laundry/washer',[0,.70,.32],-Math.PI/2);
   soft(washer,0,.475,0,.719,.944,.658,.032,'#d6d8c7');
   box(washer,0,.766,.332,.684,.178,.017,'#a7b6ad');box(washer,-.179,.785,.348,.181,.077,.013,charcoal);
-  for(let n=0;n<3;n++)box(washer,-.214+n*.039,.785,.359,.019,.018,.005,'#a6c9ab');
+  const washerIndicators=[];
+  for(let n=0;n<3;n++)washerIndicators.push(box(washer,-.214+n*.039,.785,.359,.019,.018,.005,'#a6c9ab'));
   const dial=cyl(washer,.191,.785,.355,.052,.052,.028,cream,{segments:18});dial.rotation.x=Math.PI/2;
   for(const [z,r,col] of [[.342,.222,'#84938e'],[.361,.188,'#b8c7be'],[.376,.156,'#59737a']]){
     const disk=cyl(washer,0,.415,z,r,r,.029,col,{segments:28});disk.rotation.x=Math.PI/2;
@@ -844,7 +846,7 @@ export function buildHomeFurniture(k, register) {
   box(pc,0,.829,.104,.118,.005,.067,'#9caaa6');
   const lid=new THREE.Group();lid.position.set(0,.830,-.138);lid.rotation.x=-.14;pc.add(lid);
   soft(lid,0,.146,0,.461,.291,.025,.011,'#465459');
-  surface(lid,cityFilm(true),0,.145,.014,.430,.259,0,false,.65).name='laptop-screen';
+  const laptopScreen=surface(lid,cityFilm(true),0,.145,.014,.430,.259,0,false,.65);laptopScreen.name='laptop-screen';
   const studyShelf=furniture('study','books','书斋的书与杂志',-.79,13.86,[-.16,13.83],['read'],null,[0,.77,.17],Math.PI/2);
   for(const x of [-.481,.481])box(studyShelf,x,.64,0,.042,1.25,.282,oak);
   for(const h of [.08,.445,.83,1.249])box(studyShelf,0,h,0,.996,.039,.309,maple);
@@ -923,4 +925,5 @@ export function buildHomeFurniture(k, register) {
   book(veranda,.464,.036,.024,.157,.019,.172,'#bfbb96');
   const pot=furniture('engawa','plant','廊下的山茶',-2.62,16.63,[-3.28,16.53,.437],['water','look'],'balcony/plant',[0,.599,0],0,.437);
   plant(pot,0,0,0,1.04,true);bowl(pot,-.279,.007,.08,.113,'#7c9897');
+  return createFurnitureVisuals({tvScreen:display,laptopScreen,lampShade:bedsideShade,lampGlow:bedsideGlow,washerIndicators});
 }

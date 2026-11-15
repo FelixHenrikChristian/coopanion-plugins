@@ -8,6 +8,7 @@ let scheme = 'plain';
 let word = 'stand';
 let ticks = 0;
 let events = [];
+let walking = null;
 const words = ['stand', 'walk', 'sit'];
 const post = (value) => parent.postMessage(value, '*');
 const trace = (message) => post({ t: 'fixture:trace', instance, pack, message });
@@ -58,6 +59,30 @@ function draw() {
   </svg>`;
   root.dataset.word = word;
   root.dataset.scheme = scheme;
+  root.dataset.localX = String(p.x);
+  root.dataset.stride = String(swing);
+}
+
+function interruptWalk(by) {
+  if (!walking) return;
+  events.push({ kind: 'interrupted', detail: { walkId: walking.id, by } });
+  walking = null;
+}
+
+function advanceWalk(dt) {
+  if (!walking) return;
+  const remaining = walking.x - state.start.x;
+  state.start.facing = remaining < 0 ? -1 : 1;
+  const step = walking.speed * Math.max(0, Math.min(.1, dt));
+  if (Math.abs(remaining) <= step) {
+    state.start.x = walking.x;
+    events.push({ kind: 'arrived', detail: { walkId: walking.id, x: walking.x, y: state.start.y } });
+    trace({ t: 'arrived', id: walking.id, x: walking.x });
+    walking = null;
+    word = 'stand';
+  } else {
+    state.start.x += Math.sign(remaining) * step;
+  }
 }
 
 addEventListener('message', (event) => {
@@ -77,6 +102,7 @@ addEventListener('message', (event) => {
       return;
     } else if (m.t === 'tick') {
       clock += finite(m.dt, 0);
+      advanceWalk(finite(m.dt, 0));
       ticks++;
       if (m.draw !== false) draw();
       post({ t: 'frame', layout: layout(), events, sounds: [], z: null });
@@ -84,10 +110,12 @@ addEventListener('message', (event) => {
       if (ticks === 1 || ticks % 60 === 0) trace({ t: 'ticks', count: ticks, word, scheme });
     } else if (m.t === 'do') {
       if (!words.includes(m.word)) throw new Error('Fixture received an unsupported action');
+      interruptWalk('action');
       word = m.word;
       trace({ t: 'do', word });
       draw();
     } else if (m.t === 'place') {
+      interruptWalk('place');
       state.start.x = finite(m.x, state.start.x);
       state.start.y = finite(m.y, state.start.y);
       state.start.facing = m.facing === -1 ? -1 : 1;
@@ -102,10 +130,15 @@ addEventListener('message', (event) => {
       draw();
       post({ t: 'scheme', seq: m.seq, z: null });
     } else if (m.t === 'walk') {
+      if (!Number.isFinite(m.x)) throw new Error('Fixture walk requires a finite target');
+      interruptWalk('replaced');
+      walking = { x: Math.max(0, Math.min(state.bounds.W, m.x)), id: m.id, speed: m.run ? 180 : 100 };
       word = 'walk';
-      trace({ t: 'walk', id: m.id });
+      trace({ t: 'walk', id: m.id, x: walking.x });
       draw();
     } else if (m.t === 'stop-walk') {
+      if (walking && m.id !== undefined && walking.id !== m.id) return;
+      interruptWalk('stop');
       word = 'stand';
       draw();
     }

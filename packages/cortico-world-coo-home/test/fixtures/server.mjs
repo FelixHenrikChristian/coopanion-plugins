@@ -1,5 +1,9 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, dirname, join, resolve } from 'node:path';
+import assert from 'node:assert/strict';
+import { CooHomeWorld } from '../../src/index.js';
 
 const fixtureRoot = new URL('./', import.meta.url);
 const readFixture = (name) => readFile(new URL(name, fixtureRoot));
@@ -23,12 +27,24 @@ function close(server) {
 export async function startFixtureServer({ bundlePath, stylePath }) {
   const requests = [];
   const streams = new Set();
+  const streamReceivers = new Map();
   const mutations = [];
   let currentPack = 'fixture-round';
   let currentScheme = 'plain';
   let petOrigin;
   let hostOrigin;
   let disconnected = false;
+  let world;
+  let appearanceChanged = () => {};
+  let offset = 0;
+  const navigationCalls = { detailed: 0, prepared: 0 };
+  const temporary = await mkdtemp(join(tmpdir(), 'coo-home-browser-'));
+  const clock = () => Date.now() + offset;
+  async function removeTemporary() {
+    assert.equal(dirname(resolve(temporary)), resolve(tmpdir()));
+    assert.ok(basename(temporary).startsWith('coo-home-browser-'));
+    await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }
   const reply = (response, code, body, type = 'application/json') => {
     response.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'access-control-allow-origin': '*' });
     response.end(type === 'application/json' ? JSON.stringify(body) : body);
@@ -44,8 +60,25 @@ export async function startFixtureServer({ bundlePath, stylePath }) {
         words: ['stand', 'walk', 'sit'], can: { walk: true },
       },
     };
-  const snapshot = () => ({ phase: 'foundation', appearance: appearance() });
-  const publish = () => { for (const response of streams) response.write(`data: ${JSON.stringify(snapshot())}\n\n`); };
+  const snapshot = () => world.status();
+  async function startWorld() {
+    world = new CooHomeWorld({ botDir: temporary, dataDir: temporary }, {
+      clock,
+      bridgeFactory({ onChange }) {
+        appearanceChanged = onChange;
+        return { snapshot: appearance, async start() { onChange(); }, async stop() {} };
+      },
+    });
+    await world.start();
+    for (const [method, counter] of [['route', 'detailed'], ['preparedRoute', 'prepared']]) {
+      const original = world.life.navigation[method];
+      if (typeof original !== 'function') throw new Error(`Missing real navigation method: ${method}`);
+      world.life.navigation[method] = function (...args) {
+        navigationCalls[counter]++;
+        return original.apply(this, args);
+      };
+    }
+  }
 
   const pet = createServer(async (request, response) => {
     const url = new URL(request.url, petOrigin || 'http://127.0.0.1');
@@ -79,32 +112,95 @@ export async function startFixtureServer({ bundlePath, stylePath }) {
       if (url.pathname === '/events') {
         response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
         streams.add(response);
-        response.write(`data: ${JSON.stringify(snapshot())}\n\n`);
-        request.on('close', () => streams.delete(response));
+        const callbacks = new Set();
+        const messages = new Set();
+        const streamId = url.searchParams.get('id');
+        if (!streamId || streamId.length > 80) throw new Error('Fixture stream needs an ID');
+        streamReceivers.set(streamId, messages);
+        let open = true;
+        const close = () => {
+          if (!open) return;
+          open = false;
+          streams.delete(response);
+          if (streamReceivers.get(streamId) === messages) streamReceivers.delete(streamId);
+          for (const callback of callbacks) callback();
+          callbacks.clear();
+          response.end();
+        };
+        world.webUi('en').stream('home', {
+          get open() { return open; },
+          send(text) { if (open) response.write(`data: ${text}\n\n`); },
+          close,
+          onClose(callback) { callbacks.add(callback); },
+          onMessage(callback) { messages.add(callback); return () => messages.delete(callback); },
+        });
+        request.on('close', close);
         return;
       }
       if (url.pathname === '/invoke' && request.method === 'POST') {
         let body = '';
         for await (const part of request) { body += part; if (body.length > 8192) throw new Error('Fixture request too large'); }
         const value = JSON.parse(body);
-        if (value.method !== 'status') return reply(response, 400, { error: `Unsupported fixture invoke: ${value.method}` });
-        return reply(response, 200, snapshot());
+        return reply(response, 200, await world.webUi('en').invoke('home', value.method, value.args || []));
       }
-      if (url.pathname === '/stream-input' && request.method === 'POST') return reply(response, 200, { ok: true });
+      if (url.pathname === '/stream-input' && request.method === 'POST') {
+        let body = '';
+        for await (const part of request) { body += part; if (body.length > 8192) throw new Error('Fixture stream input too large'); }
+        for (const callback of streamReceivers.get(url.searchParams.get('id')) || []) callback(body);
+        return reply(response, 200, { ok: true });
+      }
       if (url.pathname === '/favicon.ico') { response.writeHead(204); return response.end(); }
       return reply(response, 404, { error: 'Unknown fixture route' });
     } catch (error) { reply(response, 500, { error: error.message }); }
   });
   hostOrigin = await listen(host);
+  try { await startWorld(); }
+  catch (error) {
+    await world?.stop();
+    await Promise.all([close(host), close(pet)]);
+    await removeTemporary();
+    throw error;
+  }
   return {
     hostOrigin, petOrigin, requests, mutations,
+    snapshot,
+    async invoke(method, args = []) { return world.webUi('en').invoke('home', method, args); },
+    async advanceTo(timestamp) {
+      if (!Number.isFinite(timestamp) || timestamp < clock()) throw new Error('Fixture clock must move forward');
+      offset += timestamp - clock();
+      await world.tick();
+      return snapshot();
+    },
+    async advance(milliseconds) {
+      if (!Number.isFinite(milliseconds) || milliseconds < 0) throw new Error('Invalid fixture elapsed time');
+      offset += milliseconds;
+      await world.tick();
+      return snapshot();
+    },
+    async restart(offlineMilliseconds = 0) {
+      if (!Number.isFinite(offlineMilliseconds) || offlineMilliseconds < 0) throw new Error('Invalid fixture offline time');
+      await world.stop();
+      offset += offlineMilliseconds;
+      await startWorld();
+      return snapshot();
+    },
+    catalog() { return structuredClone(world.life.catalog); },
+    navigationCalls() { return { ...navigationCalls }; },
+    resetNavigationCalls() { navigationCalls.detailed = 0; navigationCalls.prepared = 0; },
+    async readSave() { return JSON.parse(await readFile(join(temporary, 'coo-home/state.json'), 'utf8')); },
     setAppearance(pack, scheme = 'plain') {
       if (!['fixture-round', 'fixture-kite'].includes(pack) || !['plain', 'stripe'].includes(scheme)) throw new Error('Unknown neutral fixture');
-      currentPack = pack; currentScheme = scheme; disconnected = false; publish();
+      currentPack = pack; currentScheme = scheme; disconnected = false; appearanceChanged();
     },
-    disconnect() { disconnected = true; publish(); },
-    reconnect() { disconnected = false; publish(); },
+    disconnect() { disconnected = true; appearanceChanged(); },
+    reconnect() { disconnected = false; appearanceChanged(); },
     get streamCount() { return streams.size; },
-    async dispose() { for (const response of streams) response.end(); streams.clear(); await Promise.all([close(host), close(pet)]); },
+    async dispose() {
+      await world.stop();
+      for (const response of streams) response.end();
+      streams.clear();
+      await Promise.all([close(host), close(pet)]);
+      await removeTemporary();
+    },
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-coo-home",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "An independent rainy-night home for the selected Coopanion figure.",
@@ -14,7 +14,7 @@
     "url": "git+https://github.com/FelixHenrikChristian/coopanion-plugins.git",
     "directory": "packages/cortico-world-coo-home"
   },
-  "files": ["src/index.js", "src/appearance.js", "web", "describe.json", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY.md"],
+  "files": ["src/index.js", "src/appearance.js", "src/navigation.js", "src/life.js", "src/storage.js", "data/home-layout.json", "data/navigation-query.js", "web", "describe.json", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY.md"],
   "scripts": {
     "build": "node build.mjs",
     "describe": "node scripts/describe.mjs",

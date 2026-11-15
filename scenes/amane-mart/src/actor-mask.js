@@ -6,7 +6,7 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
   const doc=renderer.domElement.ownerDocument;
   const output=doc.createElement('canvas'),context=output.getContext('2d');
   const material=new THREE.ShaderMaterial({
-    uniforms:{actorDepth:{value:1}},side:THREE.DoubleSide,
+    uniforms:{actorDepth:{value:1},actorFootY:{value:0},actorDepthSlope:{value:0}},side:THREE.DoubleSide,
     depthTest:true,depthWrite:true,blending:THREE.NoBlending,toneMapped:false,
     vertexShader:`void main(){
       vec4 p=vec4(position,1.0);
@@ -16,8 +16,11 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
       gl_Position=projectionMatrix*modelViewMatrix*p;
     }`,
     fragmentShader:`uniform float actorDepth;
+      uniform float actorFootY;
+      uniform float actorDepthSlope;
       void main(){
-        float visible=step(actorDepth-0.000006,gl_FragCoord.z);
+        float depthAtY=actorDepth+(gl_FragCoord.y-actorFootY)*actorDepthSlope;
+        float visible=step(depthAtY-0.000006,gl_FragCoord.z);
         gl_FragColor=vec4(vec3(visible),visible);
       }`
   });
@@ -35,10 +38,11 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
     return materials.some(m=>m&&(m.depthTest===false||m.blending===THREE.AdditiveBlending||
       m.transparent&&(m.opacity<.95||m.depthWrite===false)));
   }
-  async function capture({rect,worldPoint}){
+  async function capture({rect,worldPoint,worldHeight}){
     const viewport=getViewport();
     if(!rect||![rect.x,rect.y,rect.width,rect.height,...(worldPoint??[])].every(Number.isFinite)||worldPoint?.length!==3)
       throw new TypeError('An actor mask requires a finite local CSS rectangle and world point');
+    if(worldHeight!==undefined&&(!Number.isFinite(worldHeight)||worldHeight<0))throw new TypeError('Actor height must be finite and nonnegative');
     if(rect.width<=0||rect.height<=0||viewport.width<=0||viewport.height<=0||
       rect.x+rect.width<=0||rect.y+rect.height<=0||rect.x>=viewport.width||rect.y>=viewport.height)return null;
     camera.updateMatrixWorld(true);
@@ -47,6 +51,15 @@ export function createActorMask({scene,camera,renderer,getViewport,isDisposed}) 
     material.uniforms.actorDepth.value=(projected.z+1)*.5;
     const scale=Math.min(renderer.getPixelRatio(),512/Math.max(rect.width,rect.height));
     const width=Math.max(1,Math.ceil(rect.width*scale)),height=Math.max(1,Math.ceil(rect.height*scale));
+    const toLocalY=p=>(rect.y+rect.height-(1-p.y)*viewport.height*.5)*height/rect.height;
+    const footY=toLocalY(projected);
+    material.uniforms.actorFootY.value=footY;
+    material.uniforms.actorDepthSlope.value=0;
+    if(worldHeight>0){
+      const top=new THREE.Vector3(worldPoint[0],worldPoint[1]+worldHeight,worldPoint[2]).project(camera);
+      const deltaY=toLocalY(top)-footY;
+      if(Math.abs(deltaY)>1e-5)material.uniforms.actorDepthSlope.value=(top.z-projected.z)*.5/deltaY;
+    }
     target.setSize(width,height);
     const localCamera=camera.clone();
     localCamera.layers.set(0); // The painted, depth-free night sky is on layer 1.

@@ -2,8 +2,12 @@
   "name": "amane-mart",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "check:navigation": "node scripts/check-navigation.mjs",
+    "compile:navigation": "node scripts/compile-navigation.mjs",
+    "export:navigation": "node scripts/export-navigation.mjs"
   },
   "dependencies": {
     "three": "0.179.1"

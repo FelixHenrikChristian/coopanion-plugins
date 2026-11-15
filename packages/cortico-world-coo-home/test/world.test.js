@@ -16,15 +16,17 @@ class Stream{
   close(){this.open=false;for(const listener of this.listeners.splice(0))listener();}
 }
 function fixture(){
-  const bridges=[];const world=new CooHomeWorld({botDir:'isolated-fixture'}, {bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
-  return{world,bridges};
+  const bridges=[];let saved=null,time=1_000_000,failSave=false;
+  const storage={recovery:'new',load:async validate=>saved?validate(saved):null,save:async value=>{if(failSave)throw Error('fixture disk failure');saved=structuredClone(value);},flush:async()=>{}};
+  const world=new CooHomeWorld({botDir:'isolated-fixture'}, {clock:()=>time,storage,bridgeFactory:options=>{const bridge=new Bridge(options);bridges.push(bridge);return bridge;}});
+  return{world,bridges,storage,setTime:value=>{time=value;},setFailure:value=>{failSave=value;},saved:()=>saved};
 }
 
-test('foundation declares no AI tools, events, prompt changes or persistent simulation',()=>{
+test('life stage declares no AI tools, events or prompt changes',()=>{
   assert.equal(definition.id,'coo-home');assert.deepEqual(definition.describe,{tools:[],events:[]});
   assert.deepEqual(definition.defaults(),{enabled:false});
   const {world}=fixture();assert.deepEqual(world.tools(),[]);assert.equal(world.envPromptVars(),null);
-  assert.equal(world.webUi().panels[0].id,'home');assert.equal(world.status().phase,'foundation');
+  assert.equal(world.webUi().panels[0].id,'home');assert.equal(world.status().phase,'life');
   assert.equal(world.status().appearance.connected,false);
 });
 
@@ -59,4 +61,26 @@ test('one broken stream cannot break watcher updates or healthy clients',async()
 test('lifecycle never calls desktop control, model, logging or event host methods',async()=>{
   const {world,bridges}=fixture();const host=new Proxy({},{get(){throw Error('Unexpected host access');}});
   await world.start(host);bridges[0].changed();await world.webUi().invoke('home','status',[]);await world.stop();
+});
+
+test('life-only streams omit figure models and use per-connection visibility',async()=>{
+  const f=fixture();await f.world.start();const stream=new Stream();stream.onMessage=handler=>{stream.receive=handler;};f.world.webUi().stream('home',stream);
+  stream.receive(JSON.stringify({type:'presence',visible:true}));f.setTime(1_001_000);await f.world.tick();
+  assert.equal(stream.messages.at(-1).appearance,undefined);assert.equal(stream.messages.at(-1).life.simulation,'visible');
+  stream.close();assert.equal(f.world.presence.size,0);await f.world.stop();
+});
+
+test('save failures are broadcast, commands roll back, and retry can recover',async()=>{
+  const f=fixture();await f.world.start();const stream=new Stream();f.world.webUi().stream('home',stream);
+  const before=f.world.life.export();f.setFailure(true);
+  await assert.rejects(f.world.webUi().invoke('home','command',[{itemId:'living.sofa',actionId:'sit'}]),/保存/);
+  assert.equal(f.world.life.state.current,null);assert.equal(f.world.life.state.counter,before.counter);assert.equal(stream.messages.at(-1).life.storage.ok,false);
+  f.setTime(1_006_000);await assert.rejects(f.world.tick(),/保存/);assert.equal(stream.messages.at(-1).life.storage.ok,false);
+  f.setFailure(false);await f.world.tick();assert.equal(stream.messages.at(-1).life.storage.ok,true);await f.world.stop();
+});
+
+test('world command is durable before returning and restart restores progress',async()=>{
+  const f=fixture();await f.world.start();const first=await f.world.webUi().invoke('home','command',[{itemId:'living.sofa',actionId:'sit'}]);
+  assert.equal(f.saved().current.id,first.life.current.id);f.setTime(first.life.current.arrivalAt+1000);await f.world.tick();const position=f.world.status().life.position;
+  await f.world.stop();await f.world.start();assert.deepEqual(f.world.status().life.position,position);assert.equal(f.world.status().life.current.phase,'acting');await f.world.stop();
 });

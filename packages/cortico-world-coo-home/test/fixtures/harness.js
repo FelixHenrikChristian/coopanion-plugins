@@ -3,7 +3,7 @@ import * as panel from '/bundle.js';
 // This host exists only in a loopback test page. Its diagnostics are not plugin APIs.
 const root = document.getElementById('mount');
 const fixture = await fetch('/fixture-config').then((response) => response.json());
-const metrics = { mounts: 0, activeFrames: 0, frameCallbacks: 0, activeStreams: 0, invokes: [], messages: [], original: [] };
+const metrics = { mounts: 0, activeFrames: 0, frameCallbacks: 0, activeStreams: 0, invokes: [], messages: [], original: [], roleFrames: [] };
 const memory = new Map();
 let current = null;
 let controller = null;
@@ -16,6 +16,10 @@ original.style.cssText = 'position:fixed;left:-400px;top:0;width:256px;height:25
 document.body.append(original);
 
 addEventListener('message', (event) => {
+  if (event.data?.t === 'frame' && event.source === document.querySelector('[data-testid="home-figure"]')?.contentWindow) {
+    metrics.roleFrames.push({ at: performance.now(), layout: event.data.layout });
+    if (metrics.roleFrames.length > 400) metrics.roleFrames.shift();
+  }
   if (event.source === original.contentWindow && event.data?.t === 'loaded') {
     original.contentWindow.postMessage({
       t: 'init', entry: `${fixture.petOrigin}/fixture-entry.js`, export: 'createFigure',
@@ -60,14 +64,15 @@ function frame(fn) {
 
 function stream(handlers) {
   let closed = false;
-  const events = new EventSource('/events');
+  const id = crypto.randomUUID();
+  const events = new EventSource(`/events?id=${id}`);
   metrics.activeStreams++;
   events.onopen = () => handlers.open?.();
   events.onmessage = (event) => handlers.message(event.data);
   events.onerror = () => { if (!closed) handlers.close?.(true); };
   return own({
     get open() { return events.readyState === EventSource.OPEN; },
-    send(text) { fetch('/stream-input', { method: 'POST', body: text, signal: controller.signal }).catch(() => {}); },
+    send(text) { fetch(`/stream-input?id=${id}`, { method: 'POST', body: text, signal: controller.signal }).catch(() => {}); },
     dispose() {
       if (closed) return;
       closed = true;

@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startFixtureServer } from './fixtures/server.mjs';
+import { verifyBrowserLife } from './fixtures/browser-life.mjs';
+import { verifyLifeContract } from './fixtures/life-contract.mjs';
 
 // Supply Playwright/browser locations through the environment when not installed
 // locally. No development-machine paths or user figure names belong in this file.
@@ -19,6 +21,7 @@ const fixture = await startFixtureServer({
 });
 let browser;
 try {
+  await fixture.invoke('settings', [{ autonomy: false }]);
   browser = await chromium.launch({
     headless: true,
     ...(process.env.COO_HOME_BROWSER ? { executablePath: process.env.COO_HOME_BROWSER } : {}),
@@ -70,7 +73,7 @@ try {
   async function shot(name) {
     const path = join(output, `${name}.png`);
     const bytes = await root.screenshot({ path, timeout: 90000 });
-    report.screenshots.push(`${name}.png`);
+    if (!report.screenshots.includes(`${name}.png`)) report.screenshots.push(`${name}.png`);
     return bytes;
   }
 
@@ -121,22 +124,7 @@ try {
     await shot(mode);
   }
 
-  // An opaque roof must hide a projected role. The same role must become
-  // visible when that roof is removed; checking a CSS mask alone is not enough.
-  await view('exterior');
-  await page.evaluate(() => window.__homeHarness.panel.actor.setPlacement({ position: [4.10, .16, 7.05], height: 1.25, word: 'stand', facing: 1 }));
-  await painted(8);
-  const outside = await markerPixels(await shot('role-outdoors'));
-  assert.ok(outside > 20, `The neutral role was not visible outdoors (${outside} marker pixels)`);
-  await page.evaluate(() => window.__homeHarness.panel.actor.setPlacement({ position: [-3, .41, 12], height: 1.25, word: 'stand', facing: 1 }));
-  await painted(8);
-  const hidden = await markerPixels(await shot('role-under-roof'));
-  assert.ok(hidden < Math.max(6, outside * .08), `The role leaked through the opaque roof (${hidden} marker pixels)`);
-  await view('cutaway');
-  await painted(8);
-  const revealed = await markerPixels(await shot('role-cutaway'));
-  assert.ok(revealed > 20, `The role did not reappear after removing the roof (${revealed} marker pixels)`);
-  report.checks.occlusion = { outside, hidden, revealed };
+  await verifyBrowserLife({ fixture, page, root, canvas, view, painted, shot, markerPixels, report });
 
   // This is a local observation, not a promise about another computer's GPU.
   // The upper bound prevents an uncapped scene loop on high-refresh displays.
@@ -167,26 +155,6 @@ try {
     caveat: 'One local stable-camera sample with a synthetic standing figure; not a target-device performance guarantee.',
   }, null, 2) + '\n');
 
-  const savedCamera = await page.evaluate(() => window.__homeHarness.panel.scene.getCameraPose());
-  await view('open');
-  await page.evaluate(() => {
-    const { scene, actor } = window.__homeHarness.panel;
-    scene.setCameraPose({ eye: [-.2, 2, 14.8], target: [-5.31, 1.1, 14.8] });
-    actor.setPlacement({ position: [-4.7, .41, 14.8], height: 1.25, word: 'stand', facing: 1 });
-  });
-  await painted(8);
-  const inFront = await markerPixels(await shot('role-before-cabinet'));
-  assert.ok(inFront > 100, `The close-up role was not visible before the cabinet (${inFront} marker pixels)`);
-  await page.evaluate(() => window.__homeHarness.panel.actor.setPlacement({ position: [-5.9, .41, 14.8], height: 1.25, word: 'stand', facing: 1 }));
-  await painted(8);
-  const behind = await markerPixels(await shot('role-behind-cabinet'));
-  assert.ok(behind < Math.max(6, inFront * .05), `The role leaked through the cabinet (${behind} marker pixels)`);
-  report.checks.furnitureOcclusion = { inFront, behind };
-  await view('cutaway');
-  await page.evaluate((pose) => window.__homeHarness.panel.scene.setCameraPose(pose), savedCamera);
-
-  await page.evaluate(() => window.__homeHarness.panel.actor.setPlacement({ position: [-3, .41, 12], height: 1.25, word: 'sit', facing: -1 }));
-  await page.waitForFunction(() => window.__homeHarness.metrics.messages.some((message) => message.t === 'do' && message.word === 'sit'));
   const beforeSwitch = await page.evaluate(() => window.__homeHarness.panel.actor.getState().placement);
   const previousFrame = await root.locator('iframe[data-testid="home-figure"]').getAttribute('src');
   fixture.setAppearance('fixture-kite', 'stripe');
@@ -213,6 +181,17 @@ try {
   const hiddenFrames = await page.evaluate(() => ({ scene: window.__homeHarness.panel.scene.getRendererInfo().frames, actor: window.__homeHarness.panel.actor.getState().frames }));
   await page.waitForTimeout(350);
   assert.deepEqual(await page.evaluate(() => ({ scene: window.__homeHarness.panel.scene.getRendererInfo().frames, actor: window.__homeHarness.panel.actor.getState().frames })), hiddenFrames);
+  await fixture.invoke('cancel');
+  await fixture.invoke('settings', [{ autonomy: true }]);
+  fixture.resetNavigationCalls();
+  const background = await fixture.advance(5 * 60_000);
+  assert.equal(background.life.simulation, 'background');
+  assert.ok(fixture.navigationCalls().prepared > 0, 'The hidden household did not continue its rule activities');
+  assert.equal(fixture.navigationCalls().detailed, 0, 'Hidden household activity performed detailed pathfinding');
+  assert.deepEqual(await page.evaluate(() => ({ scene: window.__homeHarness.panel.scene.getRendererInfo().frames, actor: window.__homeHarness.panel.actor.getState().frames })), hiddenFrames);
+  report.checks.background = { ruleSimulationContinues: true, ...fixture.navigationCalls(), noDrawing: true };
+  await fixture.invoke('settings', [{ autonomy: false }]);
+  await fixture.invoke('cancel');
   await root.evaluate((element) => { element.style.display = ''; });
   await painted(4);
   assert.ok(await page.evaluate((frames) => window.__homeHarness.panel.scene.getRendererInfo().frames > frames, hiddenFrames.scene));
@@ -228,6 +207,7 @@ try {
     if (cycle < 2) { await page.evaluate(() => window.__homeHarness.mount()); await ready(); }
   }
   report.checks.lifecycle = 'Three mounts/unmounts; frame and stream resources stopped';
+  report.checks.lifeContract = await verifyLifeContract(fixture);
   assert.deepEqual(fixture.mutations, []);
   assert.ok(fixture.requests.every((request) => !/\/api\/(?:skin|prefs)$/.test(request.path) && !request.query.includes('role=pet')));
   assert.deepEqual(rejected, []);
