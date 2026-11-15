@@ -66,14 +66,14 @@ function actionSlot(item,id){
     feet=[...seat.feet];face=[...seat.facing];
   }
   return {id,label:labels[id]??id,slotId:item.id+':'+id,
-    ...(item.room==='garden'?{canonicalId:({'查看':'inspect','浇水':'water','采收':'harvest'})[id]}:{}),
+    ...(item.room==='garden'?{canonicalId:({'查看':'inspect','浇水':'water','采收':'harvest','播种':'sow'})[id]}:{}),
     stance:{position,facing:face},target,
     occupancyGroup:station.id,pose:{kind,position:feet,anchor,anchorKind,referenceHeight:1.25},
     fallback:{kind:'standing',position:[...position],facing:[...face]}
   };
 }
 const items=inventory.map(item=>({id:item.id,room:item.room,label:item.label,position:approach(item),
-  actions:item.actions.map(id=>actionSlot(item,id)),...(item.cropId?{cropId:item.cropId,plotId:item.plotId}:{})}));
+  actions:(item.room==='garden'?[...item.actions,'播种']:item.actions).map(id=>actionSlot(item,id)),...(item.cropId?{cropId:item.cropId,plotId:item.plotId}:{})}));
 const layout={schemaVersion:1,layoutVersion:1,units:'metres',upAxis:'y',
   defaultFurnitureState:{'living.tv':{on:true},'study.laptop':{on:true},'bedroom.bedside':{on:true},'genkan.washer':{on:true,active:false}},
   spawn:[.95,.327,9.45],bounds:{minX:-9.2,maxX:12.8,minZ:6.85,maxZ:17.1},

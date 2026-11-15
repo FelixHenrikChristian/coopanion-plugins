@@ -132,4 +132,33 @@ are rejected atomically. `getFurnitureVisuals()` returns a detached snapshot.
 The host-state defaults use `on/active` in `defaultFurnitureState`; map these
 to `power/running` before applying visual state. With no host state supplied,
 the standalone page retains its original lit screens, warm lamp and mature
-garden. Task effects, saved progress and plant growth are not owned by these APIs.
+garden. Task effects, saved progress and plant timing are owned by the host.
+
+## Garden state
+
+`setPlotVisuals(life.garden)` accepts `{plots:[{id,cropId,stage,growth,wetness}]}`;
+passing the plots array directly also works. Additional host fields (timers,
+harvest counters) are ignored. A subset updates only those beds. Stage must be
+`empty`, `seeded`, `seedling`, `growing` or `ripe`; growth and wetness must be finite
+numbers from 0 to 1. Crop ID is optional but, when provided, must match the bed.
+Unknown/repeated IDs and invalid values reject the complete update before mutation.
+`getPlotVisuals()` returns a detached `{plots:[...]}` snapshot of the five visual
+fields. This API never starts timers, changes crop types or writes progress.
+
+Beds remain `plot-1` tomato, `plot-2` eggplant, `plot-3` cucumber, `plot-4` pepper,
+`plot-5` cabbage, `plot-6` daikon, `plot-7` carrot and `plot-8` spring-onion.
+The default is ripe, growth 1, wetness 0: the standalone page keeps the approved
+mature garden. Empty beds hide plants; seeded beds show small soil-level sowing
+marks; seedling/growing stages reuse the existing instanced plant pieces about
+each plant's own root. Mature restores their exact original matrices. Fixed
+frames, stakes, netting, labels and bed edging never scale or disappear. Wetness
+only darkens the isolated bed soil and lowers its roughness slightly.
+
+Geometry and materials are allocated at construction, not on state updates.
+Small progress changes are quantized for rendering to avoid unnecessary shadow
+updates. Under `getObject('plot-N')`, `userData.cropRole` identifies `plants`,
+`supports`, `soil` and `seed`; the bed's `userData.plotVisual` is a diagnostic
+snapshot. Existing 查看/浇水/采收 action IDs retain inspect/water/harvest canonical
+IDs. The added 播种 action has canonical ID `sow` and shares the existing safe
+approach. `npm run check:garden` checks growth transitions, fixed supports,
+resource stability, atomic rejection and mature restoration.

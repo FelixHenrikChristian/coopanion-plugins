@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { startFixtureServer } from './fixtures/server.mjs';
 import { verifyBrowserLife } from './fixtures/browser-life.mjs';
 import { verifyLifeContract } from './fixtures/life-contract.mjs';
+import { verifyBrowserGarden } from './fixtures/browser-garden.mjs';
+import { verifyGardenContract } from './fixtures/garden-contract.mjs';
 
 // Supply Playwright/browser locations through the environment when not installed
 // locally. No development-machine paths or user figure names belong in this file.
@@ -45,7 +47,12 @@ try {
   });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    // browser-garden injects one rejected command to verify failure feedback.
+    if (message.location().url === `${fixture.hostOrigin}/invoke` && message.text().includes('status of 409')) return;
+    errors.push(message.text());
+  });
   await page.goto(fixture.hostOrigin, { waitUntil: 'load' });
   const root = page.locator('[data-testid="coo-home-root"]');
   const canvas = root.locator('canvas').first();
@@ -175,6 +182,7 @@ try {
   assert.equal(await root.locator('iframe[data-testid="home-figure"]').count(), 1);
   assert.deepEqual(await page.evaluate(() => window.__homeHarness.metrics.original), initial.original);
   report.checks.switching = 'Appearance and scheme change; position preserved; original fixture unchanged';
+  report.checks.garden = await verifyBrowserGarden({ fixture, page, root, canvas, view, painted, shot });
 
   await root.evaluate((element) => { element.style.display = 'none'; });
   await page.waitForTimeout(150);
@@ -208,6 +216,7 @@ try {
   }
   report.checks.lifecycle = 'Three mounts/unmounts; frame and stream resources stopped';
   report.checks.lifeContract = await verifyLifeContract(fixture);
+  report.checks.gardenContract = await verifyGardenContract(fixture);
   assert.deepEqual(fixture.mutations, []);
   assert.ok(fixture.requests.every((request) => !/\/api\/(?:skin|prefs)$/.test(request.path) && !request.query.includes('role=pet')));
   assert.deepEqual(rejected, []);

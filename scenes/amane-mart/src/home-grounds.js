@@ -313,24 +313,27 @@ export function buildHomeGrounds(k, register) {
     ['tomato','番茄','トマト'],['eggplant','茄子','ナス'],['cucumber','黄瓜','キュウリ'],['pepper','甜椒','ピーマン'],
     ['cabbage','卷心菜','キャベツ'],['daikon','白萝卜','ダイコン'],['carrot','胡萝卜','ニンジン'],['spring-onion','小葱','ネギ']
   ];
+  const plotBeds=[];
   // Each plot owns all its visible pieces so a hit on any leaf, board or fruit resolves to that plot.
   beds.forEach(([id,name,jp],index)=>{
     const col=index%4,row=Math.floor(index/4),x=5.37+col*2.00,z=10.12+row*4.23;
     const bed=k.group('畑・'+jp,1.88+index*.09);
     Object.assign(bed.userData,{preserveBatch:true,plotId:index,cropId:id});
+    plotBeds.push({id:'plot-'+(index+1),cropId:id,object:bed});
     bed.position.set(x,.16,z);
     const bx=1.45,bz=3.13;
-    box(bed,0,.102,0,bx,.20,bz,'#61513d');box(bed,0,.214,0,bx-.12,.030,bz-.12,'#665848');
+    const soil=new THREE.Group();soil.name=id+' bed soil';Object.assign(soil.userData,{preserveBatch:true,cropRole:'soil'});bed.add(soil);
+    box(bed,0,.102,0,bx,.20,bz,'#61513d');box(soil,0,.214,0,bx-.12,.030,bz-.12,'#665848');
     for(const sign of [-1,1]){
       box(bed,sign*bx*.5,.125,0,.078,.25,bz+.09,'#818c89');box(bed,0,.125,sign*bz*.5,bx,.25,.081,'#87938d');
       for(const end of [-1,1])box(bed,sign*bx*.5,.148,end*bz*.5,.105,.296,.107,'#657776');
     }
-    for(let j=0;j<2;j++)box(bed,(j-.5)*.64,.237,0,.37,.032,bz-.20,'#72624b');
+    for(let j=0;j<2;j++)box(soil,(j-.5)*.64,.237,0,.37,.032,bz-.20,'#72624b');
     growKitchenBed(k,bed,id,index);
     box(bed,.52,.39,-1.415,.038,.35,.036,'#9b8669');
     box(bed,.52,.545,-1.415,.31,.16,.033,'#d6c59d');
     k.label(bed,jp,.52,.545,-1.438,.27,.104,{rotateY:Math.PI,color:'#514e44',font:'bold 92px "Yu Gothic", sans-serif'});
-    register({id:'plot-'+(index+1),room:'garden',label:name+'种植床',actions:['查看','浇水','采收'],anchor:[x,.98,z],object:bed,approach:[x,.16,z-1.87]});
+    register({id:'plot-'+(index+1),room:'garden',label:name+'种植床',actions:['查看','浇水','采收','播种'],anchor:[x,.98,z],object:bed,approach:[x,.16,z-1.87]});
   });
   // A cantilevered polycarbonate cycle shelter has a clear loading aisle along its western edge.
   const steel='#687d7c', edgeSteel='#869a96', roofShade='#b0c9c7';
@@ -415,4 +418,5 @@ export function buildHomeGrounds(k, register) {
   // Shelter ID is printed on the metal fascia.
   box(cycles,15.26,2.564,8.232,1.17,.20,.046,'#466d68');
   k.label(cycles,'月極駐輪場',15.26,2.564,8.204,1.02,.140,{color:'#e3e9d4',rotateY:Math.PI});
+  return plotBeds;
 }

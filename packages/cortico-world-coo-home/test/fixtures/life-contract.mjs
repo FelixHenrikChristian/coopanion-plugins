@@ -34,7 +34,9 @@ export async function verifyLifeContract(fixture) {
   for (const item of catalog) {
     assert.ok(item.actions.length > 0, `No supported behavior for ${item.id}`);
     for (const action of item.actions) {
-      if (item.kind === 'plot') assert.ok(['look', 'inspect', 'walk'].includes(action.canonical), 'Planting is not implemented in this milestone');
+      // Garden mutations have ordered stage requirements and are exercised by
+      // the garden-cycle integration check, not this navigation inventory loop.
+      if (item.kind === 'plot' && !['look', 'inspect', 'walk'].includes(action.canonical)) continue;
       const accepted = await fixture.invoke('command', [{ itemId: item.id, actionId: action.id }]);
       const task = accepted.life.current;
       assert.equal(task.itemId, item.id);
@@ -78,7 +80,7 @@ export async function verifyLifeContract(fixture) {
   await fixture.invoke('pause');
   const validId = fixture.snapshot().life.current.id;
   await assert.rejects(fixture.invoke('walk', [{ position: [-50, 0, -50] }]));
-  await assert.rejects(fixture.invoke('command', [{ itemId: 'plot-1', actionId: 'harvest' }]));
+  await assert.rejects(fixture.invoke('command', [{ itemId: 'plot-1', actionId: 'not-implemented' }]));
   assert.equal(fixture.snapshot().life.current.id, validId, 'A rejected command must preserve the previous task');
   const cancelled = await fixture.invoke('cancel');
   assert.equal(cancelled.life.current, null);

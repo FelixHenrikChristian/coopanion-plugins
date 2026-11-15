@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check:navigation": "node scripts/check-navigation.mjs",
+    "check:garden": "node scripts/check-garden.mjs",
     "compile:navigation": "node scripts/compile-navigation.mjs",
     "export:navigation": "node scripts/export-navigation.mjs"
   },

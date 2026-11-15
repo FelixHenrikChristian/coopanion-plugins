@@ -78,6 +78,7 @@ function instanced(parent,name,geometry,items,leaf=false){
     mesh.setColorAt(i,c);
   }
   mesh.name=name;mesh.castShadow=mesh.receiveShadow=true;mesh.computeBoundingSphere();parent.add(mesh);
+  return mesh;
 }
 
 export function growKitchenBed(k,bed,id,index){
@@ -86,13 +87,21 @@ export function growKitchenBed(k,bed,id,index){
   let seed=(index+1)*159101;
   const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const choose=list=>list[Math.floor(rand()*list.length)];
-  const stems=[],wide=[],serrated=[],bulbs=[],produce=[],shoots=[];
+  const stems=[],supports=[],wide=[],serrated=[],bulbs=[],produce=[],shoots=[];
+  const plantArrays=[stems,wide,serrated,bulbs,produce,shoots];
+  let root=null,starts=plantArrays.map(()=>0);
+  // Store each plant's soil anchor separately from the fixed training frame.
+  // Growth changes instance transforms, never the rows or the frame dimensions.
+  function finishPlant(){
+    if(root)plantArrays.forEach((items,n)=>{for(let i=starts[n];i<items.length;i++)items[i].root=root;});
+  }
+  function plantAt(x,z){finishPlant();root=[x,.248,z];starts=plantArrays.map(items=>items.length);}
   const greens=['#5b9559','#659e63','#70a363','#719258'],dark=['#4e8053','#5d945a','#527f56'];
   const up=new THREE.Vector3(0,1,0);
-  function link(a,b,r,color){
+  function link(a,b,r,color,items=stems){
     const direction=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]),len=direction.length();
     if(!len)return;
-    stems.push([(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2,r,len,r,color,0,0,0,new THREE.Quaternion().setFromUnitVectors(up,direction.divideScalar(len))]);
+    items.push([(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2,r,len,r,color,0,0,0,new THREE.Quaternion().setFromUnitVectors(up,direction.divideScalar(len))]);
   }
   function leaf(arr,x,y,z,len,w,a,lift,c){
     arr.push([x,y,z,w,len*.23,len,c,-lift,a,(rand()-.5)*.14]);
@@ -105,9 +114,9 @@ export function growKitchenBed(k,bed,id,index){
   if(id==='tomato'){
     // Three independently trained A-frames, each laden with ripening trusses.
     for(const z of [-1.00,0,1.02]){
-      link([-.45,start,z],[0,1.76,z],.031,stake);link([.45,start,z],[0,1.76,z],.031,stake);
+      link([-.45,start,z],[0,1.76,z],.031,stake,supports);link([.45,start,z],[0,1.76,z],.031,stake,supports);
       for(const sign of [-1,1]){
-        const x=sign*.34;let last=[x,start,z];
+        const x=sign*.34;plantAt(x,z);let last=[x,start,z];
         for(let t=0;t<4;t++){
           const center=[x*(1-t*.19),.46+t*.29,z+(t%2?.062:-.035)];
           link(last,center,.021,'#657d46');last=center;
@@ -124,10 +133,11 @@ export function growKitchenBed(k,bed,id,index){
         }
       }
     }
-    link([0,1.72,-1.28],[0,1.72,1.30],.025,stake);
+    link([0,1.72,-1.28],[0,1.72,1.30],.025,stake,supports);
   }else if(id==='eggplant'){
     for(let j=0;j<4;j++){
       const x=j%2?.18:-.19,z=-1.08+j*.71,h=.81+(j%3)*.06;
+      plantAt(x,z);
       link([x,start,z],[x+.035,h+.24,z],.028,'#766476');
       for(let f=0;f<6;f++){
         const a=f*2.4+j*.24,y=.45+f*.084,xx=x+Math.sin(a)*.15,zz=z+Math.cos(a)*.16;
@@ -144,14 +154,14 @@ export function growKitchenBed(k,bed,id,index){
   }else if(id==='cucumber'){
     // One west-to-east leaning net, visibly different from the tomato frames.
     for(const z of [-1.32,1.32]){
-      link([-.34,start,z],[.17,1.71,z],.036,'#6c8d78');
-      link([.44,start,z],[.17,1.71,z],.027,'#748d79');
+      link([-.34,start,z],[.17,1.71,z],.036,'#6c8d78',supports);
+      link([.44,start,z],[.17,1.71,z],.027,'#748d79',supports);
     }
-    link([.17,1.71,-1.34],[.17,1.71,1.34],.033,'#829a7c');
-    for(let z=-1.27;z<1.33;z+=.25)link([-.34,.28,z],[.17,1.70,z],.008,cord);
-    for(let j=0;j<6;j++){const x=-.34+j*.10,y=.28+j*.28;link([x,y,-1.30],[x,y,1.30],.009,cord);}
+    link([.17,1.71,-1.34],[.17,1.71,1.34],.033,'#829a7c',supports);
+    for(let z=-1.27;z<1.33;z+=.25)link([-.34,.28,z],[.17,1.70,z],.008,cord,supports);
+    for(let j=0;j<6;j++){const x=-.34+j*.10,y=.28+j*.28;link([x,y,-1.30],[x,y,1.30],.009,cord,supports);}
     for(let j=0;j<5;j++){
-      const cz=-1.05+j*.51;let last=[-.29,start,cz];
+      const cz=-1.05+j*.51;plantAt(-.29,cz);let last=[-.29,start,cz];
       for(let n=0;n<4;n++){
         const x=-.24+n*.115,y=.49+n*.31,z=cz+Math.sin(n*2+j)*.075;
         link(last,[x,y,z],.015,'#6c915c');last=[x,y,z];
@@ -163,6 +173,7 @@ export function growKitchenBed(k,bed,id,index){
   }else if(id==='pepper'){
     for(let j=0;j<6;j++){
       const x=(j%2-.5)*.61,z=-1.00+Math.floor(j/2)*.95,h=.76+rand()*.25;
+      plantAt(x,z);
       link([x,start,z],[x,h,z],.020,'#708454');
       for(let t=0;t<5;t++){
         const a=t*2.4+j*.60,y=.398+t*.105,xx=x+Math.sin(a)*.141,zz=z+Math.cos(a)*.141;
@@ -174,16 +185,19 @@ export function growKitchenBed(k,bed,id,index){
     }
   }else if(id==='cabbage'){
     for(let j=0;j<7;j++){const x=j===6?0:(j%2-.5)*.67,z=j===6?1.20:-1.11+Math.floor(j/2)*.76;
+      plantAt(x,z);
       rosette(wide,x,.273,z,9,.32,.128,.22,['#769d81','#84a68a','#8dac87','#66957b']);
       rosette(wide,x,.34,z,7,.218,.105,.59,['#99b897','#a3ba92','#87ac8e']);
       bulbs.push([x,.40,z,.179,.163,.182,'#b4c799']);}
   }else if(id==='daikon'){
     for(let j=0;j<8;j++){const x=(j%2-.5)*.60,z=-1.09+Math.floor(j/2)*.71;
+      plantAt(x,z);
       bulbs.push([x,.304,z,.081,.123,.079,'#e9dfb9']);
       rosette(serrated,x,.37,z,8,.278,.086,.65,['#719b67','#89a96d','#79a76b']);}
   }else if(id==='carrot'){
     for(let j=0;j<11;j++){
       const x=(j%2-.5)*.61+(rand()-.5)*.07,z=-1.22+Math.floor(j/2)*.46;
+      plantAt(x,z);
       bulbs.push([x,.267,z,.055,.050,.050,'#cc8e56']);
       for(let a=0;a<5;a++){
         const phi=a*2.40+j*.49,sx=Math.sin(phi),sz=Math.cos(phi),length=.22+.08*rand();
@@ -197,16 +211,28 @@ export function growKitchenBed(k,bed,id,index){
   }else{
     for(let j=0;j<12;j++){
       const x=(j%2-.5)*.58,z=-1.13+Math.floor(j/2)*.44;
+      plantAt(x,z);
       for(let f=0;f<5;f++){
         const a=f*2.399+j*.5,xx=x+Math.sin(a)*.053,zz=z+Math.cos(a)*.055,h=.35+rand()*.30;
         link([xx,.246,zz],[xx,.322,zz],.022,'#d7d8b6');
         shoots.push([xx,.318,zz,.023,h,.024,choose(['#759c87','#8bb09b','#70a18a']),Math.sin(a)*.35,a,Math.cos(a)*.28]);}
     }
   }
-  instanced(bed,id+' stems and supports',stemGeo,stems);
-  instanced(bed,id+' broad leaves',broad,wide,true);instanced(bed,id+' divided leaves',notched,serrated,true);
-  instanced(bed,id+' crop',id==='eggplant'?eggGeo:cucumberGeo,produce);
-  instanced(bed,id+' heads and fruit',roundFruit,bulbs);instanced(bed,id+' shoots',onion,shoots);
+  finishPlant();
+  const fixed=instanced(bed,id+' permanent supports',stemGeo,supports);
+  if(fixed)fixed.userData.cropRole='supports';
+  function plantMesh(name,geometry,items,leaf=false,fruit=false){
+    const mesh=instanced(bed,id+' '+name,geometry,items,leaf);
+    if(mesh)Object.assign(mesh.userData,{cropRole:'plants',cropFruit:fruit,growthRoots:items.map(item=>item.root)});
+  }
+  plantMesh('stems',stemGeo,stems);
+  plantMesh('broad leaves',broad,wide,true);plantMesh('divided leaves',notched,serrated,true);
+  plantMesh('crop',id==='eggplant'?eggGeo:cucumberGeo,produce,false,true);
+  plantMesh('heads and fruit',roundFruit,bulbs,false,true);plantMesh('shoots',onion,shoots);
+  const seedMarks=[];
+  for(const x of [-.32,.32])for(const z of [-1,-.5,0,.5,1])seedMarks.push([x,.259,z,.047,.012,.031,'#b5a17a']);
+  const markers=instanced(bed,id+' sowing marks',roundFruit,seedMarks);
+  markers.userData.cropRole='seed';markers.visible=false;
   // Corner tags are attached to the frame, leaving the fronts walkable.
   for(const end of [-1,1]){
     box(bed,-.725,.251,end*1.53,.077,.025,.127,'#b9b9a4');

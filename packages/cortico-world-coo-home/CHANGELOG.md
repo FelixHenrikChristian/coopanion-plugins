@@ -1,5 +1,16 @@
 # Changes
 
+## 0.4.0-alpha.3 — gardening milestone
+
+- Add sowing, watering, growth and harvesting to the eight existing plots, with 30–90 minute crop cycles and no economy or withering.
+- Preserve the mature garden on first use and migrate earlier household saves without clearing life progress.
+- Complete garden effects only after arrival and activity; validate queued actions against their planting cycle and reject duplicate harvests.
+- Continue growth in the background and on offline catch-up; pause freezes both life and crop progress.
+- Keep beds, trellises and the original mature plants intact. Update existing plant instances and soil wetness without rebuilding the scene.
+- Show plot stages, available actions and harvest totals in the existing interaction menu. Local autonomy can water sown plots; sowing and harvesting remain explicit choices.
+
+Independent conversation, voice, optional AI planning and selected desktop reports remain later milestones.
+
 ## 0.4.0-alpha.2 — household life milestone
 
 - Add independent household tasks, collision-aware walking, furniture menus, manual priority, queues and local autonomous routines.

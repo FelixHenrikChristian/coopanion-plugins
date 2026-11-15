@@ -21,6 +21,7 @@ import {disposeSceneResources} from './scene-resources.js';
 import {createActorMask} from './actor-mask.js';
 import {getNavigationData,getActionSlots} from './navigation-data.js';
 import {createNavigationQuery} from './navigation-query.js';
+import {createPlotVisuals} from './plot-visuals.js';
 
 export function createNeighborhood({root,onItem=()=>{},onView=()=>{},reducedMotion,autoStart=true}={}){
 if(!root?.appendChild)throw new TypeError('A scene root element is required');
@@ -48,7 +49,7 @@ addFinishing(kit);
 buildTeahouse(kit);
 buildGarden(kit);
 const registry=makeHomeRegistry();
-buildHomeGrounds(kit,registry.register);
+const plotBeds=buildHomeGrounds(kit,registry.register);
 buildStationRow(kit);
 const shell=buildHomeShell(kit);
 const furnitureVisuals=buildHomeFurniture(kit,registry.register);
@@ -86,6 +87,7 @@ for(const s of stages){
   s.origin=s.g.position.clone();
   s.duration=s.start===0?1.35:1.18;
 }
+const plotVisuals=createPlotVisuals(plotBeds);
 // The number of point lights is a compile-time constant in Three's standard
 // material. Keep the emitters registered and follow a socket on each fixture;
 // taking off a roof or assembling a new layer only changes light uniforms.
@@ -292,6 +294,12 @@ function setFurnitureVisuals(snapshot){
   const result=furnitureVisuals.setFurnitureVisuals(snapshot);
   lightsDirty=true;weather.invalidate();return result;
 }
+function setPlotVisuals(snapshot){
+  if(disposed)return null;
+  const revision=plotVisuals.getRevision(),result=plotVisuals.setPlotVisuals(snapshot);
+  if(revision!==plotVisuals.getRevision()){renderer.shadowMap.needsUpdate=true;weather.invalidate();}
+  return result;
+}
 function dispose(){
   if(disposed)return disposal;
   stop();disposed=true;abort.abort();observer.disconnect();
@@ -309,6 +317,7 @@ return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
   project,getCameraPose,setCameraPose,getRendererInfo,pickSurface,pickWalkable,
   getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
+  setPlotVisuals,getPlotVisuals:plotVisuals.getPlotVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,
   finishAssembly(){finishOnRequest=true;}
 });

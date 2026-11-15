@@ -70,6 +70,9 @@ try{
   assert.ok(declaration,'Home page appears in official WebUI manifest');
   const initial=await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected&&value;},'initial appearance');
   assert.equal(initial.phase,'life');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
+  assert.equal(initial.life.version,2);
+  assert.equal(initial.life.garden.plots.length,8);
+  assert.ok(initial.life.garden.plots.every(plot=>plot.stage==='ripe'));
   assert.equal(initial.appearance.descriptor.scheme,'plain');assert.ok(initial.appearance.descriptor.frameUrl.startsWith(petOrigin));
   report.checks.discovery='Official fixed-port desktop-pet service and real catalog';
   const feed=stream(origin.replace('http:','ws:')+'/ws/providers/world%3Acoo-home/panels/home');
@@ -167,8 +170,9 @@ try{
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:true});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===true,'automatic reconnect');
   report.checks.reconnect='Desktop-pet stop/start recovers automatically';
-  const pending=await invoke('command',[{itemId:'bedroom.bed',actionId:'nap'}]);
+  const pending=await invoke('command',[{itemId:'plot-1',actionId:'harvest'}]);
   assert.equal(pending.life.current.source,'manual');
+  assert.equal(pending.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe','Receiving a harvest command must not immediately empty the plot');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:false});
   await until(()=>feed.readyState===WebSocket.CLOSED,'home stream disposal');
   await json(origin,'/api/worlds/activation',{id:'coo-home',enabled:true});
@@ -176,6 +180,9 @@ try{
   const restored=await json(origin,statusPath);
   assert.equal(restored.life.current.id,pending.life.current.id,'Home did not restore the persisted in-progress activity');
   assert.equal(restored.life.autonomy,false);
+  assert.equal(restored.life.version,2);
+  assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'ripe');
+  report.checks.garden='Eight mature plots preserved; schema-2 harvest task remains pending through a real World stop/start';
   report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){

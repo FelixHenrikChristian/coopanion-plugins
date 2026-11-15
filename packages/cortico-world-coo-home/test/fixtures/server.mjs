@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
@@ -24,7 +24,7 @@ function close(server) {
   });
 }
 
-export async function startFixtureServer({ bundlePath, stylePath }) {
+export async function startFixtureServer({ bundlePath, stylePath, initialSave = null, initialTime = null }) {
   const requests = [];
   const streams = new Set();
   const streamReceivers = new Map();
@@ -36,7 +36,7 @@ export async function startFixtureServer({ bundlePath, stylePath }) {
   let disconnected = false;
   let world;
   let appearanceChanged = () => {};
-  let offset = 0;
+  let offset = Number.isFinite(initialTime) ? initialTime - Date.now() : 0;
   const navigationCalls = { detailed: 0, prepared: 0 };
   const temporary = await mkdtemp(join(tmpdir(), 'coo-home-browser-'));
   const clock = () => Date.now() + offset;
@@ -44,6 +44,10 @@ export async function startFixtureServer({ bundlePath, stylePath }) {
     assert.equal(dirname(resolve(temporary)), resolve(tmpdir()));
     assert.ok(basename(temporary).startsWith('coo-home-browser-'));
     await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }
+  if (initialSave) {
+    await mkdir(join(temporary, 'coo-home'), { recursive: true });
+    await writeFile(join(temporary, 'coo-home/state.json'), JSON.stringify(initialSave));
   }
   const reply = (response, code, body, type = 'application/json') => {
     response.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'access-control-allow-origin': '*' });

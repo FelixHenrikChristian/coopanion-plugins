@@ -8,9 +8,8 @@ function fixture(state=null){let now=1_000_000;const life=new HomeLife({layout,s
 test('catalog covers all 32 furniture and 8 plots with truthful stage boundaries',()=>{
   const {life}=fixture();assert.equal(life.catalog.length,40);assert.equal(life.catalog.filter(i=>i.kind==='furniture').length,32);
   for(const item of life.catalog){assert.ok(item.actions.length);for(const action of item.actions){assert.equal(typeof action.id,'string');assert.ok(action.stance.position.length===3);assert.ok(action.pose.kind);}}
-  for(const item of life.catalog.filter(i=>i.kind==='plot'))assert.ok(item.actions.every(a=>['look','inspect','walk'].includes(a.canonical)));
-  assert.throws(()=>life.command({itemId:'plot-1',actionId:'water'}),/暂不支持/);
-  assert.throws(()=>life.command({itemId:'plot-1',actionId:'采收'}),/暂不支持/);
+  for(const item of life.catalog.filter(i=>i.kind==='plot'))assert.deepEqual(new Set(item.actions.map(a=>a.canonical)),new Set(['inspect','water','harvest','sow']));
+  assert.throws(()=>life.command({itemId:'plot-1',actionId:'sell'}),/暂不支持/);
 });
 
 test('every approved action is reachable; arrival is distinct from completion',()=>{
@@ -23,7 +22,7 @@ test('every approved action is reachable; arrival is distinct from completion',(
     f.set(task.endsAt);const done=f.life.advance();assert.equal(done.current,null);assert.equal(done.items[item.id].uses,before+1);
     assert.equal(done.recent.at(-1).outcome,'completed');count++;
   }
-  assert.equal(count,70);
+  assert.equal(count,94);
 });
 
 test('manual tasks supersede autonomy and queued manual work preserves order',()=>{
@@ -91,7 +90,7 @@ test('walk validates the floor, ignores client height and rejects blocked/outsid
 
 test('migration and saves exclude non-household data and reject malformed jobs',()=>{
   const f=fixture();const raw={...f.life.export(),version:0,figure:'private-fixture-sentinel',chat:[{text:'not-household'}],unknown:'not-household'};
-  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,1);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
+  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,2);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
   f.life.command({itemId:'living.sofa',actionId:'sit'});const bad=f.life.export();bad.current.actionId='unavailable';assert.throws(()=>normalizeLifeState(bad,layout,f.now()),/action/);
   const crossed=f.life.export();crossed.current.route=[{position:layout.spawn,at:1},{position:[999,0,999],at:2}];assert.throws(()=>normalizeLifeState(crossed,layout,f.now()),/walkable/);
 });
