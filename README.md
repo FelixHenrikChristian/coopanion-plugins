@@ -9,6 +9,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 | [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.0 | 按服装显示搭配选项，并提供连续动画角色制作指南 |
 | [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 默认截图不含桌宠，提供 NVIDIA 即时重放兼容模式 |
 | [噜噜](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.3 | 独立的水豚噜噜桌宠衣橱，可摘下包包，并可导入装扮工作室 |
+| [coo家园](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.4.0-alpha.1 | 开发中：已批准雨夜街区与独立角色的基础接入；尚未发布 |
 
 源码版本不等于 npm 或市场已发布版本。只有实际发布的版本才会出现在对应分发渠道。
 
@@ -25,11 +26,15 @@ packages/
   cortico-world-wardrobe-studio/
   cortico-world-capture-guard/
   cortico-world-lulu/
+  cortico-world-coo-home/        开发中的独立家园
 scripts/                       统一检查与打包
 docs/                          发布和迁移说明
+scenes/amane-mart/              保留原历史的雨夜街区与独立 HTML
 ```
 
 以后新增插件，只需增加一个包目录、清单及对应的测试；不必再建立独立仓库。
+
+coo家园复用 [`scenes/amane-mart`](scenes/amane-mart) 的同一套场景源码。首次迁入保留原场景全部已发布主线历史，见[迁移记录](docs/amane-scene-migration.md)；功能进度和验收范围见[开发路线](docs/coo-home-plan.md)。
 
 ## 开发与检查
 

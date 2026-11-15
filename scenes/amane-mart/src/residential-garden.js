@@ -37,6 +37,9 @@ function onionBlade(){
   }
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));g.setIndex(ix);g.computeVertexNormals();return g;
 }
+const geometryScopes=new WeakMap();
+function plantGeometry(kit){
+  if(geometryScopes.has(kit))return geometryScopes.get(kit);
 const broad=leafBlade(),notched=leafBlade(4),onion=onionBlade();
 const smallFruit=new THREE.IcosahedronGeometry(1,1),roundFruit=new THREE.SphereGeometry(1,10,7);
 const stemGeo=new THREE.CylinderGeometry(1,1,1,6);
@@ -44,6 +47,10 @@ const eggGeo=new THREE.LatheGeometry([[.005,0],[.55,.040],[.86,.19],[1,.38],[.86
   .map(([x,y])=>new THREE.Vector2(x,y)),10);
 const cucumberGeo=new THREE.LatheGeometry([[.07,0],[.58,.04],[.87,.12],[1,.57],[.78,.91],[.32,1]]
   .map(([x,y])=>new THREE.Vector2(x,y)),8);
+
+  const result={broad,notched,onion,smallFruit,roundFruit,stemGeo,eggGeo,cucumberGeo};
+  geometryScopes.set(kit,result);return result;
+}
 
 function instanced(parent,name,geometry,items,leaf=false){
   if(!items.length)return;
@@ -74,6 +81,7 @@ function instanced(parent,name,geometry,items,leaf=false){
 }
 
 export function growKitchenBed(k,bed,id,index){
+  const {broad,notched,onion,roundFruit,stemGeo,eggGeo,cucumberGeo}=plantGeometry(k);
   const {box,cyl}=k;
   let seed=(index+1)*159101;
   const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
@@ -207,6 +215,7 @@ export function growKitchenBed(k,bed,id,index){
 }
 
 export function buildAllotmentStreet(k){
+  const {broad,notched,smallFruit}=plantGeometry(k);
   const gate=k.group('住宅街 · 菜園の入口と水場',1.44);
   const posts=k.group('住宅街 · 支線の電柱と防犯灯',2.31);
   const wires=k.group('住宅街 · 道路上の引込線',3.91);

@@ -28,7 +28,9 @@
 
 ## 从源码构建
 
-场景源码位于 [src/](src/)。在仓库根目录依次运行以下命令，即可重新生成 `amane-mart.html`。
+场景源码位于 [src/](src/)。在本场景目录 `scenes/amane-mart` 依次运行以下命令，即可重新生成 `amane-mart.html`。
+
+嵌入 World 页面时使用同一场景的实例化接口，生命周期与角色遮挡协议见 [嵌入说明](docs/embedding.md)。
 
 ```sh
 npm ci

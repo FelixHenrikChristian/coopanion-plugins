@@ -36,6 +36,7 @@ function textAt(c, text, x, y, size, color, weight = 700, face = jp) {
 
 // All solid pieces sharing a finish travel together as the store assembles.
 // Instancing keeps the individually modelled packages, shelves and trim inexpensive.
+function makeStoreResources(){
 const cube = new THREE.BoxGeometry(1,1,1);
 const cylinder = new THREE.CylinderGeometry(.5,.5,1,16);
 const finishes = {
@@ -46,8 +47,11 @@ const finishes = {
   metal: new THREE.MeshStandardMaterial({color:0xffffff,roughness:.56,metalness:.3})
 };
 
-let labelAtlas;
-function pieces(parent,castShadow=false) {
+return {cube,cylinder,finishes,labelAtlas:null};
+}
+
+function makePieces(parent,resources,castShadow=false) {
+  const {cube,cylinder,finishes}=resources;
   const batches = new Map();
   const printVertices=[],printUV=[],printIndices=[];
   const pose = new THREE.Object3D();
@@ -83,11 +87,11 @@ function pieces(parent,castShadow=false) {
         parent.add(mesh);
       }
       if(printVertices.length){
-        if(!labelAtlas)labelAtlas=packageArt();
+        if(!resources.labelAtlas)resources.labelAtlas=packageArt();
         const geo=new THREE.BufferGeometry();
         geo.setAttribute('position',new THREE.Float32BufferAttribute(printVertices,3));
         geo.setAttribute('uv',new THREE.Float32BufferAttribute(printUV,2));geo.setIndex(printIndices);
-        parent.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:labelAtlas,toneMapped:false})));
+        parent.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:resources.labelAtlas,toneMapped:false})));
       }
     }
   };
@@ -239,7 +243,8 @@ function merchandise(s,x,y,z,width,height,depth,index,kind,rotation=0) {
 }
 
 export function buildStore(k) {
-  const {group} = k;
+  const {group} = k,resources=makeStoreResources();
+  const pieces=(parent,castShadow=false)=>makePieces(parent,resources,castShadow);
   const left=-4.95,right=2.15,back=-4.7,front=.55,cx=(left+right)/2,cz=(back+front)/2;
   const floor=group('Store · tiled foundation',.55),base=pieces(floor);
   base.b('shell',cx,.16,cz,7.22,.25,5.35,'#958f88');

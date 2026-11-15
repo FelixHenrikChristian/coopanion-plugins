@@ -1,0 +1,15 @@
+.coo-home-root{position:relative;width:100%;height:clamp(480px,80vh,1100px);min-height:420px;overflow:hidden;isolation:isolate;background:#090d17;color:#eee7d5;border-radius:12px;font-family:system-ui,"Microsoft YaHei",sans-serif}
+.coo-home-root:fullscreen{width:100vw;height:100vh;border-radius:0}
+.coo-home-root .coo-home-stage{position:absolute;inset:0;overflow:hidden}
+.coo-home-root .coo-home-toolbar{position:absolute;top:12px;left:14px;right:14px;z-index:8;display:flex;align-items:center;gap:12px;pointer-events:none}
+.coo-home-root .coo-home-title{font-weight:650;font-size:14px;text-shadow:0 1px 8px #000}
+.coo-home-root .coo-home-status{font-size:12px;color:#c5c9ce;max-width:65%;text-shadow:0 1px 5px #000}
+.coo-home-root .coo-home-toolbar button{pointer-events:auto;margin-left:auto;padding:6px 11px;border-radius:7px;border:1px solid #a0b3c244;color:#e4e5dd;background:#15232bd9;cursor:pointer}
+.coo-home-root .coo-home-toolbar button:focus-visible{outline:2px solid #ffcc8d;outline-offset:3px}
+.coo-home-root .coo-home-item{position:absolute;bottom:18px;left:16px;max-width:60%;padding:9px 13px;background:#172029e8;border:1px solid #c6aa7455;border-radius:8px;z-index:8;font-size:13px;pointer-events:none}
+.coo-home-root .coo-home-figure-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.coo-home-root .coo-home-actor{position:absolute;pointer-events:none;mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;-webkit-mask-repeat:no-repeat}
+.coo-home-root .coo-home-actor[hidden]{display:none}
+.coo-home-root .coo-home-actor iframe{position:absolute;top:0;left:0;border:0;background:transparent;transform-origin:0 0;pointer-events:none;color-scheme:normal}
+.coo-home-root .coo-home-contact{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,#070d18a0,transparent 70%);pointer-events:none}
+@media(max-width:600px){.coo-home-root{height:75vh;min-height:390px}.coo-home-root .coo-home-toolbar{gap:7px}.coo-home-root .coo-home-status{max-width:56%;font-size:11px}}

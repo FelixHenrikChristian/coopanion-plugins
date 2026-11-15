@@ -2,3 +2,5 @@
 *.png binary
 *.webp binary
 *.cmd text eol=crlf
+# Generated bundle retains upstream Three.js GLSL template whitespace.
+packages/cortico-world-coo-home/web/panel.js whitespace=-blank-at-eol linguist-generated=true

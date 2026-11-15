@@ -9,8 +9,11 @@ One repository for independently installable Coopanion World extensions.
 | [Wardrobe Studio](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.0 |
 | [Capture Guard](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 |
 | [Lulu](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.3 |
+| [coo Home](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.4.0-alpha.1 (development, unpublished) |
 
 Each plugin keeps its own version, installation, configuration and license. Installing one does not install the others. Source versions are not claims that the same versions have been published to npm or the extension market.
+
+coo Home uses the approved neighborhood in [`scenes/amane-mart`](scenes/amane-mart). Its first import preserves all nine published scene commits without rewriting them; see the [migration record](docs/amane-scene-migration.md). The plugin is being implemented and verified in stages, with [explicit completion criteria](docs/coo-home-plan.md). Installed character metadata and media remain private runtime data and are not included in this package.
 
 Use Node.js 22.10+ and npm:
 

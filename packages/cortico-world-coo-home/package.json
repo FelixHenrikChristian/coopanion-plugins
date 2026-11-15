@@ -1,0 +1,38 @@
+{
+  "name": "cortico-world-coo-home",
+  "version": "0.4.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "description": "An independent rainy-night home for the selected Coopanion figure.",
+  "license": "MIT",
+  "main": "src/index.js",
+  "exports": "./src/index.js",
+  "engines": { "node": ">=22.10.0" },
+  "keywords": ["cortico-world", "coopanion", "home"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FelixHenrikChristian/coopanion-plugins.git",
+    "directory": "packages/cortico-world-coo-home"
+  },
+  "files": ["src/index.js", "src/appearance.js", "web", "describe.json", "README.md", "CHANGELOG.md", "LICENSE", "THIRD_PARTY.md"],
+  "scripts": {
+    "build": "node build.mjs",
+    "describe": "node scripts/describe.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.js",
+    "pack:check": "node scripts/pack-check.mjs"
+  },
+  "devDependencies": { "three": "0.179.1", "esbuild": "0.25.12" },
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "displayName": "coo家园",
+    "describe": "describe.json",
+    "webUiClient": "web/panel.js",
+    "webUiStyle": "web/panel.css",
+    "locales": {
+      "zh": { "displayName": "coo家园", "description": "在雨夜街区中独立显示当前桌宠形象。" },
+      "en": { "displayName": "Coo Home", "description": "An independent home for the selected companion figure." }
+    }
+  }
+}

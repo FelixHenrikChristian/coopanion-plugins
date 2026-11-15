@@ -22,8 +22,7 @@ function blocksSight(wall,eye,target){
   return y>.38&&y<3.04;
 }
 
-export function createHomeView({camera,controls,shell,items,onChange,finishAssembly}){
-  const button=document.getElementById('house-toggle');
+export function createHomeView({camera,controls,shell,button,items,onChange,onView=()=>{},finishAssembly,reducedMotion=false,signal}){
   const name=button.querySelector('.view-name'),step=button.querySelector('.view-step');
   Object.assign(button.dataset,{wallCount:shell.walls.length,roofCount:shell.roof.length});
   const samples=items.filter(item=>item.room!=='garden').map(i=>i.anchor);
@@ -63,7 +62,7 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
     return {eye:focus.clone().addScaledVector(direction,distance),target:focus.clone()};
   }
   function goTo(pose){
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+    if(reducedMotion){
       travel=null;camera.position.copy(pose.eye);controls.target.copy(pose.target);controls.update();return;
     }
     travel={fromEye:camera.position.clone(),fromTarget:controls.target.clone(),...pose,start:performance.now()};
@@ -83,10 +82,11 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
     const description='小屋视图：'+titles[mode]+'。切换至'+titles[views[(i+1)%views.length]];
     button.setAttribute('aria-label',description);button.title=description;
     visibleWalls();
-    window.dispatchEvent(new CustomEvent('amane:home-view',{detail:{mode}}));
+    onView({mode});
   }
-  button.addEventListener('click',()=>setMode(views[(views.indexOf(mode)+1)%views.length]));
-  controls.addEventListener('start',()=>{travel=null;});
+  button.addEventListener('click',()=>setMode(views[(views.indexOf(mode)+1)%views.length]),{signal});
+  const cancelTravel=()=>{travel=null;};
+  controls.addEventListener('start',cancelTravel);
   function update(){
     if(travel){
       const t=Math.min(1,(performance.now()-travel.start)/720),ease=t*t*(3-2*t);
@@ -103,11 +103,11 @@ export function createHomeView({camera,controls,shell,items,onChange,finishAssem
     if(mode==='exterior')return false;
     goTo(internalPose());return true;
   }
-  return {setMode,update,home,getMode:()=>mode};
+  return {setMode,update,home,getMode:()=>mode,cancelTravel,dispose(){travel=null;controls.removeEventListener('start',cancelTravel);}};
 }
 
 export function makeHomeRegistry(){
-  const byId=new Map(),objects=new WeakMap();
+  const byId=new Map();let objects=new WeakMap();
   function register(item){
     if(!item.id||byId.has(item.id))throw Error('Duplicate or missing home item id: '+item.id);
     const {object,id}=item;object.userData.preserveBatch=true;object.userData.homeId=id;
@@ -120,19 +120,18 @@ export function makeHomeRegistry(){
     ...(Number.isInteger(item.object.userData.plotId)?{plotId:item.object.userData.plotId}:{}),
     ...(item.object.userData.cropId?{cropId:item.object.userData.cropId}:{})
   });
-  function connect(canvas,camera,scene,view){
+  function connect(canvas,camera,scene,view,{onItem=()=>{},signal}={}){
     const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
-    const catalog=[...byId.values()];
     let down=null;
     const active=new Set();
     canvas.addEventListener('pointerdown',e=>{
       active.add(e.pointerId);
       if(active.size===1&&e.button===0)down=[e.clientX,e.clientY,e.pointerId];else down=null;
-    });
-    canvas.addEventListener('pointercancel',e=>{active.delete(e.pointerId);down=null;});
+    },{signal});
+    canvas.addEventListener('pointercancel',e=>{active.delete(e.pointerId);down=null;},{signal});
     canvas.addEventListener('pointermove',e=>{
       if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)down=null;
-    });
+    },{signal});
     canvas.addEventListener('pointerup',e=>{
       active.delete(e.pointerId);
       if(!down||down[2]!==e.pointerId)return;
@@ -148,19 +147,21 @@ export function makeHomeRegistry(){
         for(let o=hit.object;o;o=o.parent){
           const item=objects.get(o);
           if(item){
-            window.dispatchEvent(new CustomEvent('amane:home-item',{detail:describe(item)}));
+            onItem(describe(item));
             return;
           }
         }
         return;
       }
-    });
-    Object.defineProperty(window,'amaneHome',{value:Object.freeze({
-      listItems:()=>catalog.map(describe),
+    },{signal});
+    return Object.freeze({
+      listItems:()=>[...byId.values()].map(describe),
       getItem:id=>byId.has(id)?describe(byId.get(id)):null,
-      getObject:id=>byId.get(id)?.object??null,
-      setView:view.setMode,getView:view.getMode
-    })});
+      getObject:id=>byId.get(id)?.object??null
+    });
   }
-  return {register,items:()=>[...byId.values()],connect};
+  return {register,items:()=>[...byId.values()],connect,
+    idFor(object){for(let o=object;o;o=o.parent){const item=objects.get(o);if(item)return item.id;}return null;},
+    dispose(){byId.clear();objects=new WeakMap();}
+  };
 }
