@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- Describe the plugin as an independent wardrobe for each character's outfits and supported accessories, plus a complete character creation guide.
+- Identify the example character as coming from the Lulu plugin and link the two independently usable plugins in both languages.
+- Clarify that wardrobe combinations use already-installed figure resources. Existing profiles and appearance behavior are unchanged.
+
 ## 0.6.1
 
 - Show the Lulu wardrobe screenshot directly in both READMEs, with a second screenshot demonstrating the removable bird bag.

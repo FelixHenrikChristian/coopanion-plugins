@@ -4,9 +4,11 @@
 
 # 装扮工作室
 
-**先选服装，再选搭配。**
+**独立衣橱，换衣服，也换配件。**
 
-为 Coopanion 整理角色衣橱，提供从参考图到连续动画的制作指南。
+为 Coopanion 的形象提供独立衣橱：先选服装，再切换这套服装支持的包包等配件。另附从参考图、动作与表情生成、抠像到角色包接入的完整形象制作指导。
+
+示例图中的水豚角色来自[噜噜插件](https://www.npmjs.com/package/cortico-world-lulu)。两个插件可分别使用；搭配噜噜及其角色包，就能在这里体验换装和摘戴小鸟包包。
 
 [![npm](https://img.shields.io/npm/v/cortico-world-wardrobe-studio?color=c87c5d&label=npm)](https://www.npmjs.com/package/cortico-world-wardrobe-studio)
 [![Checks](https://github.com/FelixHenrikChristian/coopanion-plugins/actions/workflows/check.yml/badge.svg)](https://github.com/FelixHenrikChristian/coopanion-plugins/actions/workflows/check.yml)
@@ -20,9 +22,11 @@
 
 ---
 
-## 一套服装，一组自己的选项
+## 给每个形象一间衣橱
 
-同一角色的不同服装不必共用所有配置项。装扮工作室把角色包已有的完整外观重新分组，只显示当前服装支持的搭配。
+先安装角色包并导入对应的衣橱配置，就能在同一个独立面板里选择形象、切换服装，再打开或关闭这套服装支持的配件。例如噜噜的橘子装可以戴上／摘下小鸟包包，睡衣和纸箱恐龙装则显示各自支持的搭配。
+
+衣橱使用角色包中已经做好的完整外观，每个可选搭配都要有对应资源。想制作新形象或增加服装、配件，可以打开扩展内的“角色制作指导”，按完整流程准备参考图、生成动作与表情、抠像并接入角色包。
 
 | 你要做的事 | 扩展提供什么 |
 | :--- | :--- |
@@ -39,7 +43,7 @@
 
 ![独立衣橱面板：橘子噜噜、小鸟包包与三套服装](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe.png)
 
-这是插件实际面板在独立演示服务中的截图，使用正式噜噜角色包的静帧，不含个人设置。先选橘子装，下方只显示对应的“小鸟包包”选项；选择睡衣或纸箱恐龙时，显示各自支持的搭配。
+这是插件实际面板在独立演示服务中的截图；角色来自[噜噜插件](https://www.npmjs.com/package/cortico-world-lulu)，使用其正式角色包的静帧，不含个人设置。先选橘子装，下方只显示对应的“小鸟包包”选项；选择睡衣或纸箱恐龙时，显示各自支持的搭配。
 
 ![选择摘下小鸟包包后的噜噜预览](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe-bag-off.jpg)
 
@@ -50,7 +54,7 @@
 
 ### 1 · 安装并启用
 
-已恢复官方市场收录。刷新 World 扩展市场，搜索“装扮工作室”或“Wardrobe Studio”；也可从 GitHub 下载，或在手动安装器填写 `cortico-world-wardrobe-studio@0.6.1`；按宿主提示重启 Core 后启用。
+已恢复官方市场收录。刷新 World 扩展市场，搜索“装扮工作室”或“Wardrobe Studio”；也可从 GitHub 下载，或在手动安装器填写 `cortico-world-wardrobe-studio@0.6.2`；按宿主提示重启 Core 后启用。
 
 也可从 [GitHub Releases](https://github.com/FelixHenrikChristian/coopanion-plugins/releases) 下载归档，解压后在手动安装中选择含 `package.json` 的目录。
 

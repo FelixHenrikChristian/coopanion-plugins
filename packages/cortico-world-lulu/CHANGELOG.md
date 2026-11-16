@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- Explain Lulu's outfits and removable bird bag in plain language across package descriptions, the panel and bilingual documentation.
+- Link to Wardrobe Studio's independent wardrobe and character creation guide while keeping the plugins independently usable.
+- Keep figure resources, photos, outfit mappings and behavior unchanged.
+
 ## 0.1.5
 
 - Bundle the four outfit photos inside the WebUI entrypoint. Coopanion serves only declared client.js/style.css files; package-relative image URLs are unavailable in the host.

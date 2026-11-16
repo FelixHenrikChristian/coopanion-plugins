@@ -1,8 +1,8 @@
 {
   "name": "cortico-world-lulu",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
-  "description": "Lulu capybara companion and removable outfit controls for Coopanion.",
+  "description": "Lulu the capybara for Coopanion, with orange, pajama and cardboard dinosaur outfits. Use alone or switch outfits and the bird bag in Wardrobe Studio's independent wardrobe.",
   "license": "MIT",
   "keywords": [
     "cortico-world",
@@ -55,11 +55,11 @@
     "locales": {
       "zh": {
         "displayName": "噜噜",
-        "description": "水豚噜噜桌宠与可拆配件装扮。"
+        "description": "水豚噜噜桌宠，含橘子装、睡衣和纸箱恐龙装。可单独使用，也可接入装扮工作室的独立衣橱，切换服装和小鸟包包。"
       },
       "en": {
         "displayName": "Lulu",
-        "description": "Capybara companion and removable outfit controls."
+        "description": "Lulu the capybara with multiple outfits and a removable bird bag. Use alone or with Wardrobe Studio's independent wardrobe."
       }
     },
     "screenshots": [

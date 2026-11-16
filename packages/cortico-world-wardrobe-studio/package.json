@@ -1,8 +1,8 @@
 {
   "name": "cortico-world-wardrobe-studio",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "type": "module",
-  "description": "Outfit-specific wardrobe controls and a continuous-animation authoring guide for Coopanion figure packs.",
+  "description": "An independent Coopanion wardrobe for each character's outfits and supported accessories, plus a complete character creation guide. The example character comes from the Lulu plugin.",
   "license": "MIT",
   "author": "Wardrobe Studio contributors",
   "repository": {
@@ -73,11 +73,11 @@
     "locales": {
       "zh": {
         "displayName": "装扮工作室",
-        "description": "按服装显示不同的搭配选项，并为连续动画形象制作提供分阶段指导。"
+        "description": "为 Coopanion 提供独立衣橱，切换形象的服装及各套服装支持的配件，并提供完整形象制作指导。示例角色来自噜噜插件。"
       },
       "en": {
         "displayName": "Wardrobe Studio",
-        "description": "Outfit-specific controls and staged guidance for continuous-animation figure packs."
+        "description": "An independent wardrobe for character outfits and supported accessories, plus a complete character creation guide. Example character: the Lulu plugin."
       }
     }
   },

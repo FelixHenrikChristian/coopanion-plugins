@@ -2,7 +2,9 @@
 
 <img src="https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-lulu/assets/icon.png" width="96" height="96" alt="从正式角色素材截取的噜噜头像">
 
-独立的 Coopanion World API 6 插件：安装水豚噜噜，打开衣橱看图选装扮，也可以摘下小鸟包包。图标与下方照片直接取自正式角色包，保留原始比例。
+把水豚噜噜带到 Coopanion 桌面：自带橘子装、粉色睡衣和纸箱恐龙装，在噜噜的衣橱里看图换装，也可以摘下或戴上小鸟包包。图标与下方照片直接取自正式角色包，保留原始比例。
+
+也可以搭配[装扮工作室](https://www.npmjs.com/package/cortico-world-wardrobe-studio)，在它的独立衣橱中选择噜噜的服装，再切换这套服装支持的配件。噜噜提供角色和装扮资源，工作室提供通用衣橱与完整形象制作指导；两个插件可分别使用，按需搭配。
 
 ![噜噜四套外观：橘子装带包、橘子装摘包、粉色睡衣、纸箱恐龙](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-lulu/assets/looks.jpg)
 
@@ -10,7 +12,7 @@
 
 ## 安装与使用
 
-1. 在 Coopanion 的 World 扩展手动安装器填写 **`cortico-world-lulu@0.1.5`**，按宿主提示重启 Core 并启用。也可下载 [GitHub 插件安装包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.5)，解压后选择含 `package.json` 的目录。
+1. 在 Coopanion 的 World 扩展手动安装器填写 **`cortico-world-lulu@0.1.6`**，按宿主提示重启 Core 并启用。也可下载 [GitHub 插件安装包](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.6)，解压后选择含 `package.json` 的目录。
 2. 保持桌宠 World 运行，打开 **噜噜 → 噜噜的衣橱**，点击 **安装噜噜角色包**。这一步下载约 147 MB 的角色资源并校验固定 SHA-256；需要网络。
 3. 点击对应照片切换外观。已安装角色时不会自动覆盖；从旧版角色包升级，请将 [0.1.2 角色 ZIP](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/lulu-v0.1.2) 导入桌宠原生装扮页，选择替换 `lulu-capybara`。
 
@@ -20,9 +22,13 @@
 
 ## 接入装扮工作室
 
-点击 **导出装扮工作室配置**，再到 **装扮工作室 → 衣橱 → 导入衣橱配置** 中校验并导入 JSON。橘子装会显示“小鸟包包：戴上／摘下”，睡衣和恐龙装各自对应已有完整外观。两个插件可分别安装，没有运行依赖；JSON 仅包含服装分组和 ID 映射，不携带角色媒体。
+先安装并启用[装扮工作室](https://www.npmjs.com/package/cortico-world-wardrobe-studio)。在噜噜面板点击 **导出装扮工作室配置**，再到 **装扮工作室 → 衣橱 → 导入衣橱配置** 中校验并导入 JSON，即可在独立衣橱中操作：选橘子装时切换“小鸟包包：戴上／摘下”，也能选择睡衣或纸箱恐龙装。
+
+两个插件可分别安装，没有运行依赖；只使用噜噜自带的衣橱也能换装。衣橱配置仅包含服装分组和已有外观的 ID 映射，角色媒体由噜噜角色包提供。工作室还附有从参考图、动作与表情生成、抠像到角色包接入的完整制作指导，方便继续制作自己的形象。
 
 ## 更新、停用与排查
+
+- **0.1.6** 用更直白的简介说明角色、衣橱与配件切换，并补充与装扮工作室的双向介绍。角色包仍为 0.1.2。
 
 - **0.1.5** 修复宿主无法读取相对路径照片的问题：四张预览图内嵌在面板脚本中，安装插件即可显示，不依赖额外图片服务。
 
@@ -33,12 +39,14 @@
 
 ## English
 
-Lulu is an independent Coopanion World API 6 extension. Install `cortico-world-lulu@0.1.5`, enable it and open Lulu's wardrobe. Install the separate figure pack, then choose one of the four pictured looks. The orange outfit supports a removable bird bag; pajamas and cardboard dinosaur use their own complete animations. Export a profile to use the same wardrobe in Wardrobe Studio; neither extension depends on the other.
+Bring Lulu the capybara to your Coopanion desktop, with orange, pajama and cardboard dinosaur outfits. Install `cortico-world-lulu@0.1.6`, enable it and open Lulu's wardrobe. Install the separate figure pack, then choose one of the four pictured looks, including the orange outfit with or without its bird bag.
+
+You can also export the wardrobe profile to [Wardrobe Studio](https://www.npmjs.com/package/cortico-world-wardrobe-studio), select Lulu's outfit and switch its supported accessories in an independent wardrobe. Lulu supplies the character and outfit resources; Wardrobe Studio supplies a general wardrobe and a complete character creation guide, from references and animated actions/expressions to matting and figure packaging. Each plugin works independently; combining them is optional.
 
 Version 0.1.5 embeds all four previews in the standalone panel script to support the host’s JS/CSS-only asset routes. Version 0.1.4 replaces the illustrated icon with an aspect-preserving crop from the released figure and bundles outfit photos for the panel and documentation. The animated figure remains version 0.1.2. The figure download is approximately 147 MB and is pinned to a SHA-256 checksum. Existing figures are never silently overwritten; import the figure ZIP in the desktop pet's appearance page to replace an older copy.
 
 ## Development and rights
 
-Run `npm run describe`, `npm run check`, `npm test` and `npm run pack:check`. Tests use isolated HTTP fixtures and do not modify a running Coopanion installation.
+Coopanion World API 6, Node.js ≥22.10. Run `npm run describe`, `npm run check`, `npm test` and `npm run pack:check`. Tests use isolated HTTP fixtures and do not modify a running Coopanion installation.
 
 角色以用户提供的噜噜视频和确认的设定图为参考。MIT 许可证适用于插件代码；噜噜及其参考／预览图的权利归各自权利人。插件仅包含获准公开的头像、四张预览照片及界面截图；完整动画媒体仍作为单独资源提供。

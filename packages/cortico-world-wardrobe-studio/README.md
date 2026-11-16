@@ -4,9 +4,11 @@
 
 # Wardrobe Studio
 
-**Choose an outfit. Configure what belongs to it.**
+**An independent wardrobe for outfits and accessories.**
 
-Outfit-specific controls and a continuous-animation authoring guide for Coopanion.
+A separate wardrobe for Coopanion characters: choose an outfit, then switch the bag or other accessories it supports. Includes a complete character creation guide, from references and animated actions/expressions through matting and figure packaging.
+
+The capybara in the example screenshots comes from the [Lulu plugin](https://www.npmjs.com/package/cortico-world-lulu). Each plugin works independently; combine them with Lulu's figure pack to try outfits and the removable bird bag here.
 
 [![npm](https://img.shields.io/npm/v/cortico-world-wardrobe-studio?color=c87c5d&label=npm)](https://www.npmjs.com/package/cortico-world-wardrobe-studio)
 [![Checks](https://github.com/FelixHenrikChristian/coopanion-plugins/actions/workflows/check.yml/badge.svg)](https://github.com/FelixHenrikChristian/coopanion-plugins/actions/workflows/check.yml)
@@ -20,9 +22,11 @@ Outfit-specific controls and a continuous-animation authoring guide for Coopanio
 
 ---
 
-## One outfit, its own controls
+## A wardrobe for each character
 
-A character's outfits do not need to share every option. Wardrobe Studio groups existing complete figure schemes and displays only the controls that belong to the selected outfit.
+Install a figure pack and import its wardrobe profile, then use one independent panel to select a character, change its outfit and switch the accessories supported by that outfit. For example, Lulu's orange outfit can wear or remove the bird bag, while Pajamas and Cardboard Dinosaur expose their own supported choices.
+
+Every selectable combination uses a complete look already supplied by the figure pack. To create another character or add outfits/accessories, follow the extension's complete Authoring Guide for references, animated actions and expressions, matting and figure integration.
 
 | You want to… | Wardrobe Studio provides… |
 | :--- | :--- |
@@ -38,7 +42,7 @@ A character's outfits do not need to share every option. Wardrobe Studio groups 
 
 ![Independent wardrobe panel with Lulu outfits and removable bird bag](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe.png)
 
-Captured from the actual panel against an isolated demo service using stills from the released Lulu figure, without personal settings. Selecting Orange shows its bird-bag controls; Pajamas and Cardboard Dinosaur expose their own supported choices.
+Captured from the actual panel against an isolated demo service. The character comes from the [Lulu plugin](https://www.npmjs.com/package/cortico-world-lulu), using stills from its released figure pack without personal settings. Selecting Orange shows its bird-bag controls; Pajamas and Cardboard Dinosaur expose their own supported choices.
 
 ![Lulu preview with the bird bag removed](https://raw.githubusercontent.com/FelixHenrikChristian/coopanion-plugins/main/packages/cortico-world-wardrobe-studio/assets/wardrobe-bag-off.jpg)
 
@@ -49,7 +53,7 @@ Orange with/without the bag maps to <code>bag</code>/<code>plain</code>; Pajamas
 
 ### 1 · Install and enable
 
-The package has been reinstated in the official index. Refresh the World market and search for **Wardrobe Studio** or **装扮工作室**. You can also install `cortico-world-wardrobe-studio@0.6.1` through the manual installer, or download a [GitHub release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases), extract it and select the folder containing `package.json` in the manual installer.
+The package has been reinstated in the official index. Refresh the World market and search for **Wardrobe Studio** or **装扮工作室**. You can also install `cortico-world-wardrobe-studio@0.6.2` through the manual installer, or download a [GitHub release](https://github.com/FelixHenrikChristian/coopanion-plugins/releases), extract it and select the folder containing `package.json` in the manual installer.
 
 ### 2 · Prepare figure resources
 
