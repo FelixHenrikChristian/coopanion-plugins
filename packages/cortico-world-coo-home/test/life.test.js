@@ -5,8 +5,8 @@ import {HomeLife,normalizeLifeState} from '../src/life.js';
 const layout=JSON.parse(await readFile(new URL('../data/home-layout.json',import.meta.url),'utf8'));
 function fixture(state=null){let now=1_000_000;const life=new HomeLife({layout,state,clock:()=>now});return{life,set:value=>{now=value;},add:value=>{now+=value;},now:()=>now};}
 
-test('catalog covers all 32 furniture and 8 plots with truthful stage boundaries',()=>{
-  const {life}=fixture();assert.equal(life.catalog.length,40);assert.equal(life.catalog.filter(i=>i.kind==='furniture').length,32);
+test('catalog covers 32 home furniture, 7 shop points and 8 plots with truthful stage boundaries',()=>{
+  const {life}=fixture();assert.equal(life.catalog.length,47);assert.equal(life.catalog.filter(i=>i.kind==='furniture').length,39);
   for(const item of life.catalog){assert.ok(item.actions.length);for(const action of item.actions){assert.equal(typeof action.id,'string');assert.ok(action.stance.position.length===3);assert.ok(action.pose.kind);}}
   for(const item of life.catalog.filter(i=>i.kind==='plot'))assert.deepEqual(new Set(item.actions.map(a=>a.canonical)),new Set(['inspect','water','harvest','sow']));
   assert.throws(()=>life.command({itemId:'plot-1',actionId:'sell'}),/暂不支持/);
@@ -16,6 +16,7 @@ test('every approved action is reachable; arrival is distinct from completion',(
   const f=fixture();f.life.settings({autonomy:false});let count=0;
   for(const item of f.life.catalog)for(const action of item.actions){
     if(item.kind==='plot'&&!['look','inspect','walk'].includes(action.canonical))continue;
+    if(['shop','buy','sell','orderTea','consume'].includes(action.canonical))continue;
     const value=f.life.command({itemId:item.id,actionId:action.id}),task=value.current;assert.ok(task.route.length);assert.ok(task.endsAt>task.arrivalAt);
     const before=f.life.state.items[item.id]?.uses??0;
     f.set(task.arrivalAt);const arrived=f.life.advance();assert.equal(arrived.current.phase,'acting');assert.equal(f.life.state.items[item.id]?.uses??0,before);
@@ -23,7 +24,7 @@ test('every approved action is reachable; arrival is distinct from completion',(
     f.set(task.endsAt);const done=f.life.advance();assert.equal(done.current,null);assert.equal(done.items[item.id].uses,before+1);
     assert.equal(done.recent.at(-1).outcome,'completed');count++;
   }
-  assert.equal(count,70);
+  assert.equal(count,75);
 });
 
 test('manual tasks supersede autonomy and queued manual work preserves order',()=>{
@@ -91,7 +92,7 @@ test('walk validates the floor, ignores client height and rejects blocked/outsid
 
 test('migration and saves exclude non-household data and reject malformed jobs',()=>{
   const f=fixture();const raw={...f.life.export(),version:0,figure:'private-fixture-sentinel',chat:[{text:'not-household'}],unknown:'not-household'};
-  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,4);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
+  const normalized=normalizeLifeState(raw,layout,f.now());assert.equal(normalized.version,5);assert.ok(!JSON.stringify(normalized).includes('private-fixture-sentinel'));assert.ok(!JSON.stringify(normalized).includes('not-household'));
   f.life.command({itemId:'living.sofa',actionId:'sit'});const bad=f.life.export();bad.current.actionId='unavailable';assert.throws(()=>normalizeLifeState(bad,layout,f.now()),/action/);
   const crossed=f.life.export();crossed.current.route=[{position:layout.spawn,at:1},{position:[999,0,999],at:2}];assert.throws(()=>normalizeLifeState(crossed,layout,f.now()),/walkable/);
 });

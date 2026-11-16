@@ -18,7 +18,7 @@ export const inventory = [{"id":"plot-1","room":"garden","label":"番茄种植�
 {"id":"bedroom.bedside","room":"bedroom","label":"床头文库与纸灯","actions":["read","toggle"],"anchor":[-6.76,0.95,13.45],"approach":[-6.62,0.41,13.93]},
 {"id":"bedroom.wardrobe","room":"bedroom","label":"杉木推拉衣柜","actions":["dress","open"],"anchor":[-5.5969999999999995,1.45,14.8],"approach":[-5.98,0.41,14.66]},
 {"id":"bedroom.window","room":"bedroom","label":"窗边一枝花","actions":["look","rest"],"anchor":[-8.51,1.067,15.76],"approach":[-8.14,0.41,15.8]},
-{"id":"dining.dining","room":"dining","label":"四人橡木餐桌","actions":["sit","eat","drink"],"anchor":[-2.853,0.9219999999999999,10.459999999999999],"approach":[-2.28,0.41,10.65]},
+{"id":"dining.dining","room":"dining","label":"四人橡木餐桌","actions":["sit","eat","drink","consume"],"anchor":[-2.853,0.9219999999999999,10.459999999999999],"approach":[-2.28,0.41,10.65]},
 {"id":"dining.teaCabinet","room":"dining","label":"篱木茶水柜","actions":["tea","inspect"],"anchor":[-3.26,1.2369999999999999,8.74],"approach":[-2.13,0.41,9.01]},
 {"id":"kitchen.fridge","room":"kitchen","label":"双门冰箱","actions":["open","eat","snack"],"anchor":[-1.877,1.53,15.48],"approach":[-2.12,0.41,15.18]},
 {"id":"kitchen.sink","room":"kitchen","label":"不锈钢洗涤台","actions":["wash","drink"],"anchor":[-2.83,1.29,15.459999999999999],"approach":[-2.78,0.41,14.86]},

@@ -80,7 +80,7 @@ try{
   assert.ok(declaration,'Home page appears in official WebUI manifest');
   const initial=await until(async()=>{const value=await json(origin,statusPath);return value.appearance?.connected&&value;},'initial appearance');
   assert.equal(initial.phase,'life');assert.equal(initial.appearance.descriptor.skin.figure,'fixture-round');
-  assert.equal(initial.life.version,4);
+  assert.equal(initial.life.version,5);
   assert.equal(initial.life.garden.plots.length,8);
   assert.ok(initial.life.garden.plots.filter(plot=>!process.argv.includes('--report-only')||plot.id!=='plot-8').every(plot=>plot.stage==='empty'&&plot.cropId===null));
   if(process.argv.includes('--report-only'))assert.equal(initial.life.garden.plots[7].stage,'ripe','Report fixture crop was sown and watered by the real engine');
@@ -108,7 +108,7 @@ try{
   const invoke=(method,args=[])=>json(origin,statusPath.replace(/status$/,method),{args});
   const invokePanel=(panel,method,args=[])=>json(origin,`/api/webui/providers/world%3Acoo-home/panels/${panel}/${method}`,{args});
   const promptKey='worlds.coo-home.environment',homePrompt=async()=>(await json(origin,'/api/prompts')).prompts.find(row=>row.key===promptKey);
-  const prompt=await homePrompt();assert.ok(prompt);assert.equal(prompt.role,undefined);assert.equal(prompt.vars.length,4);assert.ok(prompt.vars.every(row=>typeof row.value==='string'));
+  const prompt=await homePrompt();assert.ok(prompt);assert.equal(prompt.role,undefined);assert.equal(prompt.vars.length,5);assert.ok(prompt.vars.every(row=>typeof row.value==='string'));
   const environmentMarker='NEUTRAL_NATIVE_HOME_TEMPLATE_ONLY';
   await json(origin,'/api/prompts',{key:promptKey,baseRevision:prompt.revision,content:environmentMarker+'\n{{home.needs}}'});
   const prefix=await json(origin,'/api/prompts/prefix');assert.ok(!JSON.stringify(prefix).includes(environmentMarker));assert.ok(!prefix.segments.some(row=>row.sourceKey===promptKey));
@@ -208,7 +208,7 @@ try{
   await json(origin,'/api/worlds/activation',{id:'desktop-pet',enabled:true});
   await until(()=>feed.values.findLast(value=>value.appearance)?.appearance.connected===true,'automatic reconnect');
   report.checks.reconnect='Desktop-pet stop/start recovers automatically';
-  const pending=await invoke('command',[{itemId:'plot-1',actionId:'sow',cropId:'carrot'}]);
+  const pending=await invoke('command',[{itemId:'plot-1',actionId:'sow',cropId:'spring-onion'}]);
   assert.equal(pending.life.current.source,'manual');
   assert.equal(pending.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'empty','Accepting a sowing task must not immediately plant the crop');
   await provider.plan({id:'world-stop',steps:[{text:'This stopped World reply must not be saved.',delayMs:10000}]});
@@ -222,16 +222,16 @@ try{
   const restored=await json(origin,statusPath);
   assert.equal(restored.life.current.id,pending.life.current.id,'Home did not restore the persisted in-progress activity');
   assert.equal(restored.life.autonomy,false);
-  assert.equal(restored.life.version,4);
+  assert.equal(restored.life.version,5);
   assert.equal(restored.life.garden.plots.find(plot=>plot.id==='plot-1').stage,'empty');
-  assert.equal(restored.life.current.cropId,'carrot');
+  assert.equal(restored.life.current.cropId,'spring-onion');
   assert.ok(!restored.chat.messages.some(message=>message.text.includes('must not be saved')));
   if(report.checks.desktopReport){
     const events=await json(origin,'/api/events?source=coo-home&limit=1000&archive=1');
     assert.equal(events.events.filter(event=>event.senderKey===report.checks.desktopReport.senderKey).length,1,'Restart redelivered an official garden report');
     report.checks.desktopReport.restartDidNotDuplicate=true;
   }
-  report.checks.garden='Eight empty plots loaded; a schema-4 sowing task and selected crop remain pending through a real World stop/start';
+  report.checks.garden='Eight empty plots loaded; a schema-5 sowing task and selected crop remain pending through a real World stop/start';
   report.checks.lifecycle='Disable closes the panel stream; reenable restores the saved independent home task and appearance watcher';
   console.log(JSON.stringify(report,null,2));
 }catch(error){

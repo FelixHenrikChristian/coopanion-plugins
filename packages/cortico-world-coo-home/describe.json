@@ -3,7 +3,7 @@
     {
       "name": "coo_home",
       "strict": true,
-      "description": "查询和控制独立的 coo 家园。先用 catalog 找物件、动作和作物。不适用的字段填 null。command/walk 安排单项活动；gardenPlan 用 plotIds 和 cropId 一次安排最多8块田的播种及首次浇水，自动跳过已种同作物或被其他作物占用的田，不会铲除现有作物。批量种田必须用 gardenPlan，不能逐条发送互相覆盖的播种指令。回执 accepted/queued 仅表示安排，只有 recent 或 plans 的 completed 才表示完成。不会操作桌面角色或衣装。",
+      "description": "查询和控制独立的 coo 家园。先用 catalog 找物件、动作和作物。不适用的字段填 null。command/walk 安排单项活动；gardenPlan 用 plotIds 和 cropId 一次安排最多8块田的播种及首次浇水，自动跳过已种同作物或被其他作物占用的田，不会铲除现有作物。批量种田必须用 gardenPlan，不能逐条发送互相覆盖的播种指令。回执 accepted/queued 仅表示安排，只有 recent 或 plans 的 completed 才表示完成。不会操作桌面角色或衣装。 commerce 用 kind=buy/sell/tea/consume 和 lines[{itemId,quantity}] 安排购物、卖菜、茶房品茶或食用背包食品。目录 economy 包含合法商品与固定价格；先查金币、库存和预留量。只有用户明确要求才可消费或卖菜。买卖须走到便利店柜台，茶饮须走到茶房坐垫，完成才结算。付费种子每包种一畦，小葱种子无限免费。不要直接 command buy/sell/orderTea/consume。",
       "tags": [
         "read",
         "act",
@@ -19,7 +19,10 @@
           "cropId",
           "plotIds",
           "position",
-          "enqueue"
+          "enqueue",
+          "kind",
+          "lines",
+          "seatId"
         ],
         "properties": {
           "operation": {
@@ -29,6 +32,7 @@
               "catalog",
               "command",
               "gardenPlan",
+              "commerce",
               "walk",
               "cancel",
               "pause",
@@ -90,6 +94,56 @@
             "type": [
               "boolean",
               "null"
+            ]
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "buy",
+              "sell",
+              "tea",
+              "consume",
+              null
+            ]
+          },
+          "lines": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "itemId",
+                "quantity"
+              ],
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000000
+                }
+              }
+            }
+          },
+          "seatId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "teahouse.cushion.front",
+              "teahouse.cushion.back",
+              null
             ]
           }
         }

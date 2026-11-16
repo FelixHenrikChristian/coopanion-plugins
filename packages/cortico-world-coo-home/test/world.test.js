@@ -26,7 +26,7 @@ function fixture(){
 test('home declares its limited tool and garden reports without changing persona prompts',()=>{
   assert.equal(definition.id,'coo-home');assert.equal(definition.describe.tools[0].name,'coo_home');assert.equal(definition.describe.events[0].type,'coo-home.garden');
   assert.equal(definition.defaults().enabled,false);assert.equal(definition.defaults().aiEnabled,false);
-  const {world}=fixture();assert.equal(world.tools()[0].name,'coo_home');assert.deepEqual(Object.keys(world.envPromptVars()),['home.activity','home.needs','home.garden','home.inventory']);
+  const {world}=fixture();assert.equal(world.tools()[0].name,'coo_home');assert.deepEqual(Object.keys(world.envPromptVars()),['home.activity','home.needs','home.garden','home.inventory','home.wallet']);
   assert.equal(world.webUi().panels[0].id,'home');assert.equal(world.status().phase,'life');
   assert.equal(world.status().appearance.connected,false);
 });

@@ -9,7 +9,7 @@ export async function verifyGardenContract(fixture) {
   await fixture.invoke('settings', [{ autonomy: false }]);
   await fixture.invoke('cancel');
   const initial = fixture.snapshot();
-  assert.equal(initial.life.version, 4);
+  assert.equal(initial.life.version, 5);
   assert.equal(initial.life.garden.plots.length, 8);
   assert.ok(initial.life.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null), 'New homes must offer eight empty plots');
   assert.equal(initial.life.garden.crops.length, 8);
@@ -32,6 +32,17 @@ export async function verifyGardenContract(fixture) {
     return done;
   }
 
+  // Earn the extra seed money through the same free-crop loop available to a
+  // new player. The contract never injects currency or bypasses seed costs.
+  const fundingPlot=initial.life.garden.plots[0].id;
+  for(let cycle=0;cycle<6;cycle++){
+    await act(fundingPlot,'sow','spring-onion');await act(fundingPlot,'water');
+    await after(plotOf(fixture.snapshot(),fundingPlot).readyAt);await act(fundingPlot,'harvest');
+  }
+  const sell=await fixture.invoke('commerce',[{kind:'sell',lines:[{itemId:'spring-onion',quantity:72}],requestId:`${fixture.snapshot().life.now}:garden-contract-funding`}]);
+  assert.equal(sell.commerce.accepted,true);await after(sell.life.current.endsAt);
+  const seeds=await fixture.invoke('commerce',[{kind:'buy',lines:initial.life.garden.crops.filter(crop=>!crop.freeSeed).map(crop=>({itemId:crop.seedItemId,quantity:crop.id==='pepper'?2:1})),requestId:`${fixture.snapshot().life.now}:garden-contract-seeds`}]);
+  assert.equal(seeds.commerce.accepted,true);await after(seeds.life.current.endsAt);
   const timings = [];
   for (const [index, original] of initial.life.garden.plots.entries()) {
     const id = original.id;
@@ -102,6 +113,7 @@ export async function verifyGardenContract(fixture) {
   const source = await fixture.readSave();
   const legacy = { ...source, version: 1 };
   delete legacy.garden;
+  delete legacy.economy;
   const migrated = await startFixtureServer({
     bundlePath: fileURLToPath(new URL('../../web/panel.js', import.meta.url)),
     stylePath: fileURLToPath(new URL('../../src/panel.css', import.meta.url)),
@@ -109,14 +121,14 @@ export async function verifyGardenContract(fixture) {
   });
   try {
     const state = migrated.snapshot().life;
-    assert.equal(state.version, 4);
+    assert.equal(state.version, 5);
     assert.equal(state.storage.recovery, 'migrated');
     assert.equal(state.current.id, source.current.id);
     assert.deepEqual(state.queue.map(task => task.id), source.queue.map(task => task.id));
     assert.deepEqual(state.items, source.items);
     assert.equal(state.paused, true);
     assert.ok(state.garden.plots.every(plot => plot.stage === 'empty' && plot.cropId === null));
-    assert.equal((await migrated.readSave()).version, 4);
+    assert.equal((await migrated.readSave()).version, 5);
   } finally { await migrated.dispose(); }
   await fixture.invoke('cancel');
   await fixture.invoke('resume');

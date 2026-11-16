@@ -80,7 +80,7 @@ export async function verifyHostBrowserChat({ page, provider, invoke, openPanel,
   const prompt = 'NEUTRAL_BROWSER_HOME_ENVIRONMENT\n窗边留一盏暖灯。<script>neutral()</script>\n{{home.needs}}';
   await text.fill(prompt);await environment.getByRole('button',{name:'保存',exact:true}).click();
   await until(async () => (await homePrompt()).content === prompt, 'native environment saved');
-  assert.equal(await environment.locator('.varchip').count(),4);assert.ok(!JSON.stringify(await prefix()).includes('NEUTRAL_BROWSER_HOME_ENVIRONMENT'));
+  assert.equal(await environment.locator('.varchip').count(),5);assert.ok(!JSON.stringify(await prefix()).includes('NEUTRAL_BROWSER_HOME_ENVIRONMENT'));
   assert.equal(await environment.locator('canvas,iframe,script').count(), 0, 'Environment mounted rendering resources or interpreted user HTML');
   assert.equal(await page.evaluate(() => window.__neutralAudio.contexts.length), audioContexts);
   await openPanel('settings');

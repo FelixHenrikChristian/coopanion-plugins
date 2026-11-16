@@ -1,8 +1,10 @@
-// Household-only planting state. No money, decay, model calls or figure data.
+// Plant growth and lifetime harvest statistics. Spendable inventory lives in economy.js.
 export const CROP_MINUTES=Object.freeze({'spring-onion':30,daikon:45,carrot:45,cabbage:60,cucumber:60,tomato:75,eggplant:75,pepper:90});
 const NAMES={'spring-onion':'小葱',daikon:'白萝卜',carrot:'胡萝卜',cabbage:'卷心菜',cucumber:'黄瓜',tomato:'番茄',eggplant:'茄子',pepper:'甜椒'};
 const YIELDS={'spring-onion':[12,'束'],daikon:[8,'根'],carrot:[12,'根'],cabbage:[6,'颗'],cucumber:[10,'根'],tomato:[12,'颗'],eggplant:[8,'根'],pepper:[10,'个']};
-export const CROP_CATALOG=Object.freeze(Object.entries(CROP_MINUTES).map(([id,growMinutes])=>Object.freeze({id,label:NAMES[id],growMinutes,durationMs:growMinutes*60_000,yieldCount:YIELDS[id][0],yieldUnit:YIELDS[id][1]})));
+const SEED_PRICES={'spring-onion':0,daikon:8,carrot:12,cabbage:18,cucumber:24,tomato:32,eggplant:40,pepper:50};
+const SELL_PRICES={'spring-onion':2,daikon:6,carrot:5,cabbage:14,cucumber:10,tomato:11,eggplant:18,pepper:18};
+export const CROP_CATALOG=Object.freeze(Object.entries(CROP_MINUTES).map(([id,growMinutes])=>Object.freeze({id,label:NAMES[id],growMinutes,durationMs:growMinutes*60_000,yieldCount:YIELDS[id][0],yieldUnit:YIELDS[id][1],seedItemId:`seed-${id}`,seedPrice:SEED_PRICES[id],freeSeed:SEED_PRICES[id]===0,sellPrice:SELL_PRICES[id]})));
 const STAGES=new Set(['empty','seeded','seedling','growing','ripe']);
 const MUTATIONS=new Set(['sow','water','harvest']);
 const WET_MS=30*60_000,MAX_EVENTS=64;
@@ -19,8 +21,7 @@ export function createGarden(layout){
   return{plots:knownPlots(layout).map(item=>({id:item.id,cropId:null,stage:'empty',cycle:0,harvests:0,legacyHarvests:0,harvestedByCrop:{},plantedAt:null,wateredAt:null,growthStartedAt:null,readyAt:null,lastHarvestAt:null})),events:[],nextCareAt:0};
 }
 
-// No consumption exists yet: recorded harvests are the single inventory ledger.
-// Derive a fresh view instead of persisting a second, potentially divergent count.
+// Legacy harvest-only view retained for format 4 migration and historical diagnostics.
 export function inventorySnapshot(garden){
   const items=CROP_CATALOG.map(crop=>({cropId:crop.id,label:crop.label,quantity:garden.plots.reduce((sum,plot)=>sum+(plot.harvestedByCrop[crop.id]??0),0),unit:crop.yieldUnit})).filter(item=>item.quantity>0);
   return{items,kindCount:items.length};

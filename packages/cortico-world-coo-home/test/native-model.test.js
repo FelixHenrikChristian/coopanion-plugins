@@ -33,4 +33,5 @@ test('installed official Responses adapter passes strict loopback chat and tool 
   assert.equal(result.legacyRejection,'HTTP 400');assert.equal(result.homeChat,'passed');
   assert.equal(result.toolFollowup,'passed');assert.equal(result.savedHistoryReplay,'passed');assert.equal(result.externalRequests,0);
   assert.equal(result.strictNullableWorldTools,'passed');assert.equal(result.eightPlotPlanAndTV,'completed');assert.equal(result.duplicateCalls,'not repeated');
+  assert.equal(result.commerceAndTea,'completed');
 });

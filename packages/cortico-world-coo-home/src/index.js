@@ -1,6 +1,6 @@
 import {AppearanceBridge,disconnected} from './appearance.js';
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {HomeLife,normalizeLifeState} from './life.js';
 import {HomeStore} from './storage.js';
 import {CROP_CATALOG,validateCrop} from './garden.js';
@@ -9,10 +9,13 @@ import {HomeChat} from './chat.js';
 import {HomeBrain} from './brain.js';
 import {HomePreferences,homePromptDocument} from './preferences.js';
 import {HOME_DEFAULTS,HOME_SETTING_KEYS,homeConfigGroups,readHomeConfig,migrateHomeConfig} from './native-config.js';
+import {economyCatalog} from './economy.js';
 
-const OPERATIONS=['status','catalog','command','gardenPlan','walk','cancel','pause','resume'];
+const OPERATIONS=['status','catalog','command','gardenPlan','commerce','walk','cancel','pause','resume'];
 const PARAMETERS={operation:{type:'string',enum:OPERATIONS},itemId:{type:['string','null']},actionId:{type:['string','null']},cropId:{type:['string','null'],enum:[...CROP_CATALOG.map(crop=>crop.id),null]},plotIds:{type:['array','null'],items:{type:'string'},minItems:1,maxItems:8},position:{type:['array','null'],items:{type:'number'},minItems:3,maxItems:3},enqueue:{type:['boolean','null']}};
+Object.assign(PARAMETERS,{kind:{type:['string','null'],enum:['buy','sell','tea','consume',null]},lines:{type:['array','null'],minItems:1,maxItems:20,items:{type:'object',additionalProperties:false,required:['itemId','quantity'],properties:{itemId:{type:'string'},quantity:{type:'integer',minimum:1,maximum:1_000_000_000}}}},seatId:{type:['string','null'],enum:['teahouse.cushion.front','teahouse.cushion.back',null]}});
 const TOOL={name:'coo_home',strict:true,description:'查询和控制独立的 coo 家园。先用 catalog 找物件、动作和作物。不适用的字段填 null。command/walk 安排单项活动；gardenPlan 用 plotIds 和 cropId 一次安排最多8块田的播种及首次浇水，自动跳过已种同作物或被其他作物占用的田，不会铲除现有作物。批量种田必须用 gardenPlan，不能逐条发送互相覆盖的播种指令。回执 accepted/queued 仅表示安排，只有 recent 或 plans 的 completed 才表示完成。不会操作桌面角色或衣装。',tags:['read','act','write'],parameters:{type:'object',additionalProperties:false,required:Object.keys(PARAMETERS),properties:PARAMETERS}};
+TOOL.description+=' commerce 用 kind=buy/sell/tea/consume 和 lines[{itemId,quantity}] 安排购物、卖菜、茶房品茶或食用背包食品。目录 economy 包含合法商品与固定价格；先查金币、库存和预留量。只有用户明确要求才可消费或卖菜。买卖须走到便利店柜台，茶饮须走到茶房坐垫，完成才结算。付费种子每包种一畦，小葱种子无限免费。不要直接 command buy/sell/orderTea/consume。';
 export const DESCRIBE=Object.freeze({tools:[TOOL],events:[{type:'coo-home.garden',description:'独立家园的作物成熟与采收近况；不会包含家园聊天记录。',trigger:'piggyback'}]});
 const plain=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 function toolArgs(value){
@@ -21,7 +24,7 @@ function toolArgs(value){
   // Responses strict schemas fill all optional slots. Only known null slots
   // mean omitted; unknown keys and unrelated non-null values still fail closed.
   value=Object.fromEntries(Object.entries(value).filter(([,entry])=>entry!==null));
-  const allowed=value.operation==='command'?['operation','itemId','actionId','cropId','enqueue']:value.operation==='gardenPlan'?['operation','plotIds','cropId','enqueue']:value.operation==='walk'?['operation','position','enqueue']:['operation'];
+  const allowed=value.operation==='command'?['operation','itemId','actionId','cropId','enqueue']:value.operation==='gardenPlan'?['operation','plotIds','cropId','enqueue']:value.operation==='commerce'?['operation','kind','lines','seatId','enqueue']:value.operation==='walk'?['operation','position','enqueue']:['operation'];
   if(Object.keys(value).some(key=>!allowed.includes(key)))throw safeError('HOME_COMMAND','家园操作包含不支持的参数。');
   const args={operation:value.operation};
   if(value.operation==='command'){
@@ -35,7 +38,12 @@ function toolArgs(value){
   if(value.operation==='walk'){
     if(!Array.isArray(value.position)||value.position.length!==3||!value.position.every(Number.isFinite))throw safeError('HOME_COMMAND','请选择有效的家园位置。');args.position=[...value.position];
   }
-  if(['command','gardenPlan','walk'].includes(value.operation)){if(value.enqueue!==undefined&&typeof value.enqueue!=='boolean')throw safeError('HOME_COMMAND','排队参数必须是开关。');args.enqueue=value.enqueue??false;}
+  if(value.operation==='commerce'){
+    if(!['buy','sell','tea','consume'].includes(value.kind)||!Array.isArray(value.lines)||value.lines.length<1||value.lines.length>20||value.lines.some(line=>!plain(line)||Object.keys(line).some(key=>!['itemId','quantity'].includes(key))||typeof line.itemId!=='string'||line.itemId.length>96||!Number.isSafeInteger(line.quantity)||line.quantity<1||line.quantity>1_000_000_000))throw safeError('HOME_COMMAND','请从商品目录选择物品和有效数量。');
+    args.kind=value.kind;args.lines=structuredClone(value.lines);
+    if(value.seatId!==undefined){if(value.kind!=='tea'||!['teahouse.cushion.front','teahouse.cushion.back'].includes(value.seatId))throw safeError('HOME_COMMAND','请选择茶房坐垫。');args.seatId=value.seatId;}
+  }
+  if(['command','gardenPlan','commerce','walk'].includes(value.operation)){if(value.enqueue!==undefined&&typeof value.enqueue!=='boolean')throw safeError('HOME_COMMAND','排队参数必须是开关。');args.enqueue=value.enqueue??false;}
   return args;
 }
 
@@ -44,11 +52,12 @@ export class CooHomeWorld{
   constructor(ctx,{bridgeFactory=options=>new AppearanceBridge(options),clock=()=>Date.now(),layout=null,storage=null,chatStorage=null,brainStorage=null,preferencesStorage=null,modelFactory=options=>new HomeModel(options)}={}){
     this.ctx=ctx;this.bridgeFactory=bridgeFactory;this.bridge=null;this.clock=clock;this.layout=layout;this.storage=storage;this.chatStorage=chatStorage;this.brainStorage=brainStorage;this.preferencesStorage=preferencesStorage;this.modelFactory=modelFactory;
     this.clients=new Set();this.clientPanels=new Map();this.presence=new Map();this.started=false;this.tail=Promise.resolve();this.life=null;this.timer=null;this.savedAt=0;this.storageError=false;this.manualEpoch=0;this.lifecycle=0;this.chat=null;this.brain=null;this.preferences=null;this.model=null;this.host={};this.modelsEnded=true;this.nativeConfig=false;this.configApplied=null;
+    this.saveBusy=false;this.committedLife=null;
   }
   serial(action){const result=this.tail.then(action);this.tail=result.catch(()=>{});return result;}
   start(host={}){return this.serial(async()=>{
     if(this.started)return;
-    this.life=null;this.host=host;this.lifecycle++;
+    this.life=null;this.committedLife=null;this.host=host;this.lifecycle++;
     this.layout??=JSON.parse(await readFile(new URL('../data/home-layout.json',import.meta.url),'utf8'));
     this.storage??=new HomeStore(this.ctx.dataDir);
     let saved;try{saved=await this.storage.load(raw=>normalizeLifeState(raw,this.layout,this.clock()));}catch(error){this.storageError=true;throw error;}
@@ -73,7 +82,7 @@ export class CooHomeWorld{
       this.started=false;this.lifecycle++;clearInterval(this.timer);this.timer=null;this.brain?.cancel();this.chat?.active?.controller.abort();
       const settled=await Promise.allSettled([this.chat?.stop(),this.brain?.stop(),this.preferences?.stop()]);this.modelsEnded=settled.every(row=>row.status==='fulfilled'&&row.value!==false);
       try{if(this.model){const closed=await this.model.close();this.modelsEnded=closed!==false&&this.modelsEnded;}}catch{this.modelsEnded=false;}
-      try{if(this.life){this.life.advance(this.clock());await this.persist();await this.storage.flush?.();}}finally{
+      try{if(this.life){const previous=this.life.export();try{this.life.advance(this.clock());await this.persist();await this.storage.flush?.();}catch(error){this.life=new HomeLife({layout:this.layout,state:previous,clock:this.clock});throw error;}}}finally{
         await this.bridge?.stop();this.bridge=null;this.broadcast(true);
         for(const socket of this.clients){try{socket.close('Home World stopped.');}catch{}}
         this.clients.clear();this.clientPanels.clear();this.presence.clear();
@@ -84,7 +93,8 @@ export class CooHomeWorld{
   manual(){this.manualEpoch++;this.brain?.cancel();}
   canPlan(){return this.started&&!!this.life&&this.preferences?.snapshot().storage.editable!==false&&!this.life.state.paused&&this.life.state.autonomy&&!this.chat?.active&&this.clock()>=this.life.state.manualUntil&&this.life.state.current?.source!=='manual'&&!this.life.state.queue.some(task=>task.source==='manual');}
   planGuard(){const epoch=this.manualEpoch,lifecycle=this.lifecycle;return()=>this.lifecycle===lifecycle&&this.manualEpoch===epoch&&this.brain?.state.settings.aiEnabled&&this.canPlan();}
-  lifeStatus(){return this.life?{...this.life.snapshot(),storage:{ok:!this.storageError,savedAt:this.savedAt,recovery:this.recovery??'new',message:this.storageError?'家园进度暂时无法保存，请检查可用磁盘空间。':null}}:null;}
+  readLife(){return this.life?((this.saveBusy||this.storageError)&&this.committedLife?structuredClone(this.committedLife):this.life.snapshot()):null;}
+  lifeStatus(){return this.life?{...this.readLife(),storage:{ok:!this.storageError,savedAt:this.savedAt,recovery:this.recovery??'new',message:this.storageError?'家园进度暂时无法保存，请检查可用磁盘空间。':null}}:null;}
   status(){return{phase:'life',appearance:this.bridge?.snapshot()??disconnected('家园尚未连接桌宠服务。'),life:this.lifeStatus(),chat:this.chat?.snapshot()??null,brain:this.brain?.snapshot()??null};}
   panelValue(panel,value){
     const keys=panel==='settings'?['life','brain']:panel==='environment'?['environment']:['appearance','life','chat','brain'];
@@ -99,7 +109,12 @@ export class CooHomeWorld{
     }
   }
   broadcast(full=false){this.send(full?this.status():{phase:'life',life:this.lifeStatus()});}
-  async persist(){try{await this.storage.save(this.life.export());this.savedAt=this.clock();this.storageError=false;}catch{this.storageError=true;throw safeError('HOME_SAVE','家园进度暂时无法保存。');}}
+  async persist(){
+    const snapshot=this.life.snapshot();this.saveBusy=true;
+    try{await this.storage.save(this.life.export());this.committedLife=snapshot;this.savedAt=this.clock();this.storageError=false;}
+    catch{this.storageError=true;throw safeError('HOME_SAVE','家园进度暂时无法保存。');}
+    finally{this.saveBusy=false;}
+  }
   async applyNativeConfig(){
     if(!this.nativeConfig)return;
     const values=readHomeConfig(this.ctx.cfg),signature=JSON.stringify(values);if(signature===this.configApplied)return;
@@ -121,9 +136,11 @@ export class CooHomeWorld{
     const result=await this.serial(async()=>{
       if(!this.started||!this.life)return;
       await this.applyNativeConfig();
-      const current=this.life.state.current?.id,phase=this.life.snapshot().current?.phase;
-      this.life.advance(this.clock(),{visible:this.visible()});
-      try{if(this.clock()-this.savedAt>=5000||current!==this.life.state.current?.id||phase!==this.life.snapshot().current?.phase)await this.persist();}
+      const previous=this.life.export(),current=this.life.state.current?.id,phase=this.life.snapshot().current?.phase;
+      try{
+        this.life.advance(this.clock(),{visible:this.visible()});
+        if(this.storageError||this.clock()-this.savedAt>=5000||current!==this.life.state.current?.id||phase!==this.life.snapshot().current?.phase)await this.persist();
+      }catch(error){this.life=new HomeLife({layout:this.layout,state:previous,clock:this.clock});throw error;}
       finally{this.broadcast();}return this.status();
     });
     if(this.started)this.brain?.poll();return result;
@@ -132,19 +149,23 @@ export class CooHomeWorld{
     this.manual();
     return this.serial(async()=>{
       if(!this.started||!this.life)throw safeError('HOME_DISABLED','请先启用家园。');
-      const previous=this.life.export();
-      try{this.life[method](...args);await this.persist();}catch(error){this.life=new HomeLife({layout:this.layout,state:previous,clock:this.clock});this.broadcast();throw error;}
-      this.broadcast();return this.status();
+      const previous=this.life.export();let receipt;
+      try{receipt=this.life[method](...args);await this.persist();}catch(error){
+        this.life=new HomeLife({layout:this.layout,state:previous,clock:this.clock});this.broadcast();
+        if(method==='commerce'&&['HOME_COMMERCE','HOME_ECONOMY','GARDEN_STAGE','HOME_COMMAND'].includes(error.code))return{...this.status(),commerce:{ok:false,error:error.message}};
+        throw error;
+      }
+      this.broadcast();return{...this.status(),...(method==='commerce'?{commerce:receipt}:{})};
     });
   }
   homeView(withEvents=false){
     if(!this.life)return null;
-    const state=this.life.snapshot(),brief=task=>task?Object.fromEntries(['id','itemId','actionId','cropId','planId','label','source','phase','arrivalAt','endsAt'].filter(key=>task[key]!==undefined).map(key=>[key,task[key]])):null;
-    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),plans:state.plans,recent:state.recent,items:state.items,inventory:state.inventory,garden:{plots:state.garden.plots,crops:state.garden.crops,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
+    const state=this.readLife(),brief=task=>task?Object.fromEntries(['id','itemId','actionId','cropId','planId','transactionId','label','source','phase','arrivalAt','endsAt'].filter(key=>task[key]!==undefined).map(key=>[key,task[key]])):null;
+    return{now:state.now,paused:state.paused,autonomy:state.autonomy,position:state.position,needs:state.needs,current:brief(state.current),queue:state.queue.map(brief),plans:state.plans,recent:state.recent,items:state.items,inventory:state.inventory,wallet:state.wallet,transactions:state.transactions,garden:{plots:state.garden.plots,crops:state.garden.crops,totalHarvests:state.garden.totalHarvests,...(withEvents?{events:state.garden.events}:{})}};
   }
   catalogItems(){return(this.life?.catalog??[]).map(item=>{const plot=this.life.state.garden.plots.find(plot=>plot.id===item.id);return{...structuredClone(item),...(plot?{cropId:plot.cropId,cropLabel:CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??null}:{})};});}
-  toolCatalog(){return{crops:structuredClone(CROP_CATALOG),items:this.catalogItems().map(item=>({id:item.id,label:item.label,room:item.room,kind:item.kind,...(item.kind==='plot'?{cropId:item.cropId,cropLabel:item.cropLabel}:{}),actions:item.actions.map(action=>({id:action.id,canonicalId:action.canonical,label:action.label,description:action.description}))}))};}
-  chatSystem(){return'你是独立的 coo 家园中的陪伴角色。自然聊天，也可以通过 coo_home 工具安排走动、家具活动或种菜。你只知道家园历史，不具有桌面主会话历史。禁止声称正在控制桌面原角色、修改外观或读写文件。先查 catalog 获取合法动作，不猜物件 ID。多块田播种及首次浇水使用一次 gardenPlan；逐项报告 skipped 的原因，不得声称占用的田已被重新播种。工具返回 accepted/queued 仅表示任务已安排，只有当前状态 recent 或 plans 中 completed 才能说已完成。模型出错或停止回复不会自动撤销已接受的家园任务。\n家园环境说明：\n'+this.preferences.text(this.envPromptVars())+'\n当前家园：'+JSON.stringify(this.homeView());}
+  toolCatalog(){return{crops:structuredClone(CROP_CATALOG),economy:economyCatalog(),items:this.catalogItems().map(item=>({id:item.id,label:item.label,room:item.room,kind:item.kind,...(item.kind==='plot'?{cropId:item.cropId,cropLabel:item.cropLabel}:{}),actions:item.actions.map(action=>({id:action.id,canonicalId:action.canonical,label:action.label,description:action.description}))}))};}
+  chatSystem(){return'你是独立的 coo 家园中的陪伴角色。自然聊天，也可以通过 coo_home 工具安排走动、家具活动或种菜。你只知道家园历史，不具有桌面主会话历史。禁止声称正在控制桌面原角色、修改外观或读写文件。先查 catalog 获取合法动作，不猜物件 ID。多块田播种及首次浇水使用一次 gardenPlan；逐项报告 skipped 的原因，不得声称占用的田已被重新播种。工具返回 accepted/queued 仅表示任务已安排，只有当前状态 recent 或 plans 中 completed 才能说已完成。模型出错或停止回复不会自动撤销已接受的家园任务。金币买卖和品茶只在用户明确指令时通过 commerce 安排。先查 economy 目录及 wallet/inventory，使用服务端价格；禁止自主购买、出售或消耗已购食品。订单 accepted 仅表示已安排，transactions 中已结算才可报告成交。小葱种子无限免费，其他作物每畦需要一包已购买种子。家里基础简餐、白水与沏茶免费。\n家园环境说明：\n'+this.preferences.text(this.envPromptVars())+'\n当前家园：'+JSON.stringify(this.homeView());}
   localTools(source,active){return[{...TOOL,handler:(args,context)=>this.runTool(args,context,{source,active})}];}
   tools(){return[{...TOOL,handler:(args,context={})=>this.runTool(args,context,{source:'desktop'})}];}
   async runTool(raw,context={},mode={source:'desktop'}){
@@ -160,7 +181,15 @@ export class CooHomeWorld{
         const fingerprint=JSON.stringify(args),callId=context.callId;
         const key=typeof callId==='string'&&callId.length<=160?createHash('sha256').update(JSON.stringify([mode.source,mode.active?.id??context.role??'',mode.source==='desktop'&&Number.isSafeInteger(context.round)?context.round:null,callId])).digest('hex'):null;
         const previousReceipt=key?this.life.state.receipts.find(row=>row.key===key):null;
-        if(previousReceipt){if(previousReceipt.fingerprint!==fingerprint)throw safeError('HOME_COMMAND','重复的工具编号不能更换参数。');return{...previousReceipt.result,duplicate:true,life:this.homeView()};}
+        if(previousReceipt){
+          if(previousReceipt.fingerprint!==fingerprint)throw safeError('HOME_COMMAND','重复的工具编号不能更换参数。');
+          const result={...previousReceipt.result};
+          if(args.operation==='commerce'){
+            const receipt=this.life.state.economy.requests.find(row=>row.transactionId===result.transactionId);
+            result.transactionStatus=receipt?.status??(this.life.state.economy.transactions.some(row=>row.id===result.transactionId)?'completed':'archived');
+          }
+          return{...result,duplicate:true,life:this.homeView()};
+        }
         if(mode.source==='autonomous'&&(!['command','walk'].includes(args.operation)||args.enqueue||mode.active.acted))throw safeError('HOME_COMMAND','每次 AI 计划只允许安排一项家园动作。');
         if(mode.source!=='autonomous'){this.manual();if(mode.source==='chat')mode.active.manualEpoch=this.manualEpoch;}
         const previous=this.life.export();let value;
@@ -171,15 +200,21 @@ export class CooHomeWorld{
           // append only while work accepted by this exact turn is still active;
           // a later mouse command/turn still supersedes the entire queue.
           const ownPending=mode.source==='chat'&&[this.life.state.current,...this.life.state.queue].some(task=>task&&mode.active.acceptedTaskIds?.has(task.id));
-          if(ownPending&&['command','gardenPlan','walk'].includes(args.operation))effective.enqueue=true;
+          if(ownPending&&['command','gardenPlan','commerce','walk'].includes(args.operation))effective.enqueue=true;
           if(mode.source==='autonomous')this.life.autonomous(args);
           else if(args.operation==='gardenPlan')value=this.life.gardenPlan(effective);
+          else if(args.operation==='commerce'){
+            const suffix=key??randomUUID(),existing=this.life.state.economy?.requests?.find?.(order=>order.requestId?.endsWith(':'+suffix));
+            const at=this.chat?.state.turns.find(turn=>mode.source==='chat'&&turn.id===mode.active?.id)?.at??this.clock();
+            const {operation,...order}=effective;
+            value=this.life.commerce({...order,requestId:existing?.requestId??`${Math.floor(at)}:${suffix}`});
+          }
           else if(['command','walk'].includes(args.operation))this.life[args.operation](effective);
           else this.life[args.operation]();
           if(['command','walk'].includes(args.operation)){
             const task=effective.enqueue&&this.life.state.queue.length?this.life.state.queue.at(-1):this.life.state.current;
             value={ok:true,accepted:true,taskId:task.id,outcome:task===this.life.state.current?'accepted':'queued'};
-          }else if(args.operation!=='gardenPlan')value={ok:true,outcome:{cancel:'cancelled',pause:'paused',resume:'resumed'}[args.operation]};
+          }else if(!['gardenPlan','commerce'].includes(args.operation))value={ok:true,outcome:{cancel:'cancelled',pause:'paused',resume:'resumed'}[args.operation]};
           if(key){this.life.state.receipts.push({key,fingerprint,result:value});this.life.state.receipts=this.life.state.receipts.slice(-128);}
           await this.persist();if(mode.source==='autonomous')mode.active.acted=true;
           if(mode.source==='chat'&&value.accepted){mode.active.acceptedTaskIds??=new Set();for(const id of value.taskIds??[value.taskId])mode.active.acceptedTaskIds.add(id);}
@@ -190,18 +225,18 @@ export class CooHomeWorld{
     }catch(error){return{failed:true,text:JSON.stringify({ok:false,error:error.code?.startsWith('HOME_')||error.code==='GARDEN_STAGE'?error.message:'家园没有接受这条操作，请先查看目录和当前状态。'})};}
   }
   envPromptVars(){
-    if(!this.life)return{'home.activity':'','home.needs':'','home.garden':'','home.inventory':''};
-    const state=this.life.snapshot(),stages={empty:'空田',seeded:'已播种，等待首次浇水',seedling:'幼苗',growing:'生长中',ripe:'已成熟'};
-    return{'home.activity':state.paused?'家园已暂停':state.current?.label??'正在家园休息','home.needs':Object.entries({energy:'精力',hunger:'饱腹',hygiene:'整洁',comfort:'舒适'}).map(([key,label])=>`${label} ${Math.round(state.needs[key]??0)}/100`).join('，'),'home.garden':state.garden.plots.map((plot,index)=>`菜畦 ${index+1}：${CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??''}${stages[plot.stage]??''}`).join('\n'),'home.inventory':state.inventory?.items.map(item=>`${item.label} ${item.quantity}${item.unit}`).join('\n')??''};
+    if(!this.life)return{'home.activity':'','home.needs':'','home.garden':'','home.inventory':'','home.wallet':''};
+    const state=this.readLife(),stages={empty:'空田',seeded:'已播种，等待首次浇水',seedling:'幼苗',growing:'生长中',ripe:'已成熟'};
+    return{'home.activity':state.paused?'家园已暂停':state.current?.label??'正在家园休息','home.needs':Object.entries({energy:'精力',hunger:'饱腹',hygiene:'整洁',comfort:'舒适'}).map(([key,label])=>`${label} ${Math.round(state.needs[key]??0)}/100`).join('，'),'home.garden':state.garden.plots.map((plot,index)=>`菜畦 ${index+1}：${CROP_CATALOG.find(crop=>crop.id===plot.cropId)?.label??''}${stages[plot.stage]??''}`).join('\n'),'home.inventory':state.inventory?.items.map(item=>`${item.label} ${item.quantity}${item.unit}，可用 ${item.available??item.quantity}${item.unit}`).join('\n')??'','home.wallet':state.wallet?`金币 ${state.wallet.balance}，预留 ${state.wallet.reserved}，可用 ${state.wallet.available}`:''};
   }
   webUi(language='zh'){
     const zh=language!=='en';
-    const methods={home:['status','catalog','command','walk','settings','cancel','pause','resume','speechUnits','speechBank','soundAsset','chatSend','chatCancel','chatHistory','chatClear','brainSettings']},prompt=homePromptDocument(this.ctx.dataDir,language);
+    const methods={home:['status','catalog','command','commerce','walk','settings','cancel','pause','resume','speechUnits','speechBank','soundAsset','chatSend','chatCancel','chatHistory','chatClear','brainSettings']},prompt=homePromptDocument(this.ctx.dataDir,language);
     return{label:zh?'coo家园':'Coo Home',panels:[{id:'home',title:zh?'家园':'Home'}],config:homeConfigGroups(language),promptDocs:prompt?[prompt]:[],invoke:async(panel,method,args=[])=>{
       if(!Object.hasOwn(methods,panel)||!methods[panel].includes(method)||!Array.isArray(args))throw Error('Unsupported home request.');
       if(method==='status'&&!args.length){await this.tick();return this.panelStatus(panel);}
-      if(method==='catalog'&&!args.length)return{items:this.catalogItems(),crops:structuredClone(CROP_CATALOG)};
-      if(['command','walk'].includes(method)&&args.length===1)return this.control(method,args);
+      if(method==='catalog'&&!args.length)return{items:this.catalogItems(),crops:structuredClone(CROP_CATALOG),economy:economyCatalog()};
+      if(['command','commerce','walk'].includes(method)&&args.length===1)return this.control(method,args);
       if(method==='settings'&&args.length===1)return this.configure(args[0],'life');
       if(['cancel','pause','resume'].includes(method)&&!args.length)return this.control(method,args);
       if(!this.started)throw safeError('HOME_DISABLED','请先启用家园。');

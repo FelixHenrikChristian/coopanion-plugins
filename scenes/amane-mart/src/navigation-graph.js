@@ -656,6 +656,182 @@ export const navigation = {
         0.414,
         16.53
       ]
+    },
+    {
+      "id": "junction:82",
+      "position": [
+        0.37,
+        0.18,
+        7.15
+      ]
+    },
+    {
+      "id": "junction:83",
+      "position": [
+        0.17,
+        0.18,
+        6.8
+      ]
+    },
+    {
+      "id": "junction:84",
+      "position": [
+        0.17,
+        0.06208771929824554,
+        2.45
+      ]
+    },
+    {
+      "id": "item:shop.entrance",
+      "position": [
+        0.525,
+        0.339,
+        -0.15
+      ]
+    },
+    {
+      "id": "item:shop.counter",
+      "position": [
+        0.54,
+        0.339,
+        -1.78
+      ]
+    },
+    {
+      "id": "junction:87",
+      "position": [
+        -0.13,
+        0.06846153846153838,
+        6.3
+      ]
+    },
+    {
+      "id": "junction:88",
+      "position": [
+        -0.13,
+        0.339,
+        0.35
+      ]
+    },
+    {
+      "id": "junction:89",
+      "position": [
+        -0.48,
+        0.339,
+        -0.5
+      ]
+    },
+    {
+      "id": "junction:90",
+      "position": [
+        -1.33,
+        0.339,
+        -1.6
+      ]
+    },
+    {
+      "id": "item:shop.snacks",
+      "position": [
+        -2.65,
+        0.339,
+        -1.75
+      ]
+    },
+    {
+      "id": "item:shop.drinks",
+      "position": [
+        0.22,
+        0.339,
+        -3.34
+      ]
+    },
+    {
+      "id": "junction:93",
+      "position": [
+        -2.73,
+        0.08717543859649118,
+        2.35
+      ]
+    },
+    {
+      "id": "junction:94",
+      "position": [
+        -3.38,
+        0.18,
+        2.1
+      ]
+    },
+    {
+      "id": "junction:95",
+      "position": [
+        -7.33,
+        0.18,
+        1.7
+      ]
+    },
+    {
+      "id": "item:teahouse.menu",
+      "position": [
+        -7.34,
+        0.5235,
+        -0.34
+      ]
+    },
+    {
+      "id": "junction:97",
+      "position": [
+        -7.38,
+        0.18,
+        1.7
+      ]
+    },
+    {
+      "id": "item:teahouse.cushion.front",
+      "position": [
+        -7.39,
+        0.5235,
+        -0.76
+      ]
+    },
+    {
+      "id": "junction:99",
+      "position": [
+        -7.13,
+        0.18,
+        1.7
+      ]
+    },
+    {
+      "id": "junction:100",
+      "position": [
+        -7.13,
+        0.5235,
+        0.5
+      ]
+    },
+    {
+      "id": "junction:101",
+      "position": [
+        -6.88,
+        0.5235,
+        -1.65
+      ]
+    },
+    {
+      "id": "junction:102",
+      "position": [
+        -6.93,
+        0.5235,
+        -2.25
+      ]
+    },
+    {
+      "id": "item:teahouse.cushion.back",
+      "position": [
+        -7.53,
+        0.5235,
+        -2.79
+      ]
     }
   ],
   "edges": [
@@ -1065,6 +1241,116 @@ export const navigation = {
       "cost": 0.326956
     },
     {
+      "from": "spawn",
+      "to": "junction:82",
+      "cost": 2.376554
+    },
+    {
+      "from": "junction:82",
+      "to": "junction:83",
+      "cost": 0.403113
+    },
+    {
+      "from": "junction:83",
+      "to": "junction:84",
+      "cost": 4.351598
+    },
+    {
+      "from": "junction:84",
+      "to": "item:shop.entrance",
+      "cost": 2.638694
+    },
+    {
+      "from": "junction:84",
+      "to": "item:shop.counter",
+      "cost": 4.255171
+    },
+    {
+      "from": "junction:82",
+      "to": "junction:87",
+      "cost": 0.992442
+    },
+    {
+      "from": "junction:87",
+      "to": "junction:88",
+      "cost": 5.956147
+    },
+    {
+      "from": "junction:88",
+      "to": "junction:89",
+      "cost": 0.919239
+    },
+    {
+      "from": "junction:89",
+      "to": "junction:90",
+      "cost": 1.390144
+    },
+    {
+      "from": "junction:90",
+      "to": "item:shop.snacks",
+      "cost": 1.328495
+    },
+    {
+      "from": "junction:83",
+      "to": "item:shop.drinks",
+      "cost": 10.14137
+    },
+    {
+      "from": "junction:82",
+      "to": "junction:93",
+      "cost": 5.714772
+    },
+    {
+      "from": "junction:93",
+      "to": "junction:94",
+      "cost": 0.702578
+    },
+    {
+      "from": "junction:94",
+      "to": "junction:95",
+      "cost": 3.970202
+    },
+    {
+      "from": "junction:95",
+      "to": "item:teahouse.menu",
+      "cost": 2.068742
+    },
+    {
+      "from": "junction:94",
+      "to": "junction:97",
+      "cost": 4.01995
+    },
+    {
+      "from": "junction:97",
+      "to": "item:teahouse.cushion.front",
+      "cost": 2.483887
+    },
+    {
+      "from": "junction:94",
+      "to": "junction:99",
+      "cost": 3.771273
+    },
+    {
+      "from": "junction:99",
+      "to": "junction:100",
+      "cost": 1.248196
+    },
+    {
+      "from": "junction:100",
+      "to": "junction:101",
+      "cost": 2.164486
+    },
+    {
+      "from": "junction:101",
+      "to": "junction:102",
+      "cost": 0.60208
+    },
+    {
+      "from": "junction:102",
+      "to": "item:teahouse.cushion.back",
+      "cost": 0.807217
+    },
+    {
       "from": "junction:1",
       "to": "item:kitchen.prepCart",
       "cost": 8.214098
@@ -1083,6 +1369,16 @@ export const navigation = {
       "from": "junction:1",
       "to": "item:study.books",
       "cost": 6.738086
+    },
+    {
+      "from": "junction:1",
+      "to": "junction:82",
+      "cost": 1.315447
+    },
+    {
+      "from": "junction:2",
+      "to": "junction:82",
+      "cost": 1.702939
     },
     {
       "from": "junction:3",
@@ -2705,6 +3001,21 @@ export const navigation = {
       "cost": 4.412628
     },
     {
+      "from": "item:genkan.shoe",
+      "to": "junction:82",
+      "cost": 3.213489
+    },
+    {
+      "from": "item:genkan.shoe",
+      "to": "junction:83",
+      "cost": 3.616215
+    },
+    {
+      "from": "item:genkan.shoe",
+      "to": "junction:87",
+      "cost": 4.204074
+    },
+    {
       "from": "item:genkan.slippers",
       "to": "item:genkan.umbrella",
       "cost": 0.781722
@@ -2775,6 +3086,11 @@ export const navigation = {
       "cost": 2.686038
     },
     {
+      "from": "item:genkan.washer",
+      "to": "junction:82",
+      "cost": 3.877396
+    },
+    {
       "from": "item:corridor.gallery",
       "to": "item:corridor.ficus",
       "cost": 0.64846
@@ -2810,6 +3126,11 @@ export const navigation = {
       "cost": 0.34176
     },
     {
+      "from": "junction:71",
+      "to": "junction:82",
+      "cost": 6.904013
+    },
+    {
       "from": "item:bathroom.shower",
       "to": "item:bathroom.sink",
       "cost": 1.120402
@@ -2835,6 +3156,16 @@ export const navigation = {
       "cost": 0.652534
     },
     {
+      "from": "item:bathroom.sink",
+      "to": "junction:82",
+      "cost": 6.616268
+    },
+    {
+      "from": "junction:74",
+      "to": "junction:82",
+      "cost": 6.491949
+    },
+    {
       "from": "item:engawa.chair",
       "to": "junction:80",
       "cost": 3.422864
@@ -2843,6 +3174,176 @@ export const navigation = {
       "from": "item:engawa.chair",
       "to": "item:engawa.plant",
       "cost": 3.720013
+    },
+    {
+      "from": "junction:83",
+      "to": "junction:87",
+      "cost": 0.593667
+    },
+    {
+      "from": "junction:83",
+      "to": "junction:88",
+      "cost": 6.45893
+    },
+    {
+      "from": "junction:83",
+      "to": "junction:93",
+      "cost": 5.312355
+    },
+    {
+      "from": "junction:84",
+      "to": "junction:87",
+      "cost": 3.861676
+    },
+    {
+      "from": "junction:84",
+      "to": "junction:88",
+      "cost": 2.139318
+    },
+    {
+      "from": "junction:84",
+      "to": "item:shop.drinks",
+      "cost": 5.796834
+    },
+    {
+      "from": "junction:84",
+      "to": "junction:93",
+      "cost": 2.901832
+    },
+    {
+      "from": "item:shop.entrance",
+      "to": "item:shop.counter",
+      "cost": 1.630069
+    },
+    {
+      "from": "item:shop.entrance",
+      "to": "junction:88",
+      "cost": 0.82403
+    },
+    {
+      "from": "item:shop.entrance",
+      "to": "junction:89",
+      "cost": 1.064202
+    },
+    {
+      "from": "item:shop.entrance",
+      "to": "junction:90",
+      "cost": 2.354469
+    },
+    {
+      "from": "item:shop.entrance",
+      "to": "item:shop.drinks",
+      "cost": 3.204548
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "junction:87",
+      "cost": 8.112243
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "junction:88",
+      "cost": 2.232891
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "junction:89",
+      "cost": 1.636704
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "junction:90",
+      "cost": 1.878643
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "item:shop.snacks",
+      "cost": 3.190141
+    },
+    {
+      "from": "item:shop.counter",
+      "to": "item:shop.drinks",
+      "cost": 1.592482
+    },
+    {
+      "from": "junction:87",
+      "to": "item:shop.drinks",
+      "cost": 9.650145
+    },
+    {
+      "from": "junction:87",
+      "to": "junction:93",
+      "cost": 4.728938
+    },
+    {
+      "from": "junction:88",
+      "to": "item:shop.drinks",
+      "cost": 3.706562
+    },
+    {
+      "from": "junction:89",
+      "to": "item:shop.drinks",
+      "cost": 2.924996
+    },
+    {
+      "from": "junction:95",
+      "to": "junction:97",
+      "cost": 0.05
+    },
+    {
+      "from": "junction:95",
+      "to": "item:teahouse.cushion.front",
+      "cost": 2.484591
+    },
+    {
+      "from": "junction:95",
+      "to": "junction:99",
+      "cost": 0.2
+    },
+    {
+      "from": "junction:95",
+      "to": "junction:100",
+      "cost": 1.264117
+    },
+    {
+      "from": "item:teahouse.menu",
+      "to": "junction:97",
+      "cost": 2.069104
+    },
+    {
+      "from": "item:teahouse.menu",
+      "to": "item:teahouse.cushion.front",
+      "cost": 0.422966
+    },
+    {
+      "from": "item:teahouse.menu",
+      "to": "junction:99",
+      "cost": 2.079349
+    },
+    {
+      "from": "item:teahouse.menu",
+      "to": "junction:100",
+      "cost": 0.865852
+    },
+    {
+      "from": "junction:97",
+      "to": "junction:99",
+      "cost": 0.25
+    },
+    {
+      "from": "junction:97",
+      "to": "junction:100",
+      "cost": 1.272986
+    },
+    {
+      "from": "item:teahouse.cushion.front",
+      "to": "junction:99",
+      "cost": 2.497437
+    },
+    {
+      "from": "item:teahouse.cushion.front",
+      "to": "junction:100",
+      "cost": 1.286546
     }
   ]
 };

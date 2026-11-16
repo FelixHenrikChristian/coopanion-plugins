@@ -1,6 +1,13 @@
 const paths={
   home:'M3 11 12 3l9 8M5 10v11h14V10M9 21v-7h6v7',
   backpack:'M8 7V5a4 4 0 0 1 8 0v2M6 7h12a3 3 0 0 1 3 3v10H3V10a3 3 0 0 1 3-3ZM7 14h10v6M7 10v2m10-2v2',
+  coin:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9m3-10v12',
+  shop:'m3 9 2-6h14l2 6M4 9v12h16V9M3 9c0 4 4 4 5 0 0 4 4 4 4 0 0 4 4 4 4 0 1 4 5 4 5 0M9 21v-7h6v7',
+  tea:'M4 9h12v7a5 5 0 0 1-10 0V9m10 0h2a3 3 0 0 1 0 6h-2M3 22h16M8 3v3m5-4v4',
+  drink:'M8 3h8v4l2 3v11H6V10l2-3ZM8 3v4h8M6 12h12',
+  food:'M4 8h16v12H4ZM4 8l3-5h10l3 5M8 12h8m-8 4h5',
+  plus:'M12 5v14M5 12h14',
+  minus:'M5 12h14',
   chat:'M20 15a3 3 0 0 1-3 3H9l-6 3V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3ZM7 8h9M7 12h6',
   focus:'M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   expand:'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',

@@ -21,7 +21,10 @@ export function createNavigationQuery(layout) {
   }
   function surfaceAt(x,z){
     // Earlier regions override underlying courtyard paving (stairs and floor levels).
-    return layout.walkable.find(s=>inside(x,z,s.polygon))??null;
+    const surface=layout.walkable.find(s=>inside(x,z,s.polygon));if(!surface)return null;
+    if(!surface.ramp)return surface;
+    const r=surface.ramp,t=Math.max(0,Math.min(1,((r.axis===0?x:z)-r.start)/(r.end-r.start)));
+    return {...surface,y:r.from+(r.to-r.from)*t};
   }
   function isWalkable(x,z,r=radius){
     if(!Number.isFinite(x)||!Number.isFinite(z)||!surfaceAt(x,z))return false;
@@ -67,13 +70,13 @@ export function createNavigationQuery(layout) {
       }
     }
     const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[2]-a[2])/.025));
-    let previous=null;
+    let previous=null,previousStep=layout.agent.maxStep;
     for(let i=0;i<=n;i++){
       const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[2]+(b[2]-a[2])*t;
       if(!isWalkable(x,z))return false;
-      const y=surfaceAt(x,z).y;
-      if(previous!==null&&Math.abs(y-previous)>layout.agent.maxStep+1e-6)return false;
-      previous=y;
+      const surface=surfaceAt(x,z),y=surface.y,allowedStep=surface.maxStep??layout.agent.maxStep;
+      if(previous!==null&&Math.abs(y-previous)>Math.max(previousStep,allowedStep)+1e-6)return false;
+      previous=y;previousStep=allowedStep;
     }
     return true;
   }

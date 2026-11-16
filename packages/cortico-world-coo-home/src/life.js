@@ -1,6 +1,7 @@
 import {HomeNavigation,timedRoute,routePosition} from './navigation.js';
 import {createNavigationQuery} from '../data/navigation-query.js';
-import {CROP_CATALOG,createGarden,normalizeGarden,gardenSnapshot,inventorySnapshot,advanceGarden,validateCrop,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
+import {CROP_CATALOG,createGarden,normalizeGarden,gardenSnapshot,advanceGarden,validateCrop,validateGardenAction,applyGardenAction,shiftGarden,nextGardenCare} from './garden.js';
+import {createEconomy,normalizeEconomy,economySnapshot,economyItem,quoteCommerce,normalizeQuote,quoteFingerprint,existingCommerce,acceptCommerce,cancelCommerce,settleCommerce,assertResources,addHarvest,useSeed,commerceError} from './economy.js';
 
 const clone=structuredClone,clamp=value=>Math.max(0,Math.min(100,value));
 const NEEDS=['energy','hunger','hygiene','comfort'];
@@ -14,10 +15,12 @@ const RULES={
   dress:[15_000,'wardrobe',{comfort:5}],open:[8_000,'open',{}],look:[10_000,'look',{comfort:3}],eat:[40_000,'meal',{hunger:40}],tea:[25_000,'steam',{hunger:5,comfort:14}],snack:[18_000,'meal',{hunger:20}],
   wash:[20_000,'water',{hygiene:14}],cook:[45_000,'steam',{hunger:20,comfort:6}],heat:[18_000,'warm',{hunger:12}],wear:[10_000,'prepare',{comfort:4}],take:[8000,'tidy',{}],store:[10_000,'tidy',{comfort:4}],
   laundry:[45_000,'laundry',{hygiene:12,comfort:8}],water:[20_000,'water',{comfort:5}],desk:[50_000,'working',{comfort:8}],draw:[45_000,'drawing',{comfort:14}],type:[45_000,'screen',{comfort:8}],
-  shower:[45_000,'water',{hygiene:40}],bath:[60_000,'steam',{hygiene:40,comfort:20}],brush:[18_000,'water',{hygiene:14}],toilet:[25_000,'privacy',{hygiene:8,comfort:6}],walk:[0,null,{}],sow:[15_000,'garden',{comfort:4}],harvest:[18_000,'garden',{comfort:8}]
+  shower:[45_000,'water',{hygiene:40}],bath:[60_000,'steam',{hygiene:40,comfort:20}],brush:[18_000,'water',{hygiene:14}],toilet:[25_000,'privacy',{hygiene:8,comfort:6}],walk:[0,null,{}],sow:[15_000,'garden',{comfort:4}],harvest:[18_000,'garden',{comfort:8}],
+  buy:[10_000,'checkout',{}],sell:[10_000,'checkout',{}],orderTea:[45_000,'steam',{}],consume:[22_000,'meal',{}],shop:[0,null,{}],visit:[3000,null,{}]
 };
+const COMMERCE_ACTIONS=new Set(['buy','sell','orderTea','consume','shop']);
 const NOTES={dress:'整理衣物，保留当前角色外观。',wear:'在玄关准备出门，使用现有动作表示。',cook:'模拟简单备餐，以现有动作和独立生活状态表示。',laundry:'模拟整理洗衣；未模拟衣物库存。',sleep:'使用角色已有休息动作；缺少睡姿时停在床边休息。',water:'照看室内植物。'};
-const GARDEN_NOTES={sow:'在空畦中选择任意一种作物播种，必须提供 cropId；第一次浇水后开始生长。',water:'第一次浇水启动生长，后续浇水只更新湿润状态；不需要反复看管。',harvest:'成熟后采收并记录次数，菜畦变空；没有金币或买卖。',inspect:'查看作物、湿润状态和距离成熟的时间。',look:'查看菜畦的种植进度。'};
+const GARDEN_NOTES={sow:'小葱种子无限免费；其他作物每畦消耗一包对应种子，播种完成才扣除。第一次浇水后开始生长。',water:'第一次浇水启动生长，后续浇水只更新湿润状态；不需要反复看管。',harvest:'成熟后采收入背包并记录次数，菜畦变空；可以在便利店出售。',inspect:'查看作物、湿润状态和距离成熟的时间。',look:'查看菜畦的种植进度。'};
 const validPosition=p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite);
 const scalar=(value,fallback)=>Number.isFinite(value)?value:fallback;
 const plain=value=>value&&typeof value==='object'&&!Array.isArray(value);
@@ -56,10 +59,10 @@ export function buildCatalog(layout){
 
 /** Only public household state is retained; appearance and chat never enter a save. */
 export function normalizeLifeState(raw,layout,now){
-  if(plain(raw)&&Number.isInteger(raw.version)&&raw.version>4){
+  if(plain(raw)&&Number.isInteger(raw.version)&&raw.version>5){
     const error=Error('家园存档来自较新的插件版本。请恢复使用新版插件；现有进度文件已保留。');error.code='HOME_SAVE_UNSUPPORTED';throw error;
   }
-  if(!plain(raw)||![0,1,2,3,4].includes(raw.version))throw Error('Invalid home save version.');
+  if(!plain(raw)||![0,1,2,3,4,5].includes(raw.version))throw Error('Invalid home save version.');
   const migrated=raw.version===0?{...raw,version:1,updatedAt:raw.updatedAt??raw.lastUpdatedAt,current:null,queue:[],recent:[]}:raw;
   if(!validPosition(migrated.position)||!Number.isFinite(migrated.updatedAt)||!plain(migrated.needs))throw Error('Invalid home save.');
   const catalog=buildCatalog(layout),itemIds=new Set(layout.items.map(item=>item.id)),items={},query=createNavigationQuery(layout);
@@ -87,7 +90,15 @@ export function normalizeLifeState(raw,layout,now){
       if(!owner||!owner.taskIds.includes(value.id)||!value.itemId?.startsWith('plot-')||!Number.isSafeInteger(value.expectedGardenCycle)||value.expectedGardenCycle<0||value.planCropId!==owner.cropId||owner.outcomes[value.id])throw Error('Invalid garden plan task.');
       plan={planId:value.planId,planCropId:owner.cropId,expectedGardenCycle:value.expectedGardenCycle};
     }
-    return{id:value.id,itemId:value.itemId,actionId:value.actionId,source:value.source,destination:clone(value.destination),requestedAt:stamp(value.requestedAt),gardenCycle,...(sow?{cropId}:{}),...plan};
+    const paidSeed=sow&&cropId!=='spring-onion',seedItemId=paidSeed?`seed-${cropId}`:null;
+    if(migrated.version>=5&&(value.seedItemId??null)!==seedItemId)throw Error('Invalid seed reservation.');
+    if(value.legacySeedExempt!==undefined&&(!paidSeed||value.legacySeedExempt!==true))throw Error('Invalid legacy seed allowance.');
+    const commerce=value.commerce?{requestId:value.commerce.requestId,quote:normalizeQuote(value.commerce.quote)}:null;
+    if(commerce){
+      const quote=commerce.quote,target=quote.kind==='tea'?quote.seatId:quote.kind==='consume'?'dining.dining':'shop.counter',actionId=quote.kind==='tea'?'orderTea':quote.kind;
+      if(migrated.version<5||value.source!=='manual'||value.itemId!==target||value.actionId!==actionId)throw Error('Invalid saved commerce target.');
+    }else if(COMMERCE_ACTIONS.has(value.actionId))throw Error('Commerce action has no order.');
+    return{id:value.id,itemId:value.itemId,actionId:value.actionId,source:value.source,destination:clone(value.destination),requestedAt:stamp(value.requestedAt),gardenCycle,...(sow?{cropId}:{}),...plan,...(seedItemId?{seedItemId}:{}),...(paidSeed&&(migrated.version<5||value.legacySeedExempt)?{legacySeedExempt:true}:{}),...(commerce?{commerce}:{})};
   };
   let current=null;
   if(migrated.current){
@@ -100,12 +111,18 @@ export function normalizeLifeState(raw,layout,now){
     Object.assign(current,{startedAt:stamp(value.startedAt),arrivalAt:stamp(value.arrivalAt),endsAt:stamp(value.endsAt),route:value.route.map(point=>({position:clone(point.position),at:stamp(point.at)}))});
   }
   if(migrated.queue!==undefined&&!Array.isArray(migrated.queue))throw Error('Invalid saved queue.');
-  return{version:4,layoutVersion:layout.layoutVersion??1,revision:Math.max(0,Math.floor(scalar(migrated.revision,0))),counter:Math.max(0,Math.floor(scalar(migrated.counter,0))),updatedAt:Math.min(now,migrated.updatedAt),plans,
+  const queue=(migrated.queue??[]).slice(0,MAX_QUEUE).map(task),garden=migrated.version<2?createGarden(layout):normalizeGarden(migrated.garden,layout,offset,{legacy:migrated.version===2,quantitiesKnown:migrated.version>=4});
+  const economy=migrated.version<5?createEconomy(garden):normalizeEconomy(migrated.economy,[current,...queue],offset);
+  return{version:5,layoutVersion:layout.layoutVersion??1,revision:Math.max(0,Math.floor(scalar(migrated.revision,0))),counter:Math.max(0,Math.floor(scalar(migrated.counter,0))),updatedAt:Math.min(now,migrated.updatedAt),plans,economy,
     position:clone(migrated.position),needs:Object.fromEntries(NEEDS.map(key=>[key,clamp(scalar(migrated.needs[key],75))])),paused:migrated.paused===true,pausedAt:stamp(migrated.pausedAt),autonomy:migrated.autonomy!==false,
-    manualUntil:stamp(migrated.manualUntil),nextAutoAt:stamp(migrated.nextAutoAt),autoIndex:Math.max(0,Math.floor(scalar(migrated.autoIndex,0))),items,current,queue:(migrated.queue??[]).slice(0,MAX_QUEUE).map(task),garden:migrated.version<2?createGarden(layout):normalizeGarden(migrated.garden,layout,offset,{legacy:migrated.version===2,quantitiesKnown:migrated.version>=4}),
+    manualUntil:stamp(migrated.manualUntil),nextAutoAt:stamp(migrated.nextAutoAt),autoIndex:Math.max(0,Math.floor(scalar(migrated.autoIndex,0))),items,current,queue,garden,
     receipts:(Array.isArray(migrated.receipts)?migrated.receipts:[]).slice(-128).map(value=>{
       if(!plain(value)||typeof value.key!=='string'||value.key.length>96||typeof value.fingerprint!=='string'||value.fingerprint.length>1024||!plain(value.result)||!['accepted','queued','no-op','cancelled','paused','resumed'].includes(value.result.outcome)||value.result.taskId!==undefined&&!TASK_ID.test(value.result.taskId))throw Error('Invalid home command receipt');
       const result={ok:true,outcome:value.result.outcome,...(value.result.taskId?{accepted:true,taskId:value.result.taskId}:{})};
+      if(value.result.transactionId!==undefined){
+        if(!/^trade-\d+$/.test(value.result.transactionId)||!['buy','sell','tea','consume'].includes(value.result.kind)||!Number.isSafeInteger(value.result.total)||value.result.total<0||value.result.total>1e9||!['pending','completed','cancelled'].includes(value.result.transactionStatus))throw Error('Invalid commerce tool receipt.');
+        Object.assign(result,{transactionId:value.result.transactionId,kind:value.result.kind,total:value.result.total,transactionStatus:value.result.transactionStatus,...(value.result.duplicate===true?{duplicate:true}:{})});
+      }
       if(value.result.taskIds!==undefined){
         if(!Array.isArray(value.result.taskIds)||value.result.taskIds.length>16||value.result.taskIds.some(id=>!TASK_ID.test(id))||new Set(value.result.taskIds).size!==value.result.taskIds.length||value.result.planId!==null&&!PLAN_ID.test(value.result.planId))throw Error('Invalid garden plan receipt');
         Object.assign(result,{accepted:value.result.taskIds.length>0,planId:value.result.planId,taskIds:[...value.result.taskIds],skipped:skippedRows(value.result.skipped)});
@@ -119,7 +136,8 @@ export class HomeLife{
   constructor({layout,state=null,clock=()=>Date.now()}={}){
     this.layout=layout;this.clock=clock;this.navigation=new HomeNavigation(layout);this.catalog=buildCatalog(layout);
     this.itemMap=new Map(this.catalog.map(item=>[item.id,item]));const now=clock();
-    this.state=state?normalizeLifeState(state,layout,now):{version:4,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],receipts:[],plans:[],garden:createGarden(layout)};
+    this.state=state?normalizeLifeState(state,layout,now):{version:5,layoutVersion:layout.layoutVersion??1,revision:0,counter:0,updatedAt:now,position:clone(layout.spawn),needs:{energy:80,hunger:75,hygiene:85,comfort:75},paused:false,pausedAt:now,autonomy:true,manualUntil:0,nextAutoAt:now+15_000,autoIndex:0,items:{},current:null,queue:[],recent:[],receipts:[],plans:[],garden:createGarden(layout)};
+    if(!state)this.state.economy=createEconomy(this.state.garden);
     const grounded=this.navigation.ground(this.state.position);if(!grounded)throw Error('Saved home position is no longer walkable.');this.state.position=grounded;
     this.navigation.prepare(grounded);
     for(const id of Object.keys(layout.defaultFurnitureState??{}))this.itemState(id);
@@ -130,7 +148,9 @@ export class HomeLife{
   definition(task){
     if(task.itemId===null&&task.actionId==='walk')return{canonical:'walk',id:'walk',label:'走到这里',durationMs:0,effect:null,gains:{},pose:{kind:'stand'},stance:{position:task.destination,facing:[0,1]}};
     const item=this.itemMap.get(task.itemId),action=item?.actions.find(a=>a.id===task.actionId||a.canonical===task.actionId);
-    if(!action)throw Error('这个物件暂不支持此动作。');return action;
+    if(!action)throw Error('这个物件暂不支持此动作。');
+    if(task.commerce&&['tea','consume'].includes(task.commerce.quote.kind)){const product=economyItem(task.commerce.quote.lines[0].itemId);return{...action,durationMs:product.durationMs,gains:{}};}
+    return action;
   }
   decorate(task){
     const action=this.definition(task),item=this.itemMap.get(task.itemId);
@@ -138,21 +158,24 @@ export class HomeLife{
     Object.assign(task,{label:item?`${item.label} · ${action.label}`:action.label,word,pose:clone(action.pose),effect:action.effect,stance:clone(action.stance),approach:clone(action.stance.position),fallback:clone(action.fallback??{kind:'standing',position:action.stance.position,facing:action.stance.facing??[0,1]}),target:clone(action.target??item?.position??task.destination),facing:clone(action.stance.facing??[0,1]),durationMs:action.durationMs});
     const cropId=task.cropId??this.state.garden.plots.find(plot=>plot.id===task.itemId)?.cropId;
     if(cropId)task.label+=` · ${CROP_CATALOG.find(crop=>crop.id===cropId).label}`;
+    if(task.commerce)task.label+=` · ${task.commerce.quote.lines.map(row=>`${economyItem(row.itemId).label} × ${row.quantity}`).join('、')}`;
     return task;
   }
   export(){
-    const task=value=>value?Object.fromEntries(['id','itemId','actionId','source','destination','requestedAt','startedAt','arrivalAt','endsAt','route','gardenCycle','cropId','planId','planCropId','expectedGardenCycle'].filter(key=>value[key]!==undefined).map(key=>[key,clone(value[key])])):null;
+    const task=value=>value?Object.fromEntries(['id','itemId','actionId','source','destination','requestedAt','startedAt','arrivalAt','endsAt','route','gardenCycle','cropId','planId','planCropId','expectedGardenCycle','seedItemId','legacySeedExempt','commerce'].filter(key=>value[key]!==undefined).map(key=>[key,clone(value[key])])):null;
     return{...clone(this.state),current:task(this.state.current),queue:this.state.queue.map(task)};
   }
   snapshot(){
     const state=clone(this.state),now=state.updatedAt,time=state.paused?state.pausedAt:now;
     delete state.receipts;
+    delete state.economy;
     if(state.current){state.current.phase=time<state.current.arrivalAt?'walking':'acting';state.current.progress=time<state.current.arrivalAt?Math.min(1,(time-state.current.startedAt)/Math.max(1,state.current.arrivalAt-state.current.startedAt)):Math.min(1,(time-state.current.arrivalAt)/Math.max(1,state.current.endsAt-state.current.arrivalAt));}
-    return{...state,plans:state.plans.map(planView),garden:gardenSnapshot(this.state.garden,time),inventory:inventorySnapshot(this.state.garden),now,simulation:this.visible?'visible':'background',offline:clone(this.offline)};
+    return{...state,plans:state.plans.map(planView),garden:gardenSnapshot(this.state.garden,time),...economySnapshot(this.state.economy,[this.state.current,...this.state.queue]),now,simulation:this.visible?'visible':'background',offline:clone(this.offline)};
   }
   touch(){this.state.revision++;}
   decay(duration){if(duration<=0)return;for(const key of NEEDS)this.state.needs[key]=clamp(this.state.needs[key]-RATES[key]*duration/60_000);}
   record(task,outcome,time,reason=null){
+    if(outcome!=='completed')cancelCommerce(this.state.economy,task,time);
     this.state.recent.push({id:task.id,itemId:task.itemId,actionId:task.actionId,outcome,at:time,...(reason?{reason:String(reason).slice(0,160)}:{})});this.state.recent=this.state.recent.slice(-MAX_EVENTS);
     const plan=task.planId&&this.state.plans.find(value=>value.id===task.planId);
     if(plan){plan.outcomes[task.id]=outcome;if(outcome!=='completed'){
@@ -163,10 +186,11 @@ export class HomeLife{
   itemState(id){return this.state.items[id]??=( {uses:0,lastAction:null,effect:null,active:false,on:this.layout.defaultFurnitureState?.[id]?.on===true});}
   makeTask(itemId,actionId,source,time,destination,cropId){
     const task={id:`task-${++this.state.counter}`,itemId,actionId,source,requestedAt:time,destination:destination??[0,0,0]};
-    const action=this.definition(task);if(itemId?.startsWith('plot-')&&action.canonical==='sow')task.cropId=validateCrop(cropId);else if(cropId!==undefined)throw Error('只有播种动作可以选择作物。');
+    const action=this.definition(task);if(itemId?.startsWith('plot-')&&action.canonical==='sow'){task.cropId=validateCrop(cropId);if(cropId!=='spring-onion')task.seedItemId=`seed-${cropId}`;}else if(cropId!==undefined)throw Error('只有播种动作可以选择作物。');
     task.actionId=action.id;task.destination=clone(destination??action.stance.position);return task;
   }
   begin(task,time){
+    assertResources(this.state.economy,[task,...this.state.queue]);
     advanceGarden(this.state.garden,time);
     if(task.itemId?.startsWith('plot-')){
       const action=this.definition(task).canonical,plot=validateGardenAction(this.state.garden,task.itemId,action,task.expectedGardenCycle??null,task.cropId);
@@ -179,12 +203,21 @@ export class HomeLife{
   }
   finish(time){
     const task=this.state.current;if(!task)return;
-    const action=this.definition(task);
-    if(task.itemId?.startsWith('plot-')){
-      try{applyGardenAction(this.state.garden,task.itemId,action.canonical,time,task.gardenCycle,task.cropId);}
-      catch(error){if(error.code!=='GARDEN_STAGE')throw error;this.itemState(task.itemId).active=false;this.state.position=clone(task.route.at(-1).position);this.record(task,'cancelled',time,error.message);this.state.current=null;this.state.nextAutoAt=time+12_000;this.touch();return false;}
+    const action=this.definition(task);let gains=action.gains;
+    try{
+      if(task.itemId?.startsWith('plot-')){
+        const garden=clone(this.state.garden),economy=clone(this.state.economy),plot=garden.plots.find(row=>row.id===task.itemId),harvestCrop=plot.cropId;
+        if(action.canonical==='sow')useSeed(economy,task);
+        applyGardenAction(garden,task.itemId,action.canonical,time,task.gardenCycle,task.cropId);
+        if(action.canonical==='harvest')addHarvest(economy,harvestCrop,CROP_CATALOG.find(crop=>crop.id===harvestCrop).yieldCount);
+        this.state.garden=garden;this.state.economy=economy;
+      }
+      if(task.commerce)gains=settleCommerce(this.state.economy,task,time);
+    }catch(error){
+      if(!['GARDEN_STAGE','HOME_COMMERCE'].includes(error.code))throw error;
+      if(task.itemId)this.itemState(task.itemId).active=false;this.state.position=clone(task.route.at(-1).position);this.record(task,'cancelled',time,error.message);this.state.current=null;this.state.nextAutoAt=time+12_000;this.touch();return false;
     }
-    for(const [key,gain] of Object.entries(action.gains))this.state.needs[key]=clamp(this.state.needs[key]+gain);
+    for(const [key,gain] of Object.entries(gains))this.state.needs[key]=clamp(this.state.needs[key]+gain);
     if(task.itemId){const item=this.itemState(task.itemId);item.uses++;item.lastAction=task.actionId;item.active=false;item.effect=task.effect;if(action.canonical==='toggle')item.on=!item.on;}
     this.state.position=clone(task.route.at(-1).position);this.record(task,'completed',time);this.state.current=null;this.state.nextAutoAt=time+12_000;this.touch();return true;
   }
@@ -203,7 +236,7 @@ export class HomeLife{
       const plot=nextGardenCare(this.state.garden,time);if(plot)return this.makeTask(plot,'water','autonomous',time);
     }
     const preferred=needs.energy<38?['sleep','nap','rest']:needs.hunger<40?['eat','snack','cook']:needs.hygiene<40?['shower','wash','bath']:needs.comfort<45?['tea','read','rest']:['read','rest','tea','look','desk','drink','sit'];
-    const choices=this.catalog.flatMap(item=>item.actions.filter(a=>preferred.includes(a.canonical)&&item.kind!=='plot').map(action=>({item,action})));
+    const choices=this.catalog.flatMap(item=>item.actions.filter(a=>preferred.includes(a.canonical)&&!COMMERCE_ACTIONS.has(a.canonical)&&item.kind!=='plot').map(action=>({item,action})));
     if(!choices.length)return null;
     choices.sort((a,b)=>preferred.indexOf(a.action.canonical)-preferred.indexOf(b.action.canonical));
     const priority=needs.energy<38||needs.hunger<40||needs.hygiene<40||needs.comfort<45;
@@ -248,13 +281,31 @@ export class HomeLife{
   command({itemId,actionId,enqueue=false,cropId}={}){
     if(typeof itemId!=='string'||typeof actionId!=='string'||typeof enqueue!=='boolean')throw Error('请选择物件和动作。');
     this.advance();const now=this.state.updatedAt,task=this.makeTask(itemId,actionId,'manual',now,undefined,cropId);
+    if(COMMERCE_ACTIONS.has(this.definition(task).canonical))throw commerceError('请从购物、出售、茶单或背包中选择具体商品。');
     if(itemId.startsWith('plot-')&&!(enqueue&&this.state.current?.source==='manual'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical,null,task.cropId);
     // Validate reachability before superseding a working manual task.
     this.navigation.route(this.state.position,task.destination);
+    assertResources(this.state.economy,enqueue&&this.state.current?.source==='manual'?[this.state.current,...this.state.queue,task]:[task]);
     if(enqueue&&this.state.current?.source==='manual'){
       if(this.state.queue.length>=MAX_QUEUE)throw Error('家园队列已满，请先完成或取消一些任务。');this.state.queue.push(task);
     }else{this.abandon('superseded',now);this.rebasePause(now);this.begin(task,now);}
     this.state.manualUntil=(this.state.paused?this.state.pausedAt:now)+15_000;this.touch();return this.snapshot();
+  }
+  commerce({kind,lines,requestId,enqueue=false,seatId}={}){
+    if(typeof enqueue!=='boolean')throw commerceError('交易排队选项无效。');
+    const quote=quoteCommerce({kind,lines,seatId}),fingerprint=quoteFingerprint(quote),at=Math.max(this.state.updatedAt,this.clock());
+    const duplicate=existingCommerce(this.state.economy,requestId,fingerprint,at);if(duplicate)return duplicate;
+    this.advance();const now=this.state.updatedAt,queued=enqueue&&this.state.current?.source==='manual';
+    if(queued&&this.state.queue.length>=MAX_QUEUE)throw commerceError('家园队列已满，请先完成或取消一些任务。');
+    const itemId=kind==='tea'?quote.seatId:kind==='consume'?'dining.dining':'shop.counter',actionId=kind==='tea'?'orderTea':kind;
+    const task=this.makeTask(itemId,actionId,'manual',now);task.commerce={requestId,quote};
+    this.navigation.route(this.state.position,task.destination);
+    assertResources(this.state.economy,queued?[this.state.current,...this.state.queue,task]:[task]);
+    acceptCommerce(clone(this.state.economy),{requestId,quote,taskId:task.id,time:now,queued});
+    if(!queued){this.abandon('superseded',now);this.rebasePause(now);}
+    const receipt=acceptCommerce(this.state.economy,{requestId,quote,taskId:task.id,time:now,queued});
+    if(queued)this.state.queue.push(task);else this.begin(task,now);
+    this.state.manualUntil=(this.state.paused?this.state.pausedAt:now)+15_000;this.touch();return receipt;
   }
   gardenPlan({plotIds,cropId,enqueue=false}={}){
     validateCrop(cropId);
@@ -275,6 +326,7 @@ export class HomeLife{
     for(const step of steps){const action=this.definition(step);this.navigation.route(this.state.position,action.stance.position);}
     const planId=`garden-plan-${this.state.counter+1}`;
     const tasks=steps.map(step=>Object.assign(this.makeTask(step.itemId,step.actionId,'manual',now,undefined,step.cropId),{planId,planCropId:cropId,expectedGardenCycle:step.expectedGardenCycle}));
+    assertResources(this.state.economy,queued?[this.state.current,...this.state.queue,...tasks]:tasks);
     if(!queued){this.abandon('superseded',now);this.rebasePause(now);}
     this.state.plans.push({id:planId,cropId,taskIds:tasks.map(task=>task.id),createdAt:now,outcomes:{},skipped});this.state.plans=this.state.plans.slice(-MAX_PLANS);
     if(queued)this.state.queue.push(...tasks);
@@ -291,6 +343,7 @@ export class HomeLife{
       task=this.makeTask(null,'walk','autonomous',now,grounded);
     }else if(operation==='command'&&typeof itemId==='string'&&typeof actionId==='string'){
       task=this.makeTask(itemId,actionId,'autonomous',now,undefined,cropId);
+      if(COMMERCE_ACTIONS.has(this.definition(task).canonical)||task.seedItemId)throw commerceError('自主生活不会购买、出售或消耗付费物品，请由使用者明确安排。');
       if(itemId.startsWith('plot-'))validateGardenAction(this.state.garden,itemId,this.definition(task).canonical,null,task.cropId);
     }else throw Error('AI 只能安排当前家园支持的动作。');
     this.navigation.route(this.state.position,task.destination);

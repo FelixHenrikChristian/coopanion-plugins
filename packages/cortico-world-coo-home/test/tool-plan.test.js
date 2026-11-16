@@ -17,7 +17,7 @@ async function done(f){for(let i=0;i<40&&f.world.status().life.current;i++){f.se
 test('strict nullable tool slots work for catalog, status and TV; unrelated values still fail closed',async()=>{
   const f=fixture();await f.world.start();
   const schema=DESCRIBE.tools[0].parameters;assert.deepEqual(schema.required,Object.keys(schema.properties));
-  const catalog=await tool(f,strict({operation:'catalog'}));assert.equal(catalog.items.length,40);assert.equal(catalog.crops.length,8);
+  const catalog=await tool(f,strict({operation:'catalog'}));assert.equal(catalog.items.length,47);assert.equal(catalog.crops.length,8);
   assert.equal((await tool(f,strict({operation:'status'}))).ok,true);
   const accepted=await tool(f,strict({operation:'command',itemId:'living.tv',actionId:'tv'}),'tv');assert.equal(accepted.accepted,true);assert.equal(f.world.life.state.current.itemId,'living.tv');
   for(const value of [strict({operation:'catalog',itemId:'living.tv'}),{...strict({operation:'status'}),unknown:null},strict({operation:'command',itemId:'living.tv',actionId:'tv',cropId:'carrot'})])assert.equal((await tool(f,value,'bad')).ok,false);
@@ -40,6 +40,7 @@ test('eight-plot plan durably accepts sixteen ordered actions, survives restart 
 
 test('occupied plots are skipped, seeded matching crops get water, and a manual command cancels all remaining plan steps',async()=>{
   const f=fixture();await f.world.start();await f.invoke('settings',{autonomy:false});
+  await f.invoke('commerce',{kind:'buy',lines:[{itemId:'seed-carrot',quantity:1}],requestId:`${f.world.status().life.now}:mixed-seed`});await done(f);
   await f.invoke('command',{itemId:'plot-1',actionId:'sow',cropId:'carrot'});await done(f);
   await f.invoke('command',{itemId:'plot-2',actionId:'sow',cropId:'spring-onion'});await done(f);
   const result=await tool(f,strict({operation:'gardenPlan',plotIds:['plot-1','plot-2','plot-3'],cropId:'spring-onion'}),'mixed');
@@ -61,6 +62,7 @@ test('an already planted plan is a durable no-op and never interrupts unrelated 
 
 test('invalid or unsaved plans leave current work intact; stale planned steps cancel their whole remaining plan',async()=>{
   const f=fixture();await f.world.start();await f.invoke('settings',{autonomy:false});
+  await f.invoke('commerce',{kind:'buy',lines:[{itemId:'seed-carrot',quantity:2}],requestId:`${f.world.status().life.now}:stale-plan-seeds`});await done(f);
   await f.invoke('command',{itemId:'living.tv',actionId:'tv'});const previous=f.world.life.export();
   for(const patch of [{plotIds:['plot-1','plot-1'],cropId:'carrot'},{plotIds:['plot-9'],cropId:'carrot'},{plotIds:['plot-1'],cropId:'unknown'}])assert.equal((await tool(f,strict({operation:'gardenPlan',...patch}),'invalid')).ok,false);
   const unchanged=()=>{const current=f.world.life.export();assert.equal(current.current.id,previous.current.id);assert.deepEqual(current.current.route,previous.current.route);assert.deepEqual(current.garden,previous.garden);assert.deepEqual(current.queue,previous.queue);assert.equal(current.counter,previous.counter);};unchanged();

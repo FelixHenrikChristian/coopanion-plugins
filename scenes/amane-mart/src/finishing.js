@@ -53,14 +53,15 @@ export function addFinishing(k) {
   printed(column,canvas,0,headCenter,-.116,1.13,1.205,Math.PI);
 
   const light=group('Amane · neon and eave lights',2.79);
+  const canopy=new THREE.Group();canopy.name='Store canopy neon';canopy.userData.preserveBatch=true;light.add(canopy);
   const lineMat={emissive:'#56dbbc',intensity:1.33};
-  box(light,-1.30,3.55,1.054,7.61,.023,.019,'#a6f0c4',lineMat);
-  box(light,2.55,3.55,-1.90,.019,.023,5.88,'#a6f0c4',lineMat);
-  box(light,-1.30,2.895,1.048,7.62,.017,.024,'#ffc799',{emissive:'#ffaf77',intensity:1.70});
-  box(light,2.545,2.895,-1.90,.024,.017,5.88,'#ffc799',{emissive:'#ffaf77',intensity:1.70});
-  lightRibbon(light,-1.35,3.52,1.075,8.3,.49,'#8de6c4',0,.24);
-  lightRibbon(light,-1.35,2.87,1.072,8.6,.55,'#ffad67',0,.31);
-  lightRibbon(light,2.57,2.88,-1.90,6.7,.53,'#ffb675',Math.PI/2,.34);
+  box(canopy,-1.30,3.55,1.054,7.61,.023,.019,'#a6f0c4',lineMat);
+  box(canopy,2.55,3.55,-1.90,.019,.023,5.88,'#a6f0c4',lineMat);
+  box(canopy,-1.30,2.895,1.048,7.62,.017,.024,'#ffc799',{emissive:'#ffaf77',intensity:1.70});
+  box(canopy,2.545,2.895,-1.90,.024,.017,5.88,'#ffc799',{emissive:'#ffaf77',intensity:1.70});
+  lightRibbon(canopy,-1.35,3.52,1.075,8.3,.49,'#8de6c4',0,.24);
+  lightRibbon(canopy,-1.35,2.87,1.072,8.6,.55,'#ffad67',0,.31);
+  lightRibbon(canopy,2.57,2.88,-1.90,6.7,.53,'#ffb675',Math.PI/2,.34);
   lightRibbon(light,-4.35,1.85,1.62,1.67,1.83,'#ff9984',0,.15);
   lightRibbon(light,3.885,3.897,1.48,.91,.44,'#ffe0aa',0,.47);
   k.glow(light,3.887,3.90,1.43,'#ffcf93',1.44,.36);
@@ -76,4 +77,5 @@ export function addFinishing(k) {
   for(const x of [-10.41,-7.8,-5.16,-2.57,.08,2.76])box(alley,x,.78,fenceZ+.02,.102,1.22,.17,'#414952');
   for(const y of [.48,1.12])box(alley,-3.81,y,fenceZ-.06,13.28,.081,.13,'#414b55');
   box(alley,-3.81,1.34,fenceZ,13.28,.062,.154,'#958b88');
+  return {shopRoof:canopy};
 }

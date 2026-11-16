@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {registerCommerceItem} from './commerce-spaces.js';
+import {semanticGroup,splitShellStage,rectangleFaces} from './commerce-shell.js';
 
 const jp = '"Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Microsoft YaHei", sans-serif';
 const sans = 'Arial, Helvetica, sans-serif';
@@ -242,7 +244,7 @@ function merchandise(s,x,y,z,width,height,depth,index,kind,rotation=0) {
   }
 }
 
-export function buildStore(k) {
+export function buildStore(k,register) {
   const {group} = k,resources=makeStoreResources();
   const pieces=(parent,castShadow=false)=>makePieces(parent,resources,castShadow);
   const left=-4.95,right=2.15,back=-4.7,front=.55,cx=(left+right)/2,cz=(back+front)/2;
@@ -309,6 +311,7 @@ export function buildStore(k) {
   s.b('shop',cx,2.76,-4.06,6.73,.29,.52,'#d9b17e');
   panel(cases,department(['お弁当','サンドイッチ','デザート','お茶 · 飲料','冷たい飲みもの']),cx,2.768,-3.788,6.71,.285);
   s.finish();
+  registerCommerceItem(register,'shop.drinks',cases);
 
   const aisles=group('Store · stocked aisles',1.64),a=pieces(aisles);
   function aisle(x,z,length,levels,sideways=false,offset=0){
@@ -359,6 +362,7 @@ export function buildStore(k) {
     a.b('bright',bx,1.014,bz,.069,.005,.013,'#eed1a0',0,-.29);
   }
   a.finish();
+  registerCommerceItem(register,'shop.snacks',aisles);
 
   const checkout=group('Store · checkout and posters',1.88),co=pieces(checkout);
   co.b('shop',1.31,.77,-2.00,.76,.86,1.80,'#c6a175');
@@ -374,9 +378,10 @@ export function buildStore(k) {
   co.b('metal',1.31,1.724,-2.55,.39,.042,.34,'#c7c6ad');
   for(let i=0;i<4;i++)co.c('stock',1.46,1.32,-1.30+i*.09,.058,.115,.058,'#f6e9c8');
   co.finish();
+  registerCommerceItem(register,'shop.counter',checkout);
   const art1=poster(false),art2=poster(true);
-  panel(checkout,art1,left+.099,2.19,-1.57,.61,.88,Math.PI/2);
-  panel(checkout,art2,left+.10,2.20,-.72,.58,.83,Math.PI/2);
+  const wallPosters=[panel(checkout,art1,left+.099,2.19,-1.57,.61,.88,Math.PI/2),
+    panel(checkout,art2,left+.10,2.20,-.72,.58,.83,Math.PI/2)];
 
   const windows=group('Store · sliding doors and glazing',2.10),f=pieces(windows);
   const frame='#465c65',hi='#9eaaa4';
@@ -396,17 +401,19 @@ export function buildStore(k) {
   glazing(windows,(left+doorL)/2,1.78,front+.021,doorL-left,2.06);
   glazing(windows,(doorR+right)/2,1.78,front+.021,right-doorR,2.06);
   glazing(windows,right+.021,1.78,cz,5.2,2.08,Math.PI/2);
+  const doorLeaves=[];
   for(let i=0;i<2;i++){
     const px=doorL+.433+i*.865;
     const offset=i===0?.036:.054;
-    glazing(windows,px,1.45,front+offset,.805,2.11);
-    f.b('metal',px,2.51,front+offset,.858,.055,.057,'#778b88');
-    f.b('metal',px,.385,front+offset,.858,.076,.065,'#566c70');
-    f.b('metal',px+(.414*(i===0?1:-1)),1.46,front+offset,.028,2.14,.059,'#98a69f');
-    f.b('bright',px,1.19,front+.086,.82,.032,.015,'#8dbdb0');
-    f.b('bright',px,1.143,front+.085,.82,.014,.014,'#f3cf9c');
-    f.b('bright',px,1.51,front+.086,.128,.089,.014,'#f2e3bb');
-    f.b('bright',px,1.51,front+.097,.078,.026,.009,'#6a9a9a');
+    const leaf=semanticGroup(windows,'Automatic door '+i),d=pieces(leaf);doorLeaves.push(leaf);
+    glazing(leaf,px,1.45,front+offset,.805,2.11);
+    d.b('metal',px,2.51,front+offset,.858,.055,.057,'#778b88');
+    d.b('metal',px,.385,front+offset,.858,.076,.065,'#566c70');
+    d.b('metal',px+(.414*(i===0?1:-1)),1.46,front+offset,.028,2.14,.059,'#98a69f');
+    d.b('bright',px,1.19,front+.086,.82,.032,.015,'#8dbdb0');
+    d.b('bright',px,1.143,front+.085,.82,.014,.014,'#f3cf9c');
+    d.b('bright',px,1.51,front+.086,.128,.089,.014,'#f2e3bb');
+    d.b('bright',px,1.51,front+.097,.078,.026,.009,'#6a9a9a');d.finish();
   }
   f.b('metal',(doorL+doorR)/2,.351,front+.07,1.76,.043,.21,'#b2b8ae');
   f.b('shell',(doorL+doorR)/2,2.666,front+.083,.26,.082,.091,'#344751');
@@ -421,15 +428,15 @@ export function buildStore(k) {
   panel(windows,hours,-.636,1.75,front+.078,.44,.165);
   f.finish();
 
-  const awning=group('Store · projecting illuminated canopy',2.70),aw=pieces(awning);
+  const awning=group('Store · projecting illuminated canopy',2.70),ceiling=semanticGroup(awning,'Store ceiling and fascia'),aw=pieces(ceiling);
   const canopyFront=1.027,canopyRight=2.51,canopyBack=-4.83,canopyLeft=-5.10;
   const canW=canopyRight-canopyLeft,canD=canopyFront-canopyBack,canX=(canopyRight+canopyLeft)/2,canZ=(canopyFront+canopyBack)/2;
   aw.b('shell',canX,3.215,canZ,canW,.68,canD,'#657782');
   aw.b('shop',canX,2.864,canZ,canW+.02,.06,canD+.015,'#d1b799');
   aw.b('metal',canX,2.851,canopyFront,canW+.06,.063,.071,'#546c74');
   aw.b('metal',canopyRight,2.851,canZ,.071,.063,canD+.055,'#546c74');
-  panel(awning,fascia(false),canX,3.231,canopyFront+.007,canW,.67);
-  panel(awning,fascia(true),canopyRight+.007,3.231,canZ,canD,.67,Math.PI/2);
+  panel(ceiling,fascia(false),canX,3.231,canopyFront+.007,canW,.67);
+  panel(ceiling,fascia(true),canopyRight+.007,3.231,canZ,canD,.67,Math.PI/2);
   for(const x of [canopyLeft+.11,canopyRight-.11])aw.b('metal',x,3.24,canopyBack-.008,.074,.64,.035,'#8fa0a0');
   // Ceiling battens and warm recessed shop lights are visible from the street.
   for(const x of [-4.2,-2.33,-.47,1.36]){
@@ -495,4 +502,16 @@ export function buildStore(k) {
   u.c('metal',1.50,3.91,-4.04,.14,.39,.14,'#86989c');
   u.c('metal',1.50,4.11,-4.04,.22,.066,.22,'#9ca9a8');
   u.finish();
+  const faces=rectangleFaces(left,right,back,front);
+  const shellWalls=splitShellStage(walls,faces,p=>p.z<back+.16?'back':p.x<left+.16?'left':p.x>right-.16?'right':'front');
+  shellWalls.find(w=>w.outward[0]===-1).object.add(...wallPosters);
+  const windowWalls=splitShellStage(windows,{front:faces.front,right:faces.right},(p,o)=>o.name.startsWith('Automatic door')?'front':p.x>right-.12&&p.z<front-.1?'right':'front');
+  const entrance=windowWalls.find(w=>w.outward[1]===1).object;
+  registerCommerceItem(register,'shop.entrance',entrance);
+  let doorOpen=0,doorTarget=0;
+  return {id:'shop',walls:[...shellWalls,...windowWalls],roof:[ceiling,roof,utility],
+    setActorPosition(p){doorTarget=p&&Math.abs(p[0]-.525)<1.12&&Math.abs(p[2]-.58)<1.28?1:0;},
+    updateDoor(dt){const next=THREE.MathUtils.damp(doorOpen,doorTarget,10,dt);if(Math.abs(next-doorOpen)<.00001)return false;doorOpen=Math.abs(next-doorTarget)<.001?doorTarget:next;doorLeaves.forEach((leaf,i)=>leaf.position.x=(i?1:-1)*.84*doorOpen);return true;},
+    getDoorState(){return {open:doorOpen,target:doorTarget,leafOffsets:doorLeaves.map(leaf=>leaf.position.x)};}
+  };
 }

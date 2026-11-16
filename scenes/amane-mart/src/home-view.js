@@ -22,20 +22,22 @@ function blocksSight(wall,eye,target){
   return y>.38&&y<3.04;
 }
 
-export function createHomeView({camera,controls,shell,button,items,onChange,onView=()=>{},finishAssembly,reducedMotion=false,signal}){
+export function createHomeView({camera,controls,shell,commercialShells=[],button,items,onChange,onView=()=>{},finishAssembly,reducedMotion=false,signal}){
   const name=button.querySelector('.view-name'),step=button.querySelector('.view-step');
   Object.assign(button.dataset,{wallCount:shell.walls.length,roofCount:shell.roof.length});
-  const samples=items.filter(item=>item.room!=='garden').map(i=>i.anchor);
+  const samples=items.filter(item=>item.room!=='garden'&&!item.building).map(i=>i.anchor);
   for(const [x0,x1,z0,z1] of roomSpans){
     for(const u of [.28,.72])for(const v of [.28,.72])samples.push([x0+(x1-x0)*u,.75,z0+(z1-z0)*v]);
   }
-  let mode='exterior',updated=true,lastEye=new THREE.Vector3(Infinity,0,0);
+  let mode='exterior',activeBuilding='home',updated=true,lastEye=new THREE.Vector3(Infinity,0,0);
   let travel=null;
   function visibleWalls(){
     let changed=false;
-    for(const wall of shell.walls){
-      let show=mode==='exterior'||mode==='walls';
-      if(mode==='cutaway'){
+    for(const current of [{...shell,id:'home'},...commercialShells]){
+    const effectiveMode=mode==='cutaway'&&current.id!==activeBuilding?'exterior':mode;
+    for(const wall of current.walls){
+      let show=effectiveMode==='exterior'||effectiveMode==='walls';
+      if(effectiveMode==='cutaway'){
         if(wall.outer&&wall.outward){
           const mx=(wall.a[0]+wall.b[0])/2,mz=(wall.a[1]+wall.b[1])/2;
           show=(camera.position.x-mx)*wall.outward[0]+(camera.position.z-mz)*wall.outward[1]<=0;
@@ -45,10 +47,11 @@ export function createHomeView({camera,controls,shell,button,items,onChange,onVi
       wall.object.userData.homeVisible=show;
       wall.object.visible=show&&(wall.object.userData.assemblyVisible??true);
     }
-    for(const roof of shell.roof){
-      const show=mode==='exterior';
+    for(const roof of current.roof){
+      const show=effectiveMode==='exterior';
       if(roof.userData.homeVisible!==show)changed=true;
       roof.userData.homeVisible=show;roof.visible=show&&(roof.userData.assemblyVisible??true);
+    }
     }
     if(changed){
       button.dataset.visibleWalls=shell.walls.filter(w=>w.object.userData.homeVisible).length;
@@ -75,7 +78,7 @@ export function createHomeView({camera,controls,shell,button,items,onChange,onVi
     const i=views.indexOf(mode);
     name.textContent=titles[mode];step.textContent=(i+1)+' / '+views.length;
     button.dataset.mode=mode;
-    const description='小屋视图：'+titles[mode]+'。切换至'+titles[views[(i+1)%views.length]];
+    const description='建筑视图：'+titles[mode]+'。切换至'+titles[views[(i+1)%views.length]];
     button.setAttribute('aria-label',description);button.title=description;
     visibleWalls();
     onView({mode});
@@ -99,7 +102,12 @@ export function createHomeView({camera,controls,shell,button,items,onChange,onVi
     if(mode==='exterior')return false;
     goTo(internalPose());return true;
   }
-  return {setMode,update,home,getMode:()=>mode,cancelTravel,dispose(){travel=null;controls.removeEventListener('start',cancelTravel);}};
+  function setActiveBuilding(id){
+    const next=id??'home';if(!['home',...commercialShells.map(s=>s.id)].includes(next))throw new RangeError('Unknown active building');
+    if(next!==activeBuilding){activeBuilding=next;updated=true;visibleWalls();}
+  }
+  function getBuildingState(){return {active:activeBuilding,mode,buildings:Object.fromEntries([{...shell,id:'home'},...commercialShells].map(s=>[s.id,{walls:s.walls.length,visibleWalls:s.walls.filter(w=>w.object.userData.homeVisible!==false).length,roofs:s.roof.length,visibleRoofs:s.roof.filter(r=>r.userData.homeVisible!==false).length}]))};}
+  return {setMode,update,home,setActiveBuilding,getBuildingState,getMode:()=>mode,cancelTravel,dispose(){travel=null;controls.removeEventListener('start',cancelTravel);}};
 }
 
 export function makeHomeRegistry(){
@@ -110,7 +118,7 @@ export function makeHomeRegistry(){
     byId.set(id,item);objects.set(object,item);
   }
   const describe=item=>({
-    id:item.id,room:item.room,label:item.label,actions:[...item.actions],
+    id:item.id,room:item.room,label:item.label,actions:[...item.actions],...(item.building?{building:item.building}:{}),
     anchor:[...item.anchor],approach:[...item.approach],
     ...(item.object.userData.templateSpot?{templateSpot:{...item.object.userData.templateSpot}}:{}),
     ...(Number.isInteger(item.object.userData.plotId)?{plotId:item.object.userData.plotId}:{}),

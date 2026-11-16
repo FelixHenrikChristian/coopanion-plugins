@@ -18,16 +18,18 @@ export function plotInformation(plot,now,paused=false){
   };
 }
 
-export function createGardenPanel({root,signal,onSow}){
+export function createGardenPanel({root,signal,onSow,onShop=()=>{}}){
   const overlay=document.createElement('div');overlay.className='coo-home-garden-overlay';overlay.hidden=true;
-  overlay.innerHTML=`<section class="coo-home-garden-dialog" role="dialog" aria-modal="true" aria-label="菜园" data-testid="home-garden-dialog"><header><div><span class="coo-eyebrow">THE GARDEN</span><h2></h2></div><button type="button" class="coo-icon-button" data-testid="home-garden-close" aria-label="关闭菜园窗口">${icon('close')}</button></header><div class="coo-home-plot-inspect" data-testid="home-plot-details" hidden><div class="coo-plot-hero">${icon('leaf')}<div><span data-plot-stage></span><h3></h3></div><strong data-plot-progress></strong></div><div class="coo-plot-progress"><i></i></div><dl class="coo-plot-facts"></dl><p class="coo-plot-note"></p><div class="coo-plot-history"></div></div><div class="coo-home-crop-choice" data-testid="home-crop-dialog" hidden><p class="coo-home-crop-note">选一份喜欢的作物。播种后首次浇水开始计时，无需金币，不会枯萎。</p><div class="coo-home-crop-list"></div></div><p class="coo-home-crop-status" role="status"></p></section>`;
+  overlay.innerHTML=`<section class="coo-home-garden-dialog" role="dialog" aria-modal="true" aria-label="菜园" data-testid="home-garden-dialog"><header><div><span class="coo-eyebrow">THE GARDEN</span><h2></h2></div><button type="button" class="coo-icon-button" data-testid="home-garden-close" aria-label="关闭菜园窗口">${icon('close')}</button></header><div class="coo-home-plot-inspect" data-testid="home-plot-details" hidden><div class="coo-plot-hero">${icon('leaf')}<div><span data-plot-stage></span><h3></h3></div><strong data-plot-progress></strong></div><div class="coo-plot-progress"><i></i></div><dl class="coo-plot-facts"></dl><p class="coo-plot-note"></p><div class="coo-plot-history"></div></div><div class="coo-home-crop-choice" data-testid="home-crop-dialog" hidden><p class="coo-home-crop-note">一包种子种一整畦；小葱一直免费。播种完成后消耗种子，首次浇水开始生长。</p><div class="coo-home-crop-list"></div><button type="button" class="coo-text-button coo-seed-shop" data-testid="home-seed-shop">去便利店买种子</button></div><p class="coo-home-crop-status" role="status"></p></section>`;
   root.append(overlay);
   const dialog=overlay.querySelector('section'),title=overlay.querySelector('h2'),inspect=overlay.querySelector('.coo-home-plot-inspect'),choice=overlay.querySelector('.coo-home-crop-choice'),list=overlay.querySelector('.coo-home-crop-list'),status=overlay.querySelector('.coo-home-crop-status');
-  let selected=null,life=null,returnFocus=null,request=null,busy=false,generation=0;
+  let selected=null,life=null,returnFocus=null,request=null,busy=false,generation=0,economy=null;
   function open(kind,id,button){generation++;selected=id;returnFocus=button;overlay.hidden=false;inspect.hidden=kind!=='inspect';choice.hidden=kind!=='choose';title.textContent=`菜畦 ${id.slice(5)} · ${kind==='inspect'?'生长记录':'选择作物'}`;dialog.setAttribute('aria-label',title.textContent);status.textContent='';overlay.querySelector('button').focus();}
   function close(){generation++;overlay.hidden=true;selected=null;request=null;if(returnFocus?.isConnected&&returnFocus.getClientRects().length)returnFocus.focus();else root.querySelector('[data-testid=home-follow]')?.focus();returnFocus=null;}
   function paint(){
-    if(overlay.hidden||inspect.hidden)return;
+    if(overlay.hidden)return;
+    if(!choice.hidden){paintChoices();return;}
+    if(inspect.hidden)return;
     const plot=life?.garden?.plots.find(p=>p.id===selected);if(!plot)return;
     const info=plotInformation(plot,life.now,life.paused);
     Object.assign(inspect.dataset,{plotId:plot.id,stage:plot.stage,growth:String(plot.growth)});
@@ -40,6 +42,16 @@ export function createGardenPanel({root,signal,onSow}){
     inspect.querySelector('.coo-plot-history').textContent=`累计采收 ${plot.harvests} 次${history.length?` · ${history.join('、')}`:' · 本版开始记录收获数量'}`;
   }
   function showDetails(id,button){open('inspect',id,button);paint();}
+  function paintChoices(){
+    for(const option of list.children){
+      const crop=life?.garden?.crops.find(c=>c.id===option.dataset.cropId);if(!crop)continue;
+      const seed=economy?.items.find(item=>item.category==='seed'&&item.cropId===crop.id),stock=life?.inventory?.items.find(item=>item.id===seed?.id),count=stock?.quantity??0;
+      // Before the economy catalog is ready, only the universally free crop is actionable.
+      const free=seed?.free===true||crop.id==='spring-onion';
+      option.disabled=busy||(!free&&count<1);option.title=free?'永久免费，可以直接播种':count>0?'播种成功消耗一包种子':'种子不足，请先到便利店购买';
+      option.querySelector('[data-crop-stock]').textContent=free?'免费种子 · 无限':`拥有 ${count} 包${seed?` · ${seed.buyPrice} 金币/包`:''}`;
+    }
+  }
   function chooseCrop(entry,action,button){
     open('choose',entry.id,button);request={entry,action};list.replaceChildren();
     for(const crop of life?.garden?.crops??[]){
@@ -47,19 +59,21 @@ export function createGardenPanel({root,signal,onSow}){
       const symbol=document.createElement('span');symbol.className='coo-crop-symbol';symbol.innerHTML=icon('leaf');
       const name=document.createElement('strong');name.textContent=crop.label;
       const details=document.createElement('span');details.textContent=`${crop.growMinutes} 分钟 · ${crop.yieldCount} ${crop.yieldUnit}`;
-      option.append(symbol,name,details);option.addEventListener('click',async()=>{
+      const stock=document.createElement('small');stock.dataset.cropStock='';
+      option.append(symbol,name,details,stock);option.addEventListener('click',async()=>{
         if(busy||!request)return;busy=true;const current=generation,pending=request;status.textContent='正在安排播种…';for(const b of list.children)b.disabled=true;
         try{const done=await onSow(pending.entry,pending.action,crop.id);if(current===generation){if(done)close();else status.textContent='未能安排播种，请检查菜地状态后重试。';}}
-        finally{busy=false;if(current===generation)for(const b of list.children)b.disabled=false;}
+        finally{busy=false;if(current===generation)paintChoices();}
       },{signal});list.append(option);
     }
-    if(!list.children.length)status.textContent='作物目录暂不可用，请稍后重试。';
+    paintChoices();if(!list.children.length)status.textContent='作物目录暂不可用，请稍后重试。';
   }
+  overlay.querySelector('[data-testid=home-seed-shop]').addEventListener('click',event=>{close();onShop(event.currentTarget);},{signal});
   overlay.querySelector('[data-testid=home-garden-close]').addEventListener('click',close,{signal});
   overlay.addEventListener('click',event=>{if(event.target===overlay)close();},{signal});
   overlay.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}
     if(event.key==='Tab'){const nodes=[...overlay.querySelectorAll('button:not(:disabled)')].filter(e=>e.getClientRects().length),first=nodes[0],last=nodes.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
   },{signal});
-  return{showDetails,chooseCrop,close,receive(value){life=value;paint();},get open(){return !overlay.hidden;},dispose(){overlay.remove();}};
+  return{showDetails,chooseCrop,close,setCatalog(value){economy=value?.economy??null;paint();},receive(value){life=value;paint();},get open(){return !overlay.hidden;},dispose(){overlay.remove();}};
 }

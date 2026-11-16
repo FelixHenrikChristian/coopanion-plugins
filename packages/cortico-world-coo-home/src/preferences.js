@@ -17,7 +17,8 @@ export const HOME_PROMPT_VARS=Object.freeze([
   {name:'home.activity',description:'家园当前正在进行的活动；不包含桌面动作或家园聊天。'},
   {name:'home.needs',description:'家园的精力、饱腹、整洁和舒适状态。'},
   {name:'home.garden',description:'八块菜畦的作物和生长阶段。',multiline:true},
-  {name:'home.inventory',description:'家园背包中已经采收的作物数量。',multiline:true}
+  {name:'home.inventory',description:'背包中的农作物、种子和食品数量，以及未被任务预留的可用数量。',multiline:true},
+  {name:'home.wallet',description:'家园金币余额、待完成订单预留金额与可用金币。'}
 ]);
 export function homePromptDocument(dataDir,language='zh'){
   if(typeof dataDir!=='string'||!dataDir)return null;

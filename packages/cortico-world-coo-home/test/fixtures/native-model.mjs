@@ -10,6 +10,7 @@ import {pathToFileURL} from 'node:url';
 import {HomeModel,loadHostSdk} from '../../src/model.js';
 import {HomeChat} from '../../src/chat.js';
 import {CooHomeWorld,DESCRIBE} from '../../src/index.js';
+import {economyCatalog} from '../../src/economy.js';
 
 const app=process.env.COOPANION_APP_ROOT;
 if(!app)throw Error('Set COOPANION_APP_ROOT to the installed application source directory.');
@@ -56,15 +57,26 @@ try{
       result.output=hasTool&&!hasReceipt
         ?[{type:'function_call',id:`fc_fixture_${requests.length}`,call_id:`call_fixture_${requests.length}`,name:'coo_home',arguments:'{"operation":"status"}',status:'completed'}]
         :[{type:'message',id:`msg_fixture_${requests.length}`,role:'assistant',status:'completed',content:[{type:'output_text',text:'Neutral local response.',annotations:[]}]}];
-      if(scenario==='strict-world'){
+      if(scenario==='strict-world'||scenario==='strict-commerce'){
         const tool=body.tools.find(tool=>tool.name==='coo_home');assert.equal(tool.strict,true);
         assert.deepEqual(tool.parameters.required,Object.keys(tool.parameters.properties));
         for(const [key,value] of Object.entries(tool.parameters.properties))if(key!=='operation')assert.ok(value.type.includes('null'));
         for(const receipt of receipts)assert.equal(JSON.parse(receipt.output).ok,true,'The real World rejected a valid strict call');
         const call=(id,args,ordinal)=>({type:'function_call',id:`fc_strict_${requests.length}_${ordinal}`,call_id:id,name:'coo_home',arguments:JSON.stringify(strictArgs(args)),status:'completed'});
-        if(receipts.length===0)result.output=[call('strict-catalog',{operation:'catalog'},0),call('strict-status',{operation:'status'},1)];
+        if(scenario==='strict-commerce'){
+          if(receipts.length===0)result.output=[call('commerce-catalog',{operation:'catalog'},0),call('commerce-status',{operation:'status'},1)];
+          else if(receipts.length===2){
+            assert.ok(JSON.parse(receipts[0].output).economy.items.some(item=>item.id==='food-milk'));
+            const args={operation:'commerce',kind:'buy',lines:[{itemId:'food-milk',quantity:1}],enqueue:false};
+            result.output=[call('commerce-milk',args,0),call('commerce-milk',args,1)];
+          }else if(receipts.length===4){
+            assert.equal(JSON.parse(receipts[2].output).accepted,true);
+            assert.equal(JSON.parse(receipts[3].output).taskId,JSON.parse(receipts[2].output).taskId);
+            result.output=[call('commerce-tea',{operation:'commerce',kind:'tea',lines:[{itemId:'tea-hojicha',quantity:1}],enqueue:false},0)];
+          }else{assert.equal(receipts.length,5);assert.equal(JSON.parse(receipts[4].output).outcome,'queued');}
+        }else if(receipts.length===0)result.output=[call('strict-catalog',{operation:'catalog'},0),call('strict-status',{operation:'status'},1)];
         else if(receipts.length===2){
-          assert.equal(JSON.parse(receipts[0].output).items.length,40);
+          assert.equal(JSON.parse(receipts[0].output).items.length,47);
           const args={operation:'gardenPlan',plotIds:Array.from({length:8},(_,i)=>`plot-${i+1}`),cropId:'spring-onion'};
           result.output=[call('strict-garden',args,0),call('strict-garden',args,1)];
         }else if(receipts.length===4){
@@ -88,7 +100,7 @@ try{
       }
       result.usage={input_tokens:10,output_tokens:5,total_tokens:15,input_tokens_details:{cached_tokens:0},output_tokens_details:{reasoning_tokens:0}};
       emit({type:'response.completed',response:result});res.end();
-    }catch{res.writeHead(500,{'content-type':'application/json'});res.end('{"error":{"message":"Neutral fixture contract failure"}}');}
+    }catch(error){console.error(error);if(!res.headersSent)res.writeHead(500,{'content-type':'application/json'});res.end('{"error":{"message":"Neutral fixture contract failure"}}');}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const botDir=join(temporary,'bot'),stateRoot=sdk.providersRoot(),providerDir=join(stateRoot,'neutral-endpoint');
@@ -133,7 +145,17 @@ try{
   for(let i=0;i<20&&world.life.state.current;i++){clock=world.life.state.current.endsAt+1;await world.tick();}
   const finished=world.status().life;assert.equal(finished.plans[0].status,'completed');assert.equal(finished.plans[0].completed,16);assert.equal(finished.items['living.tv'].uses,1);
   assert.ok(finished.garden.plots.every(plot=>plot.cropId==='spring-onion'&&plot.cycle===1&&plot.growthStartedAt!==null));
-  console.log(JSON.stringify({nativeAdapter:'openai-responses-compat',legacyRejection:'HTTP 400',officialControl:'passed',homeChat:'passed',toolFollowup:'passed',savedHistoryReplay:'passed',strictNullableWorldTools:'passed',eightPlotPlanAndTV:'completed',duplicateCalls:'not repeated',externalRequests:0}));
+  scenario='strict-commerce';
+  await world.webUi().invoke('home','chatSend',[{text:'Neutral fixture: buy one milk, then go inside the teahouse and drink hojicha.',clientId:'strict-commerce-plan'}]);
+  for(let i=0;i<300&&world.chat.snapshot().job.status==='running';i++)await sleep(10);
+  assert.equal(world.chat.snapshot().job.status,'done');assert.equal(world.life.state.current.itemId,'shop.counter');assert.equal(world.life.state.queue.length,1);
+  assert.equal(world.status().life.wallet.balance,100);
+  const teaTarget=world.life.state.queue[0].itemId;assert.match(teaTarget,/^teahouse\.cushion\./);
+  for(let i=0;i<3&&world.life.state.current;i++){clock=world.life.state.current.endsAt+1;await world.tick();}
+  const bought=world.status().life;assert.equal(bought.inventory.items.find(item=>item.id==='food-milk').quantity,1);
+  const prices=economyCatalog().items;assert.equal(bought.wallet.balance,100-prices.find(item=>item.id==='food-milk').buyPrice-prices.find(item=>item.id==='tea-hojicha').buyPrice);
+  assert.equal(bought.transactions.filter(row=>row.kind==='buy').length,1);assert.equal(bought.transactions.filter(row=>row.kind==='tea').length,1);
+  console.log(JSON.stringify({nativeAdapter:'openai-responses-compat',legacyRejection:'HTTP 400',officialControl:'passed',homeChat:'passed',toolFollowup:'passed',savedHistoryReplay:'passed',strictNullableWorldTools:'passed',eightPlotPlanAndTV:'completed',commerceAndTea:'completed',duplicateCalls:'not repeated',externalRequests:0}));
 }finally{
   await world?.stop();await chat?.stop();await model?.close();await registry?.stopAll();
   if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

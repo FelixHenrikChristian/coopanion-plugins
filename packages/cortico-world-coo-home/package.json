@@ -1,8 +1,8 @@
 {
   "name": "cortico-world-coo-home",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
-  "description": "A rainy-night Japanese miniature neighborhood: independent companion life, furniture interactions, gardening and a harvest backpack.",
+  "description": "A rainy-night Japanese miniature neighborhood: independent companion life, gardening, shopping and teahouse visits.",
   "license": "MIT",
   "main": "src/index.js",
   "exports": "./src/index.js",
@@ -27,6 +27,7 @@
     "src/life.js",
     "src/storage.js",
     "src/garden.js",
+    "src/economy.js",
     "src/model.js",
     "src/chat.js",
     "src/brain.js",
@@ -64,11 +65,11 @@
     "locales": {
       "zh": {
         "displayName": "coo家园",
-        "description": "雨夜日式微缩街区，独立家园生活、家具互动、自由种菜与收获背包。"
+        "description": "雨夜日式微缩街区：独立家园生活、自由种菜、便利店购物卖菜与茶房品茶。"
       },
       "en": {
         "displayName": "Coo Home",
-        "description": "A rainy-night Japanese miniature neighborhood: independent companion life, furniture interactions, gardening and a harvest backpack."
+        "description": "A rainy-night Japanese miniature neighborhood: independent companion life, gardening, shopping and teahouse visits."
       }
     },
     "icon": "assets/icon.svg",
@@ -80,10 +81,10 @@
     ],
     "screenshots": [
       "assets/world.jpg",
+      "assets/lulu-shop.jpg",
+      "assets/lulu-tea.jpg",
       "assets/lulu-garden.jpg",
       "assets/lulu-study.jpg",
-      "assets/lulu-living.jpg",
-      "assets/lulu-sleep.jpg",
       "assets/backpack.jpg",
       "assets/config.jpg",
       "assets/environment.jpg"

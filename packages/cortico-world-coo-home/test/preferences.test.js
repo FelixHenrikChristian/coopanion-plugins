@@ -78,7 +78,7 @@ test('normalization retains only the document schema and stop closes an overlapp
 test('native editor uses a role-free document with declared safe variables and no main-session injection contract',async t=>{
   const f=await fixture(t),doc=homePromptDocument(f.directory);
   assert.equal(doc.role,undefined);assert.equal(doc.deploymentPath,f.path('ENVIRONMENT.md'));assert.notEqual(doc.path,doc.deploymentPath);
-  assert.deepEqual(doc.vars.map(value=>value.name),['home.activity','home.needs','home.garden','home.inventory']);
+  assert.deepEqual(doc.vars.map(value=>value.name),['home.activity','home.needs','home.garden','home.inventory','home.wallet']);
   assert.equal(renderHomeTemplate('{{home.activity}} / {{home.inventory | 空}} / {{unknown}}',{'home.activity':'阅读','home.inventory':''}),'阅读 / 空 / {{unknown}}');
   const p=f.create({native:true});await p.start();await writeFile(f.path('ENVIRONMENT.md'),'中性编辑：{{home.activity}}');assert.equal(p.text({'home.activity':'用餐'}),'中性编辑：用餐');
   assert.equal(homePromptDocument(f.directory).path,f.path('ENVIRONMENT.md'));await p.stop();

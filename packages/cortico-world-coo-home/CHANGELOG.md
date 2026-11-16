@@ -1,5 +1,16 @@
 # Changes
 
+## 0.5.0 — shopping and teahouse visits
+
+- Add a one-time 100-coin welcome balance, unlimited free spring-onion seeds and progressively priced seed packets for seven other crops.
+- Buy ten foods and drinks or seeds, sell harvested crops, and complete transactions by physically entering the existing convenience store and reaching its counter.
+- Enter the existing teahouse, use either cushion, and enjoy sencha, hojicha or matcha with sweets; retain free basic household meals and tea.
+- Extend the backpack with seeds and food, and consume one purchased item at the home dining table.
+- Reserve funds and inventory for tasks; settle only on completion, release on cancellation and retain idempotent receipts across retries and restarts. Autonomous behavior cannot spend, sell or consume paid supplies.
+- Migrate recorded crop quantities once into mutable save-format-5 inventory, preserving planting progress and lifetime harvest totals.
+- Reuse the existing zebra crossing, entrances, interiors and art; add automatic doors and building-aware cutaway without extra animation loops or camera jumps.
+- Expose commerce through strict Responses-compatible tools and add a native home.wallet environment variable.
+
 ## 0.4.0 — first public release
 
 - Align seated and lying figures to each furniture support surface using the visible artwork bounds; keep a small clearance and preserve foreground occlusion.

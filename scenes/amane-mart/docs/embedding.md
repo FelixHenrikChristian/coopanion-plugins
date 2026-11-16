@@ -31,6 +31,9 @@ the existing `amane:home-item` / `amane:home-view` events.
 | `listItems()`, `getItem(id)` | Serializable copies of the furniture/plot registry. |
 | `getObject(id)` | A local Three.js object for visual integration; never send it over a host message bridge. |
 | `getView()`, `setView(mode)` | `exterior`, `walls`, `cutaway`, or `open`. |
+| `setActorPosition([x,y,z] \| null)` | Notify the existing frame loop of the actor's world position. Drives shop doors and selects a building when entering its threshold; it never moves the camera. |
+| `setActiveBuilding(id)` | Select `home`, `shop`, or `teahouse` for automatic cutaway; `null` selects home. Inspection can select a building before the actor arrives. |
+| `getBuildingState()` | Current building, wall/roof counts and automatic door opening state, for integration diagnostics. |
 | `finishAssembly()` | Finish the entrance animation on the next update. |
 | `project([x,y,z])` | `{x,y,depth,ndcDepth,visible,viewport}`. The first two values are local CSS pixels; depth is NDC in `[-1,1]`. `ndcDepth` is an alias. |
 | `getCameraPose()` | `{eye:[x,y,z], target:[x,y,z], fov}`. |
@@ -87,7 +90,7 @@ host needs those effects.
 ## Navigation and furniture state
 
 `getNavigationData()` returns a fresh serializable contract with schema/layout
-versions, metre coordinates, floor polygons, solid footprints, 40 destinations
+versions, metre coordinates, floor polygons, solid footprints, 47 destinations
 and a verified undirected graph. Import the same function from
 `src/navigation-data.js` in a Node build; it has no DOM or Three.js dependency.
 `node scripts/export-navigation.mjs` writes JSON to stdout (or a supplied output
@@ -101,12 +104,21 @@ recompiling the graph. The graph compiler does not remeasure the rendered model.
 
 The physical radius is 0.18 m plus 0.02 m clearance. The 0.445 m planting-bed
 aisles require the documented grid phase if a host rebuilds a raster search.
-The supplied 82-node graph avoids ongoing grid searches. The pure
+The supplied 104-node graph avoids ongoing grid searches. The pure
 `createNavigationQuery(layout)` helper provides `locate`, `surfaceAt`,
 `isWalkable` and `segmentWalkable`; use the same circular obstacle inflation.
 Walk heights follow the selected floor surface, including the entrance steps.
 Cutaway visibility never alters these obstacles. Leaves are visual occluders;
-pots and bed frames are physical obstacles. Street shops are outside this map.
+pots and bed frames are physical obstacles. The existing zebra crossing connects
+home to the convenience store and teahouse; record shop, laundry and neighboring
+apartments remain outside the map. Sloped curb ramps interpolate their actual
+height, and only the measured store/teahouse thresholds permit their taller step.
+
+Automatic cutaway opens the occupied or selected building while keeping the
+other buildings' exteriors. The other three modes apply to all three buildings.
+Roof light ribbons and wall decoration follow the corresponding shell; interior
+light emitters keep their original intensity. Doors animate only in `update`,
+so `stop` or a suspended host frame loop does not leave a background animation.
 
 `getActionSlots(itemId)` returns the action-specific ground approach, facing
 vector `[x,z]`, target and occupancy group. `pose.position` is the character's

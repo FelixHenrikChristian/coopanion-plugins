@@ -8,8 +8,8 @@ export async function verifyLifeContract(fixture) {
   const layout = getNavigationData();
   const geometry = createNavigationQuery(layout);
   const catalog = fixture.catalog();
-  assert.equal(catalog.length, 40);
-  assert.equal(catalog.filter(item => item.kind === 'furniture').length, 32);
+  assert.equal(catalog.length, 47);
+  assert.equal(catalog.filter(item => item.kind === 'furniture').length, 39);
   assert.equal(catalog.filter(item => item.kind === 'plot').length, 8);
   await fixture.invoke('settings', [{ autonomy: false }]);
   await fixture.invoke('cancel');
@@ -36,6 +36,7 @@ export async function verifyLifeContract(fixture) {
     for (const action of item.actions) {
       // Garden mutations have ordered stage requirements and are exercised by
       // the garden-cycle integration check, not this navigation inventory loop.
+      if (['shop', 'buy', 'sell', 'orderTea', 'consume'].includes(action.canonical)) continue;
       if (item.kind === 'plot' && !['look', 'inspect', 'walk'].includes(action.canonical)) continue;
       const accepted = await fixture.invoke('command', [{ itemId: item.id, actionId: action.id }]);
       const task = accepted.life.current;
@@ -108,5 +109,5 @@ export async function verifyLifeContract(fixture) {
   const again = await fixture.restart(3000);
   assert.equal(again.life.items['bedroom.bed'].uses, savedUses, 'Reloading must not settle a completed action twice');
   assert.equal(again.life.current, null);
-  return { furniture: 32, plots: 8, actions: actionCount, routing: 'Every declared action reached its slot without crossing semantic geometry', results: 'Accepted, arrived and completed checked separately', control: 'Queue, pause, resume, cancellation and manual priority', saves: 'Real stop/restart, offline catch-up and idempotent settlement; no figure data' };
+  return { furniture: 39, plots: 8, actions: actionCount, routing: 'Every declared action reached its slot without crossing semantic geometry', results: 'Accepted, arrived and completed checked separately', control: 'Queue, pause, resume, cancellation and manual priority', saves: 'Real stop/restart, offline catch-up and idempotent settlement; no figure data' };
 }

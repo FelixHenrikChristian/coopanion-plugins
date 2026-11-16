@@ -25,6 +25,7 @@ import {createInteractionHover} from './interaction-hover.js';
 import {getNavigationData,getActionSlots} from './navigation-data.js';
 import {createNavigationQuery} from './navigation-query.js';
 import {createPlotVisuals} from './plot-visuals.js';
+import {buildingAt} from './commerce-spaces.js';
 
 export function createNeighborhood({root,onItem=()=>{},onView=()=>{},reducedMotion,autoStart=true}={}){
 if(!root?.appendChild)throw new TypeError('A scene root element is required');
@@ -45,13 +46,13 @@ renderer.shadowMap.needsUpdate=true;
 const scene=new THREE.Scene();
 const stages=[];
 const kit=makeKit(scene,stages);
-const roadStage=buildGround(kit);
-buildStore(kit);
-buildProps(kit);
-addFinishing(kit);
-buildTeahouse(kit);
-buildGarden(kit);
 const registry=makeHomeRegistry();
+const roadStage=buildGround(kit);
+const shopShell=buildStore(kit,registry.register);
+buildProps(kit);
+const finishing=addFinishing(kit);shopShell.roof.push(finishing.shopRoof);
+const teaShell=buildTeahouse(kit,registry.register);
+buildGarden(kit);
 const plotBeds=buildHomeGrounds(kit,registry.register);
 buildStationRow(kit);
 const shell=buildHomeShell(kit);
@@ -141,11 +142,11 @@ function fittedDistance(aspect) {
 }
 const weather=makeWeather(scene,renderer,camera,roadStage);
 let finishOnRequest=false,hover=null;
-const homeView=createHomeView({camera,controls,shell,button,onView,reducedMotion,signal,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(mode){
+const homeView=createHomeView({camera,controls,shell,commercialShells:[shopShell,teaShell],button,onView,reducedMotion,signal,items:registry.items(),finishAssembly(){finishOnRequest=true;},onChange(mode){
   lightsDirty=true;renderer.shadowMap.needsUpdate=true;weather.setHomeOpen(mode!=='exterior');weather.invalidate();hover?.invalidate();
 }});
 const follow=createCameraFollow({camera,controls,onChange:()=>weather.invalidate()});
-const catalog=registry.connect(canvas,camera,scene,homeView,{onItem,signal});
+const catalog=registry.connect(canvas,camera,scene,homeView,{onItem(item){if(item.room!=='garden')homeView.setActiveBuilding(item.building??'home');onItem(item);},signal});
 hover=createInteractionHover({canvas,camera,getObject:catalog.getObject,pickSurface,getViewport:()=>viewport,signal});
 const onControlChange=()=>{weather.invalidate();hover.invalidate();};
 controls.addEventListener('change',onControlChange);
@@ -218,6 +219,7 @@ function update(stamp=ownerWindow.performance.now()){
   animatingPrev=animating;
   const dt=lastFrame?Math.min((stamp-lastFrame)/1000,.05):0;
   lastFrame=stamp;weatherTime+=dt;
+  if(shopShell.updateDoor(dt)){renderer.shadowMap.needsUpdate=true;weather.invalidate();hover.invalidate();}
   furnitureVisuals.update(weatherTime,isReduced);
   controls.update();homeView.update();hover.update(stamp);
   if(lightsDirty)syncFixtureLights();
@@ -269,6 +271,17 @@ function setCameraPose(pose){
 function setFollowTarget(position){
   if(disposed)return follow.getState();
   homeView.cancelTravel();return follow.setTarget(position);
+}
+let actorBuilding=null;
+function setActorPosition(position){
+  if(disposed)return;
+  if(position!==null&&(!Array.isArray(position)||position.length!==3||!position.every(Number.isFinite)))throw new TypeError('Invalid actor position');
+  shopShell.setActorPosition(position);
+  const next=buildingAt(position);
+  // A selected shop can be inspected while walking there. Crossing a threshold
+  // makes the actual destination active; orbiting alone never changes the view.
+  if(next&&next!==actorBuilding)homeView.setActiveBuilding(next);
+  actorBuilding=next;
 }
 function getRendererInfo(){
   return {frames:frameCount,running,disposed,viewport:{...viewport},
@@ -325,6 +338,8 @@ return Object.freeze({
   ...catalog,canvas,element:container,setView(mode){if(!disposed)homeView.setMode(mode);},getView:homeView.getMode,
   project,projectBillboard,getCameraPose,setCameraPose,setFollowTarget,getFollowState:follow.getState,getRendererInfo,pickSurface,pickWalkable,
   setHoveredItem:hover.set,getHoverState:hover.getState,
+  setActorPosition,setActiveBuilding(id){if(!disposed)homeView.setActiveBuilding(id);},
+  getBuildingState(){return {...homeView.getBuildingState(),actorBuilding,door:shopShell.getDoorState()};},
   getNavigationData,getActionSlots,setFurnitureVisuals,getFurnitureVisuals:furnitureVisuals.getFurnitureVisuals,
   setPlotVisuals,getPlotVisuals:plotVisuals.getPlotVisuals,
   update,start,stop,resize,dispose,renderActorMask:mask.render,

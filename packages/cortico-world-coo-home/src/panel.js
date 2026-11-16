@@ -3,6 +3,7 @@ import {createFigureLayer} from './figure.js';
 import {createLifePanel} from './life-panel.js';
 import {createChatPanel} from './chat-panel.js';
 import {createBackpackPanel} from './backpack-panel.js';
+import {createCommercePanel} from './commerce-panel.js';
 import {createHomeAudio} from './audio.js';
 import {icon} from './ui-icons.js';
 
@@ -10,18 +11,18 @@ export async function mount(ctx){
   const abort=new AbortController(),signal=abort.signal;
   const stop=()=>dispose();ctx.signal.addEventListener('abort',stop,{once:true});
   const root=document.createElement('section');root.className='coo-home-root';root.dataset.testid='coo-home-root';
-  root.innerHTML=`<div class="coo-home-stage" data-testid="home-scene"></div><div class="coo-home-toolbar"><div class="coo-home-brand">${icon('home')}<div><span class="coo-home-title">coo家园</span><span class="coo-home-status" role="status" data-testid="home-status">正在打开街区…</span></div></div><div class="coo-home-toolbar-actions"><button type="button" class="coo-tool-button" data-testid="home-follow" aria-pressed="false" title="定位并跟随角色">${icon('focus')}<span>跟随角色</span></button><button type="button" class="coo-tool-button" data-testid="home-fullscreen" title="全屏查看">${icon('expand')}<span>全屏</span></button></div></div><div class="coo-home-item" role="status" hidden></div>`;
+  root.innerHTML=`<div class="coo-home-stage" data-testid="home-scene"></div><div class="coo-home-toolbar"><div class="coo-home-brand">${icon('home')}<div><span class="coo-home-title">coo家园</span><span class="coo-home-status" role="status" data-testid="home-status">正在打开街区…</span></div></div><div class="coo-home-toolbar-actions"><span class="coo-wallet coo-toolbar-wallet" data-testid="home-wallet" role="status" aria-label="金币余额">${icon('coin')}<strong>—</strong><span>金币</span></span><button type="button" class="coo-tool-button" data-testid="home-follow" aria-pressed="false" title="定位并跟随角色">${icon('focus')}<span>跟随角色</span></button><button type="button" class="coo-tool-button" data-testid="home-fullscreen" title="全屏查看">${icon('expand')}<span>全屏</span></button></div></div><div class="coo-home-item" role="status" hidden></div>`;
   ctx.root.append(root);
   const stage=root.querySelector('.coo-home-stage'),status=root.querySelector('[role=status]'),item=root.querySelector('.coo-home-item');
   const notice=text=>{if(!signal.aborted)status.textContent=text;};
   const frameMs=1000/60;
   let frameHandle=null,stream=null,disposed=false,disposal=null,elapsed=0,renderBudget=frameMs,lastVisible=false,hideItem=null;
-  let scene=null,actor=null,lifePanel=null,chatPanel=null,backpack=null,audio=null;
+  let scene=null,actor=null,lifePanel=null,chatPanel=null,backpack=null,commerce=null,audio=null;
   function feedback(text){if(signal.aborted)return;item.textContent=text;item.hidden=false;clearTimeout(hideItem);hideItem=setTimeout(()=>{item.hidden=true;},3500);}
   function dispose(){
     if(disposed)return disposal;disposed=true;abort.abort();
     ctx.signal.removeEventListener('abort',stop);clearTimeout(hideItem);
-    stream?.dispose();frameHandle?.dispose();lifePanel?.dispose();chatPanel?.dispose();backpack?.dispose();actor?.dispose();
+    stream?.dispose();frameHandle?.dispose();lifePanel?.dispose();chatPanel?.dispose();backpack?.dispose();commerce?.dispose();actor?.dispose();
     disposal=Promise.all([scene?.dispose(),audio?.dispose()]);root.remove();
     return disposal;
   }
@@ -30,12 +31,19 @@ export async function mount(ctx){
     root.dataset.itemCount=String(scene.listItems().length);
     audio=createHomeAudio({ctx,signal,onTalk:()=>actor?.talk()});
     actor=createFigureLayer({root:stage,scene,signal,onStatus:notice,onSound:event=>audio.playFigureSound(event)});
-    lifePanel=createLifePanel({root,scene,actor,ctx,signal,send:text=>stream?.send(text),feedback});
+    function showCommerce(kind,options){backpack?.close();return commerce.show(kind,options);}
+    function receiveLife(state){
+      if(signal.aborted||!state?.life)return;lifePanel.receive(state);const life=lifePanel.getState();if(!life)return;
+      backpack?.receive(life);commerce?.receive(life);
+      const wallet=root.querySelector('[data-testid=home-wallet]');wallet.querySelector('strong').textContent=life.wallet?life.wallet.balance.toLocaleString('zh-CN'):'—';wallet.title=life.wallet?`可用 ${life.wallet.available} 金币${life.wallet.reserved?` · 预留 ${life.wallet.reserved}`:''}`:'正在读取金币';
+    }
+    commerce=createCommercePanel({root,ctx,signal,feedback,onState:receiveLife});
+    lifePanel=createLifePanel({root,scene,actor,ctx,signal,send:text=>stream?.send(text),feedback,onCommerce:showCommerce,onCatalog:result=>{commerce.setCatalog(result);backpack?.setCatalog(result.economy);}});
     chatPanel=createChatPanel({root,ctx,signal,feedback,onReply:(text,options)=>{void audio.speak(text,options).catch(()=>{});}});
-    backpack=createBackpackPanel({root,signal});
-    const backpackButton=document.createElement('button');backpackButton.type='button';backpackButton.className='coo-tool-button';backpackButton.dataset.testid='home-backpack';backpackButton.title='查看收获背包';backpackButton.setAttribute('aria-expanded','false');backpackButton.innerHTML=`${icon('backpack')}<span>背包</span>`;
+    backpack=createBackpackPanel({root,signal,onShop:button=>showCommerce('buy',{button}),onUse:(value,button)=>{if(showCommerce('consume',{button,itemId:value.id}))void commerce.submit();}});
+    const backpackButton=document.createElement('button');backpackButton.type='button';backpackButton.className='coo-tool-button';backpackButton.dataset.testid='home-backpack';backpackButton.title='查看物品与收获背包';backpackButton.setAttribute('aria-expanded','false');backpackButton.innerHTML=`${icon('backpack')}<span>背包</span>`;
     root.querySelector('[data-testid=home-fullscreen]').before(backpackButton);
-    backpackButton.addEventListener('click',()=>backpack.open?backpack.close():backpack.show(backpackButton),{signal});
+    backpackButton.addEventListener('click',()=>{commerce.close();if(backpack.open)backpack.close();else backpack.show(backpackButton);},{signal});
     for(const name of ['pointerdown','keydown'])root.addEventListener(name,event=>{if(event.isTrusted)void audio.unlock();},{signal,capture:true});
     const button=root.querySelector('[data-testid=home-fullscreen]');
     const follow=root.querySelector('[data-testid=home-follow]');
@@ -48,7 +56,7 @@ export async function mount(ctx){
     document.addEventListener('fullscreenchange',()=>{button.querySelector('span').textContent=document.fullscreenElement===root?'退出全屏':'全屏';scene.resize();},{signal});
     let received=0;
     function receive(text){
-      try {const value=JSON.parse(text);received++;if(value?.appearance){actor.setAppearance(value.appearance);audio.configure(value.appearance.audio??null);}lifePanel.receive(value);chatPanel.receive(value);if(value.life)backpack.receive(value.life);}
+      try {const value=JSON.parse(text);received++;if(value?.appearance){actor.setAppearance(value.appearance);audio.configure(value.appearance.audio??null);}receiveLife(value);chatPanel.receive(value);}
       catch {notice('家园连接正在恢复…');}
     }
     // Subscribe before fetching the current snapshot so the initial selection
@@ -71,8 +79,8 @@ export async function mount(ctx){
     const revision=received;
     try {
       const state=await ctx.invoke('status');
-      if(!signal.aborted&&received===revision){if(state.appearance){actor.setAppearance(state.appearance);audio.configure(state.appearance.audio??null);}lifePanel.receive(state);chatPanel.receive(state);if(state.life)backpack.receive(state.life);}
+      if(!signal.aborted&&received===revision){if(state.appearance){actor.setAppearance(state.appearance);audio.configure(state.appearance.audio??null);}receiveLife(state);chatPanel.receive(state);}
     }catch {notice('场景已打开，角色连接暂不可用。');}
-    return {dispose,scene,actor,audio,getLifeState:()=>lifePanel.getState(),getChatState:()=>chatPanel.getChatState(),getBrainState:()=>chatPanel.getBrainState()};
+    return {dispose,scene,actor,audio,getLifeState:()=>lifePanel.getState(),getChatState:()=>chatPanel.getChatState(),getBrainState:()=>chatPanel.getBrainState(),getCommerceState:()=>commerce.getState()};
   }catch(error){dispose();throw error;}
 }

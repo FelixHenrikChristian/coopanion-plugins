@@ -112,13 +112,13 @@ try {
     state: window.__homeHarness.panel.actor.getState(),
     original: window.__homeHarness.metrics.original,
   }));
-  assert.equal(initial.count, 40);
-  assert.equal(new Set(initial.ids).size, 40);
-  assert.equal(await root.getAttribute('data-item-count'), '40');
+  assert.equal(initial.count, 47);
+  assert.equal(new Set(initial.ids).size, 47);
+  assert.equal(await root.getAttribute('data-item-count'), '47');
   assert.ok(initial.original.some((message) => message.t === 'init'));
   assert.ok(await page.evaluate(() => window.__homeHarness.metrics.messages.some((message) => message.t === 'set' && message.roam === 'off')));
   assert.ok(!initial.original.some((message) => message.t === 'set'));
-  report.checks.catalog = 40;
+  report.checks.catalog = 47;
 
   for (const mode of ['exterior', 'walls', 'cutaway', 'open']) {
     await view(mode);

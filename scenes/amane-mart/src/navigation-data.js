@@ -1,6 +1,7 @@
 import {footprints} from './navigation-footprints.js';
 import {inventory} from './navigation-inventory.js';
 import {navigation} from './navigation-graph.js';
+import {commerceInventory,commerceWalkable,commerceBlockers} from './commerce-spaces.js';
 
 // Coordinates are world metres, +Y up; +Z points away from the residential street.
 // This module is deliberately independent of Three.js and browser globals.
@@ -19,7 +20,7 @@ const walkable=[
   rect('engawa',-8.52,16.1,-1.98,17.0225,.414),
   rect('sidewalk',.17,6.85,9.4,7.25,.18),
   rect('front-yard',.17,7.25,12.7,8.3,.16),
-  rect('allotment',3,8.3,12.7,16.5,.16)
+  rect('allotment',3,8.3,12.7,16.5,.16),...commerceWalkable
 ];
 const adjusted={
   'living.sofa':[-7.8,.41,10.95],
@@ -32,12 +33,14 @@ const adjusted={
 const labels={sit:'坐下',nap:'小睡',tv:'看电视',phone:'看手机',rest:'休息',drink:'饮水',read:'阅读',
 inspect:'查看',toggle:'开关',sleep:'睡觉',dress:'整理穿着',open:'打开',look:'观赏',eat:'用餐',tea:'沏茶',
 snack:'吃点心',wash:'清洗',cook:'做饭',heat:'加热',wear:'换拖鞋',take:'取用',store:'收纳',laundry:'洗衣',
-water:'浇水',desk:'看电脑',draw:'绘画',type:'打字',shower:'淋浴',bath:'泡澡',brush:'刷牙',toilet:'如厕'};
+water:'浇水',desk:'看电脑',draw:'绘画',type:'打字',shower:'淋浴',bath:'泡澡',brush:'刷牙',toilet:'如厕',
+visit:'走进去',shop:'选购商品',buy:'购买商品',sell:'出售农作物',orderTea:'点茶品茶',consume:'吃喝背包里的食物'};
 const itemLabels={
   'living.tv':{toggle:'开关电视'},'bedroom.bedside':{toggle:'开关纸灯'},
   'study.laptop':{desk:'看电脑',type:'键盘打字',toggle:'开关电脑'},
   'living.coffeeTable':{drink:'喝茶'},
-  'bedroom.wardrobe':{dress:'整理衣装',open:'整理衣柜'},'kitchen.fridge':{open:'查看冰箱'},
+  'bedroom.wardrobe':{dress:'整理衣装',open:'整理衣柜'},'kitchen.fridge':{open:'查看冰箱',snack:'吃家常点心（免费）'},
+  'dining.dining':{eat:'吃简餐（免费）'},
   'genkan.shoe':{dress:'整理鞋履',open:'整理鞋柜'},'genkan.umbrella':{take:'取伞',store:'收伞'},
   'genkan.washer':{open:'检查洗衣机'},'living.console':{inspect:'看看柜上小物'},
   'living.shelf':{read:'翻阅杂志'},'living.water':{drink:'接水饮用'},'bedroom.window':{look:'赏花',rest:'窗边休息'},
@@ -46,7 +49,8 @@ const itemLabels={
   'kitchen.prepCart':{inspect:'看看备餐台',cook:'准备食材'},'corridor.gallery':{look:'欣赏挂画'},
   'corridor.ficus':{look:'看看绿植'},'bathroom.sink':{wash:'洗手'},'engawa.plant':{look:'赏花'}
 };
-const byId=new Map(inventory.map(i=>[i.id,i]));
+const allInventory=[...inventory,...commerceInventory];
+const byId=new Map(allInventory.map(i=>[i.id,i]));
 // The Figure protocol has a body bound, not a universal hip bone. Rest its
 // lower visible bound just above each real support; never subtract guessed legs.
 // These are display placements, separate from the walkable approach points.
@@ -56,7 +60,9 @@ const seats={
   'dining.dining':{anchor:[-2.838,.921,10.448],clearance:.045,facing:[0,-1]},
   'study.desk':{anchor:[.016,.921,14.945],clearance:.045,facing:[0,1]},
   'bathroom.toilet':{anchor:[1.46,.886,13.57],clearance:.035,facing:[1,0]},
-  'engawa.chair':{anchor:[-7.73,.6525,16.552],clearance:.035,facing:[0,1]}
+  'engawa.chair':{anchor:[-7.73,.6525,16.552],clearance:.035,facing:[0,1]},
+  'teahouse.cushion.front':{anchor:[-7.64,.6175,-1.06],clearance:.03,facing:[0,-1]},
+  'teahouse.cushion.back':{anchor:[-7.64,.6175,-2.33],clearance:.03,facing:[0,1]}
 };
 const approach=i=>[...(adjusted[i.id]??i.approach)];
 function facing(from,target){
@@ -86,13 +92,13 @@ function actionSlot(item,id){
     fallback:{kind:'standing',position:[...position],facing:[...face]}
   };
 }
-const items=inventory.map(item=>({id:item.id,room:item.room,label:item.label,position:approach(item),
+const items=allInventory.map(item=>({id:item.id,room:item.room,label:item.label,...(item.building?{building:item.building}:{}),position:approach(item),
   actions:(item.room==='garden'?[...item.actions,'播种']:item.actions).map(id=>actionSlot(item,id)),...(item.cropId?{cropId:item.cropId,plotId:item.plotId}:{})}));
 const layout={schemaVersion:1,layoutVersion:1,units:'metres',upAxis:'y',
   defaultFurnitureState:{'living.tv':{on:true},'study.laptop':{on:true},'bedroom.bedside':{on:true},'genkan.washer':{on:true,active:false}},
-  spawn:[.95,.327,9.45],bounds:{minX:-9.2,maxX:12.8,minZ:6.85,maxZ:17.1},
+  spawn:[.95,.327,9.45],bounds:{minX:-10.4,maxX:12.8,minZ:-4.85,maxZ:17.1},
   agent:{radius:.18,clearance:.02,height:1.55,maxStep:.14},
-  cellSize:.05,gridOrigin:[.02,0],walkable,blockers:[...footprints,
+  cellSize:.05,gridOrigin:[.02,0],walkable,blockers:[...footprints,...commerceBlockers,
     {id:'entry-mailbox',minX:2.04,maxX:2.44,minZ:7.47,maxZ:7.60},
     {id:'entry-wall-lamp',minX:2.535,maxX:2.765,minZ:7.448,maxZ:7.659},
     {id:'residential-street-pole',circle:{x:4.24,z:6.80,radius:.185}},

@@ -4,6 +4,8 @@ export async function verifyBrowserGarden({fixture,page,root,canvas,view,painted
   const id='plot-1',states=[];
   await fixture.invoke('settings',[{autonomy:false}]);await fixture.invoke('cancel');await view('open');
   await page.evaluate(id=>{const s=window.__homeHarness.panel.scene,p=s.getItem(id).anchor;s.setCameraPose({eye:[p[0]+3.4,p[1]+5,p[2]+4],target:p});},id);
+  const seedOrder=await fixture.invoke('commerce',[{kind:'buy',lines:[{itemId:'seed-carrot',quantity:1},{itemId:'seed-pepper',quantity:1}],requestId:`${fixture.snapshot().life.now}:browser-garden-seeds`}]);
+  assert.equal(seedOrder.commerce.accepted,true);await fixture.advanceTo(seedOrder.life.current.endsAt+10);
   await painted(8);
   async function sync(state){
     await page.waitForFunction(({revision,now})=>{const s=window.__homeHarness.panel.getLifeState();return s?.revision>=revision&&s.now>=now;},{revision:state.life.revision,now:state.life.now});

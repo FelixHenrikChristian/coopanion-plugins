@@ -15,7 +15,7 @@ for(const [i,crop] of CROP_CATALOG.entries()){
   now+=crop.durationMs+2;advanceGarden(garden,now);applyGardenAction(garden,plot.id,'harvest',now,plot.cycle);
 }
 const populated={inventory:inventorySnapshot(garden)},fixtureData=JSON.stringify({empty,populated}).replaceAll('<','\\u003c');
-const shell=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/src/panel.css"><style>html,body{margin:0;height:100%}[hidden]{display:none!important}.coo-home{width:100vw;height:100vh}</style><main class="coo-home" id="root"><button data-testid="home-backpack">背包</button><button id="outside">外部按钮</button></main><script type="module">import {createBackpackPanel} from '/src/backpack-panel.js';const fixtures=${fixtureData},root=document.querySelector('main'),controller=new AbortController();const panel=createBackpackPanel({root,signal:controller.signal}),trigger=root.querySelector('button');trigger.onclick=()=>panel.show(trigger);window.fixture={fixtures,panel,controller,root,create:createBackpackPanel};panel.receive(fixtures.empty);window.ready=true;</script>`;
+const shell=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/src/panel.css"><style>html,body{margin:0;height:100%}[hidden]{display:none!important}.coo-home-root{width:100vw;height:100vh}</style><main class="coo-home-root" id="root"><button data-testid="home-backpack">背包</button><button id="outside">外部按钮</button></main><script type="module">import {createBackpackPanel} from '/src/backpack-panel.js';const fixtures=${fixtureData},root=document.querySelector('main'),controller=new AbortController();const panel=createBackpackPanel({root,signal:controller.signal}),trigger=root.querySelector('button');trigger.onclick=()=>panel.show(trigger);window.fixture={fixtures,panel,controller,root,create:createBackpackPanel};panel.receive(fixtures.empty);window.ready=true;</script>`;
 const allowed=new Set(['backpack-panel.js','ui-icons.js','panel.css']);
 const server=createServer(async(req,res)=>{
   const path=new URL(req.url,'http://localhost').pathname;
@@ -31,8 +31,8 @@ try{
   const toggle=page.getByTestId('home-backpack'),dialog=page.getByTestId('home-backpack-dialog'),close=page.getByTestId('home-backpack-close');
   assert.equal(await dialog.isVisible(),false);await toggle.click();assert.equal(await dialog.isVisible(),true);assert.equal(await toggle.getAttribute('aria-expanded'),'true');assert.equal(await page.getByTestId('home-backpack-empty').isVisible(),true);
   assert.equal(await page.evaluate(()=>document.activeElement.dataset.testid),'home-backpack-close');
+  await page.keyboard.press('Shift+Tab');assert.equal(await page.evaluate(()=>document.activeElement.dataset.testid),'home-backpack-shop');
   await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.dataset.testid),'home-backpack-close');
-  await page.keyboard.press('Shift+Tab');assert.equal(await page.evaluate(()=>document.activeElement.dataset.testid),'home-backpack-close');
   await page.evaluate(()=>fixture.panel.receive(fixture.fixtures.populated));
   assert.equal(await page.getByTestId('home-backpack-item').count(),8);assert.equal(await page.getByTestId('home-backpack-empty').isVisible(),false);
   for(const item of populated.inventory.items){const card=page.locator(`[data-testid="home-backpack-item"][data-crop-id="${item.cropId}"]`);assert.equal(await card.getAttribute('data-quantity'),String(item.quantity));assert.ok((await card.textContent()).includes(`${item.quantity} ${item.unit}`));}

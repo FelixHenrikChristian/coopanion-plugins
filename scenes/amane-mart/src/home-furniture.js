@@ -442,7 +442,7 @@ export function buildHomeFurniture(k, register) {
     for(const s of [-1,1])rod(a,[s*.176,.434,.16],[s*.182,.831,.205],.016,steel);
     soft(a,0,.756,.204,.42,.165,.054,.025,maple).rotation.x=.08;
   }
-  const dining=furniture('dining','dining','四人橡木餐桌',-3.24,9.77,[-2.28,10.65],['sit','eat','drink'],'kitchen/dining',[.387,.512,.69]);
+  const dining=furniture('dining','dining','四人橡木餐桌',-3.24,9.77,[-2.28,10.65],['sit','eat','drink','consume'],'kitchen/dining',[.387,.512,.69]);
   legs(dining,0,0,1.18,.65,.699,oak,.050);
   soft(dining,0,.733,0,1.61,.084,.905,.041,maple);
   stripedOak(dining,0,.777,0,1.542,.836);

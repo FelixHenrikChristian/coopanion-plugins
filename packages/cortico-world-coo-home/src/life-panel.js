@@ -25,7 +25,7 @@ export function interactionPlacement({x,y,width,height,count,details=false}){
   return {x:clamp(x,half+12,width-half-12),y:clamp(y,56-titleY,height-bottom-16),pillWidth,titleY,footerY,buttons};
 }
 
-export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
+export function createLifePanel({root,scene,actor,ctx,signal,send,feedback,onCommerce=()=>{},onCatalog=()=>{}}){
   const layer=document.createElement('div');layer.className='coo-home-life';
   layer.innerHTML=`<div class="coo-home-menu" role="group" aria-label="物件交互选项" hidden><svg class="coo-home-menu-link" aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0"/></svg><span class="coo-home-menu-anchor" aria-hidden="true"></span><div class="coo-home-menu-head"><strong></strong><button type="button" data-testid="home-menu-close" aria-label="关闭动作菜单">${icon('close')}</button></div><div class="coo-home-actions"></div></div>
     <section class="coo-home-controls" aria-label="家园生活状态"><div class="coo-life-heading"><div class="coo-life-emblem">${icon('home')}</div><div><span class="coo-eyebrow">此刻的生活</span><div class="coo-home-activity" data-testid="home-activity" role="status">正在读取进度…</div></div><button type="button" class="coo-icon-button" data-testid="home-cancel" aria-label="取消当前任务与计划" title="取消当前任务与计划" disabled>${icon('close')}</button></div><div class="coo-home-needs" data-testid="home-needs"></div><div class="coo-home-save" data-testid="home-save-warning" role="status" hidden></div><footer class="coo-home-controls-row"><button type="button" data-testid="home-pause">${icon('pause')}<span>暂停生活</span></button><label class="coo-life-autonomy"><input type="checkbox" data-testid="home-autonomy"><i></i>自主生活</label><span class="coo-plan-count"></span></footer></section>`;
@@ -37,7 +37,7 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
   for(const [key,label,glyph] of [['energy','精力','moon'],['hunger','饱腹','bowl'],['hygiene','整洁','drop'],['comfort','舒适','heart']]){
     const cell=document.createElement('div');cell.className='coo-need';cell.dataset.need=key;cell.innerHTML=`<span class="coo-need-icon">${icon(glyph)}</span><div><span class="coo-need-label">${label}</span><div class="coo-need-track" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100"><i></i></div></div><strong></strong>`;needs.append(cell);needNodes.set(key,cell);
   }
-  const garden=createGardenPanel({root,signal,onSow:(entry,action,cropId)=>command(entry,action,cropId)});
+  const garden=createGardenPanel({root,signal,onSow:(entry,action,cropId)=>command(entry,action,cropId),onShop:button=>onCommerce('buy',{button,category:'seed'})});
   let life=null,receivedAt=0,lastPresence=null,lastVisualKey=null,lastGardenKey=null,lastRecent=null,catalog=new Map(),selected=null,requestBusy=false,menuRevision=0;
   function positionMenu(){
     if(menu.hidden||!selected)return;
@@ -118,7 +118,7 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
     return state;
   }
   function selectItem(value){
-    if(!value)return;menuRevision++;garden.close();selected=value.id;menu.hidden=false;menu.dataset.itemId=value.id;
+    if(!value)return;menuRevision++;garden.close();scene.setActiveBuilding?.(value.id.startsWith('shop.')?'shop':value.id.startsWith('teahouse.')?'teahouse':'home');selected=value.id;menu.hidden=false;menu.dataset.itemId=value.id;
     menu.querySelector('strong').textContent=value.id.startsWith('plot-')?`菜畦 ${value.id.slice(5)}`:value.label;actions.replaceChildren();
     const entry=catalog.get(value.id);
     if(!entry){const text=document.createElement('span');text.textContent='正在读取可用动作…';actions.append(text);refreshMenu();return;}
@@ -129,6 +129,10 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
       button.addEventListener('click',()=>{
         if(entry.id.startsWith('plot-')&&['look','view','inspect','查看'].includes(button.dataset.canonical)){closeMenu();garden.showDetails(entry.id,button);return;}
         if(button.dataset.canonical==='sow'){closeMenu();garden.chooseCrop(entry,action,button);return;}
+        const canonical=button.dataset.canonical;
+        if(['shop','buy','sell','orderTea','consume'].includes(canonical)){
+          closeMenu();onCommerce(canonical==='sell'?'sell':canonical==='orderTea'?'tea':canonical==='consume'?'consume':'buy',{button,category:entry.id==='shop.snacks'?'snack':entry.id==='shop.drinks'?'drink':'all',...(entry.id.startsWith('teahouse.cushion.')?{seatId:entry.id}:{})});return;
+        }
         void command(entry,action);
       },{signal});actions.append(button);
     }
@@ -152,7 +156,7 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
       if(bodyPose&&!supported&&!life.paused)activity.textContent=`${catalog.get(current.itemId)?.label??'家具'}旁休息 · 使用已有动作`;
     }
     if(facing?.length===2)facing=[facing[0],0,facing[1]];
-    if(Array.isArray(position))actor.setPlacement({position,word,worldFacing:facing,alignment});
+    if(Array.isArray(position)){actor.setPlacement({position,word,worldFacing:facing,alignment});scene.setActorPosition?.(position);}
   }
   function presence(visible,force=false){
     if(!force&&visible===lastPresence)return;lastPresence=visible;
@@ -175,7 +179,7 @@ export function createLifePanel({root,scene,actor,ctx,signal,send,feedback}){
     if(!position)return;void invoke('walk',[{position}]);
   },{signal});
   void ctx.invoke('catalog').then(result=>{
-    if(signal.aborted)return;catalog=new Map(result.items.map(entry=>[entry.id,entry]));
+    if(signal.aborted)return;catalog=new Map(result.items.map(entry=>[entry.id,entry]));garden.setCatalog(result);onCatalog(result);
     if(selected)selectItem(scene.getItem(selected));
   }).catch(()=>{if(!signal.aborted)feedback('暂时无法读取家具动作，请重新打开家园。');});
   return {receive,selectItem,update,presence,getState:()=>life?structuredClone(life):null,dispose(){garden.dispose();layer.remove();}};

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {registerCommerceItem} from './commerce-spaces.js';
+import {semanticGroup,splitShellStage,rectangleFaces} from './commerce-shell.js';
 
 const TAU = 2 * Math.PI;
 const jp = '"Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "MS Mincho", "Noto Serif CJK SC", serif';
@@ -94,7 +96,7 @@ function teaPot(k,g,x,y,z,scale,col){
   k.line(g,pts,'#463e37',.019*scale);
 }
 
-export function buildTeahouse(k){
+export function buildTeahouse(k,register){
   const {group,box,cyl,line,glow}=k;
   const left=-10.10,right=-6.57,zBack=-4.0,zFront=.73,mid=(left+right)/2,zc=(zBack+zFront)/2;
   const foundation=group('Tea house · stonework and tatami',.58);
@@ -177,11 +179,17 @@ export function buildTeahouse(k){
   }
   box(room,-7.64,.785,-1.71,1.02,.102,.76,'#a67f5c');
   for(const x of [-8.045,-7.236])for(const z of [-2.0,-1.42])box(room,x,.65,z,.085,.231,.086,timber);
-  for(const z of [-2.33,-1.06])box(room,-7.64,.575,z,.62,.085,.43,'#788a78');
+  for(const [id,z] of [['back',-2.33],['front',-1.06]]){
+    const cushion=semanticGroup(room,'Tea cushion '+id);
+    box(cushion,-7.64,.575,z,.62,.085,.43,'#788a78');
+    registerCommerceItem(register,'teahouse.cushion.'+id,cushion);
+  }
+  registerCommerceItem(register,'teahouse.menu',room);
   for(let i=0;i<2;i++)cyl(room,-7.8+i*.29,.885,-1.67,.068,.052,.106,'#c1b99e');
   const scroll=artwork(160,300,(c,w,h)=>{c.fillStyle='#d2bd98';c.fillRect(0,0,w,h);c.fillStyle='#548176';c.beginPath();c.arc(98,103,31,0,TAU);c.fill();for(let i=0;i<4;i++){c.fillStyle=['#78877a','#4d746c','#56766e','#89937e'][i];c.beginPath();c.moveTo(0,230-i*14);c.quadraticCurveTo(40+i*10,120+i*12,90,185-i*5);c.lineTo(160,147+i*15);c.lineTo(160,260);c.lineTo(0,260);c.fill();}brush(c,'庭',124,272,19,'#9c544c');});
-  picture(room,scroll,-7.48,1.71,zBack+.078,.49,.94);
-  for(const y of [1.219,2.201])box(room,-7.48,y,zBack+.09,.56,.047,.05,timber);
+  const wallScroll=semanticGroup(room,'Tea room hanging scroll');
+  picture(wallScroll,scroll,-7.48,1.71,zBack+.078,.49,.94);
+  for(const y of [1.219,2.201])box(wallScroll,-7.48,y,zBack+.09,.56,.047,.05,timber);
   const light=new THREE.PointLight(0xffb56f,5.1,4.3,2);light.position.set(-8.65,2.07,-.47);room.add(light);
 
   const eaves=group('Tea house · gable timber and eaves',2.36);
@@ -289,4 +297,8 @@ export function buildTeahouse(k){
       leaf.scale.set(.055,.025,.093);leaf.position.set(xx+Math.sin(a)*.042,h+.071,zz+Math.cos(a)*.047);leaf.rotation.set(.21,a,.34);garden.add(leaf);
     }
   }
+  const faces=rectangleFaces(left,right,zBack,zFront);
+  const walls=splitShellStage(timberwork,faces,p=>p.z<zBack+.16?'back':p.x<left+.16?'left':p.x>right-.16?'right':'front');
+  walls.find(w=>w.outward[1]===-1).object.add(wallScroll);
+  return {id:'teahouse',walls,roof:[eaves,roof,shopfront]};
 }
