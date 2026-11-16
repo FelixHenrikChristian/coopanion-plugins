@@ -24,7 +24,7 @@
 
 ## 安装与开始
 
-适用于 **Coopanion World API 6**，本版在 **Coopanion 0.2.20 / Windows** 的隔离部署中验证。其他平台的兼容性尚未实测。桌宠 World 需启用，并使用默认或固定本机服务端口。
+适用于 **Coopanion World API 6**，本版在 **Coopanion 0.2.21 / Windows** 的隔离部署中验证。其他平台的兼容性尚未实测。桌宠 World 需启用，并使用默认或固定本机服务端口。
 
 1. 打开 Coopanion 的 **World 扩展**，搜索 `coo家园` 或手动填写 `cortico-world-coo-home@0.5.0` 安装。
 2. 按宿主提示重启并启用 **coo家园**。选择“家园”进入街区；首次点击页面后可播放角色声音。

@@ -112,7 +112,7 @@ try{
   const environmentMarker='NEUTRAL_NATIVE_HOME_TEMPLATE_ONLY';
   await json(origin,'/api/prompts',{key:promptKey,baseRevision:prompt.revision,content:environmentMarker+'\n{{home.needs}}'});
   const prefix=await json(origin,'/api/prompts/prefix');assert.ok(!JSON.stringify(prefix).includes(environmentMarker));assert.ok(!prefix.segments.some(row=>row.sourceKey===promptKey));
-  report.checks.nativePrompt='Official template editor API exposes four variables; role-free template is absent from Core desktop prefix';
+  report.checks.nativePrompt='Official template editor API exposes five variables; role-free template is absent from Core desktop prefix';
   await invoke('settings',[{autonomy:false}]);
   await invoke('cancel');
   if(process.argv.includes('--report-only'))report.checks.desktopReport=await verifyHostChatReport({provider,invoke,json,origin,feed,original,until});

@@ -9,6 +9,7 @@ import { verifyLifeContract } from './fixtures/life-contract.mjs';
 import { verifyBrowserGarden } from './fixtures/browser-garden.mjs';
 import { verifyGardenContract } from './fixtures/garden-contract.mjs';
 import { verifyBrowserAudio } from './fixtures/browser-audio.mjs';
+import { verifyBrowserCommerce } from './fixtures/browser-commerce-life.mjs';
 
 // Supply Playwright/browser locations through the environment when not installed
 // locally. No development-machine paths or user figure names belong in this file.
@@ -103,7 +104,9 @@ try {
   }
 
   await ready();
-  if(process.argv.includes('--garden-only')){
+  if(process.argv.includes('--commerce-only')){
+    report.checks.commerce=await verifyBrowserCommerce({fixture,page,root,canvas,view,painted,shot,markerPixels});
+  }else if(process.argv.includes('--garden-only')){
     report.checks.garden=await verifyBrowserGarden({fixture,page,root,canvas,view,painted,shot});
   }else{
   const initial = await page.evaluate(() => ({
@@ -187,6 +190,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.__homeHarness.metrics.original), initial.original);
   report.checks.switching = 'Appearance and scheme change; position preserved; original fixture unchanged';
   report.checks.garden = await verifyBrowserGarden({ fixture, page, root, canvas, view, painted, shot });
+  report.checks.commerce = await verifyBrowserCommerce({ fixture, page, root, canvas, view, painted, shot, markerPixels });
 
   await root.evaluate((element) => { element.style.display = 'none'; });
   await page.waitForTimeout(150);
