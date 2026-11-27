@@ -9,7 +9,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 | [装扮工作室](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.2 | 独立衣橱：切换服装与配件，附完整形象制作指导；示例来自噜噜插件 |
 | [截图隐身](packages/cortico-world-capture-guard) | `cortico-world-capture-guard` | 1.1.1 | 仅本地自用，停止公开发布 |
 | [噜噜](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.6 | 水豚噜噜桌宠，自带衣橱，也可接入装扮工作室换装、摘戴包包 |
-| [coo家园](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.5.0 | 雨夜家园、独立生活、种菜背包、便利店买卖与茶房品茶 |
+| [coo家园](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.5.1 | 雨夜家园、独立生活、种菜背包、便利店买卖与茶房品茶 |
 
 源码版本不等于 npm 或市场已发布版本。只有实际发布的版本才会出现在对应分发渠道。
 
@@ -19,7 +19,7 @@ Coopanion 插件统一源码仓库。每个插件仍是独立的 World 扩展，
 
 选择你需要的单个插件，查看它自己的 README。安装一个插件不要求安装另一个。
 
-GitHub Release 使用独立标签：`wardrobe-studio-v0.6.2`、`capture-guard-v1.1.0`、`lulu-v0.1.6`、`coo-home-v0.5.0`。每个 Release 只提供相应插件的包；仓库根目录不是可安装插件。
+GitHub Release 使用独立标签：`wardrobe-studio-v0.6.2`、`capture-guard-v1.1.0`、`lulu-v0.1.6`、`coo-home-v0.5.1`。每个 Release 只提供相应插件的包；仓库根目录不是可安装插件。
 
 ## 目录
 

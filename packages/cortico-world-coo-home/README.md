@@ -6,7 +6,7 @@
 
 **coo家园**是 Coopanion 的第三方 World 扩展：在可旋转、缩放的三维微缩街区中，使用你当前选择的角色，读书、看电脑、休息、照料菜园，过街购物、卖菜或去茶房品茶，也能用自然语言安排一天的小事。家园与桌面是独立的生活实例，保留相同外观、人格与声音，分别保存家园活动和聊天。
 
-[安装包](https://www.npmjs.com/package/cortico-world-coo-home) · [发行记录](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/coo-home-v0.5.0) · [反馈问题](https://github.com/FelixHenrikChristian/coopanion-plugins/issues)
+[安装包](https://www.npmjs.com/package/cortico-world-coo-home) · [发行记录](https://github.com/FelixHenrikChristian/coopanion-plugins/releases/tag/coo-home-v0.5.1) · [反馈问题](https://github.com/FelixHenrikChristian/coopanion-plugins/issues)
 
 ## 看看这里的生活
 
@@ -26,7 +26,7 @@
 
 适用于 **Coopanion World API 6**，本版在 **Coopanion 0.2.21 / Windows** 的隔离部署中验证。其他平台的兼容性尚未实测。桌宠 World 需启用，并使用默认或固定本机服务端口。
 
-1. 打开 Coopanion 的 **World 扩展**，搜索 `coo家园` 或手动填写 `cortico-world-coo-home@0.5.0` 安装。
+1. 打开 Coopanion 的 **World 扩展**，搜索 `coo家园` 或手动填写 `cortico-world-coo-home@0.5.1` 安装。
 2. 按宿主提示重启并启用 **coo家园**。选择“家园”进入街区；首次点击页面后可播放角色声音。
 3. 可以直接走动、使用家具和种菜。聊天沿用宿主已配置的模型服务；本地自主生活不需要模型。
 

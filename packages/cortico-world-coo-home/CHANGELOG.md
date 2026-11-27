@@ -1,5 +1,9 @@
 # Changes
 
+## 0.5.1 — marketplace introduction
+
+- Expand the Chinese and English marketplace descriptions with a guide to home life, gardening, shopping, tea and chat.
+
 ## 0.5.0 — shopping and teahouse visits
 
 - Add a one-time 100-coin welcome balance, unlimited free spring-onion seeds and progressively priced seed packets for seven other crops.

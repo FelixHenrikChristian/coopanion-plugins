@@ -9,7 +9,7 @@ One repository for independently installable Coopanion World extensions.
 | [Wardrobe Studio](packages/cortico-world-wardrobe-studio) | `cortico-world-wardrobe-studio` | 0.6.2 |
 | [Capture Guard](packages/cortico-world-capture-guard) — personal use only | `cortico-world-capture-guard` | 1.1.1 |
 | [Lulu](packages/cortico-world-lulu) | `cortico-world-lulu` | 0.1.6 |
-| [coo Home](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.5.0 |
+| [coo Home](packages/cortico-world-coo-home) | `cortico-world-coo-home` | 0.5.1 |
 
 Each plugin keeps its own version, installation, configuration and license. Installing one does not install the others. Source versions are not claims that the same versions have been published to npm or the extension market.
 
